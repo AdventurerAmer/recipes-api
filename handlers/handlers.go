@@ -2,25 +2,29 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/models"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type RecipesHandler struct {
-	collection *mongo.Collection
-	ctx        context.Context
+	ctx         context.Context
+	collection  *mongo.Collection
+	redisClient *redis.Client
 }
 
-func NewRecipesHandler(ctx context.Context, collection *mongo.Collection) *RecipesHandler {
+func NewRecipesHandler(ctx context.Context, collection *mongo.Collection, redisClient *redis.Client) *RecipesHandler {
 	return &RecipesHandler{
-		ctx:        ctx,
-		collection: collection,
+		ctx:         ctx,
+		collection:  collection,
+		redisClient: redisClient,
 	}
 }
 
@@ -73,6 +77,7 @@ func (h *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "insert reciped failed"})
 		return
 	}
+	h.redisClient.Del(h.ctx, "recipes")
 	c.JSON(http.StatusCreated, recipe)
 }
 
@@ -86,13 +91,23 @@ func (h *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 //	'200':
 //	    description: Successful operation
 func (h *RecipesHandler) ListRecipesHandler(c *gin.Context) {
+	var recipes []models.Recipe
+
+	cacheKey := "recipes"
+	cacheData, cacheErr := h.redisClient.Get(h.ctx, cacheKey).Result()
+	if cacheErr == nil {
+		if err := json.Unmarshal([]byte(cacheData), &recipes); err == nil {
+			c.JSON(http.StatusOK, recipes)
+			return
+		}
+	}
+
 	cursor, err := h.collection.Find(h.ctx, bson.M{})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "find recipes failed"})
 		return
 	}
 	defer cursor.Close(context.Background())
-	recipes := make([]models.Recipe, 0)
 	for cursor.Next(h.ctx) {
 		var recipe models.Recipe
 		if err := cursor.Decode(&recipe); err != nil {
@@ -100,6 +115,9 @@ func (h *RecipesHandler) ListRecipesHandler(c *gin.Context) {
 			return
 		}
 		recipes = append(recipes, recipe)
+	}
+	if cacheErr == redis.Nil {
+		h.redisClient.Set(h.ctx, cacheKey, recipes, time.Minute)
 	}
 	c.JSON(http.StatusOK, recipes)
 }
@@ -192,6 +210,7 @@ func (h *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.redisClient.Del(h.ctx, "recipes")
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been updated"})
 }
 
@@ -225,6 +244,8 @@ func (h *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
 	filter := bson.M{"_id": objectID}
 	if _, err := h.collection.DeleteOne(h.ctx, filter); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
+	h.redisClient.Del(h.ctx, "recipes")
 	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been deleted"})
 }

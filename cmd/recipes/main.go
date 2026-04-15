@@ -31,27 +31,41 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	opts := options.Client().ApplyURI("mongodb://admin:admin@localhost:27017/dev?authSource=admin")
-	cilent, err := mongo.Connect(ctx, opts)
+	mongoOpts := options.Client().ApplyURI("mongodb://admin:admin@localhost:27017/dev?authSource=admin")
+	mongoCilent, err := mongo.Connect(ctx, mongoOpts)
 	if err != nil {
 		slog.Error("database connection failed", "error", err)
 		os.Exit(1)
 	}
 
-	if err := cilent.Ping(ctx, readpref.Primary()); err != nil {
+	if err := mongoCilent.Ping(ctx, readpref.Primary()); err != nil {
 		slog.Error("database connection failed", "error", err)
 		os.Exit(1)
 	}
 
-	collection := cilent.Database("dev").Collection("recipes")
+	redisOpts := &redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	}
+	redisClient := redis.NewClient(redisOpts)
 
-	handlers := handlers.NewRecipesHandler(context.Background(), collection)
+	if _, err := redisClient.Ping(ctx).Result(); err != nil {
+		slog.Error("cache connection failed", "error", err)
+		os.Exit(1)
+	}
+
+	collection := mongoCilent.Database("dev").Collection("recipes")
+
+	handlers := handlers.NewRecipesHandler(context.Background(), collection, redisClient)
 	r := gin.Default()
 	r.POST("/recipes", handlers.NewRecipeHandler)
 	r.GET("/recipes", handlers.ListRecipesHandler)

@@ -1,7 +1,8 @@
 name: recipes
 services:
   mongo:
-    image: mongo:8.0
+    image: mongo:8
+    restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
@@ -9,6 +10,26 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=admin
     volumes:
       - mongo-data:/data/db
+
+  redis:
+    image: redis:8.6
+    restart: unless-stopped              
+    ports:
+      - "6379:6379"              
+    volumes:
+      - redis-data:/data
+    
+  redis-insight:
+    image: redis/redisinsight:3.2
     restart: unless-stopped
+    ports:
+      - "5540:5540"
+    volumes:
+      - redis-insight-data:/data
+    depends_on:
+      - redis
+  
 volumes:
   mongo-data:
+  redis-data:
+  redis-insight-data:
