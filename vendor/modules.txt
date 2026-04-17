@@ -1,3 +1,6 @@
+# github.com/boj/redistore v1.4.1
+## explicit; go 1.23
+github.com/boj/redistore
 # github.com/bytedance/gopkg v0.1.3
 ## explicit; go 1.18
 github.com/bytedance/gopkg/lang/dirtmake
@@ -65,6 +68,10 @@ github.com/gabriel-vasile/mimetype/internal/json
 github.com/gabriel-vasile/mimetype/internal/magic
 github.com/gabriel-vasile/mimetype/internal/markup
 github.com/gabriel-vasile/mimetype/internal/scan
+# github.com/gin-contrib/sessions v1.1.0
+## explicit; go 1.25.0
+github.com/gin-contrib/sessions
+github.com/gin-contrib/sessions/redis
 # github.com/gin-contrib/sse v1.1.0
 ## explicit; go 1.23
 github.com/gin-contrib/sse
@@ -108,18 +115,34 @@ github.com/goccy/go-yaml/parser
 github.com/goccy/go-yaml/printer
 github.com/goccy/go-yaml/scanner
 github.com/goccy/go-yaml/token
-# github.com/golang/snappy v0.0.4
+# github.com/golang/snappy v1.0.0
 ## explicit
 github.com/golang/snappy
+# github.com/gomodule/redigo v1.9.2
+## explicit; go 1.17
+github.com/gomodule/redigo/redis
+# github.com/google/uuid v1.6.0
+## explicit
+github.com/google/uuid
+# github.com/gorilla/context v1.1.2
+## explicit; go 1.20
+github.com/gorilla/context
+# github.com/gorilla/securecookie v1.1.2
+## explicit; go 1.20
+github.com/gorilla/securecookie
+# github.com/gorilla/sessions v1.4.0
+## explicit; go 1.23
+github.com/gorilla/sessions
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.17.6
-## explicit; go 1.19
+# github.com/klauspost/compress v1.18.0
+## explicit; go 1.22
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/cpuinfo
+github.com/klauspost/compress/internal/le
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
@@ -286,8 +309,10 @@ go.uber.org/atomic
 # golang.org/x/arch v0.22.0
 ## explicit; go 1.24.0
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.48.0
-## explicit; go 1.24.0
+# golang.org/x/crypto v0.50.0
+## explicit; go 1.25.0
+golang.org/x/crypto/argon2
+golang.org/x/crypto/blake2b
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/hkdf
@@ -297,7 +322,7 @@ golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
-# golang.org/x/net v0.51.0
+# golang.org/x/net v0.52.0
 ## explicit; go 1.25.0
 golang.org/x/net/bpf
 golang.org/x/net/http/httpguts
@@ -311,17 +336,17 @@ golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
-# golang.org/x/sync v0.19.0
-## explicit; go 1.24.0
+# golang.org/x/sync v0.20.0
+## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.41.0
-## explicit; go 1.24.0
+# golang.org/x/sys v0.43.0
+## explicit; go 1.25.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.34.0
-## explicit; go 1.24.0
+# golang.org/x/text v0.36.0
+## explicit; go 1.25.0
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag

@@ -32,6 +32,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
+	"github.com/gin-contrib/sessions"
+	ginRedis "github.com/gin-contrib/sessions/redis"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -40,13 +42,13 @@ func main() {
 	defer cancel()
 
 	mongoOpts := options.Client().ApplyURI("mongodb://admin:admin@localhost:27017/dev?authSource=admin")
-	mongoCilent, err := mongo.Connect(ctx, mongoOpts)
+	mongoClient, err := mongo.Connect(ctx, mongoOpts)
 	if err != nil {
 		slog.Error("database connection failed", "error", err)
 		os.Exit(1)
 	}
 
-	if err := mongoCilent.Ping(ctx, readpref.Primary()); err != nil {
+	if err := mongoClient.Ping(ctx, readpref.Primary()); err != nil {
 		slog.Error("database connection failed", "error", err)
 		os.Exit(1)
 	}
@@ -63,14 +65,32 @@ func main() {
 		os.Exit(1)
 	}
 
-	collection := mongoCilent.Database("dev").Collection("recipes")
+	db := mongoClient.Database("dev")
 
-	handlers := handlers.NewRecipesHandler(context.Background(), collection, redisClient)
+	store, err := ginRedis.NewStore(10, "tcp", "localhost:6379", "", "", []byte("xnx6D7fCxR47XqHGrnkqIBDjHIoz1csJ"))
+	if err != nil {
+		slog.Error("cache connection failed", "error", err)
+		os.Exit(1)
+	}
+
+	recipesHandler := handlers.NewRecipesHandler(context.Background(), db.Collection("recipes"), redisClient)
+	authHandler := handlers.NewAuthHandler(context.Background(), mongoClient, db.Collection("users"))
+
 	r := gin.Default()
-	r.POST("/recipes", handlers.NewRecipeHandler)
-	r.GET("/recipes", handlers.ListRecipesHandler)
-	r.GET("/recipes/search", handlers.SearchRecipesHandler)
-	r.PUT("/recipes/:id", handlers.UpdateRecipeHandler)
-	r.DELETE("/recipes/:id", handlers.DeleteRecipeHandler)
+	r.POST("/signup", authHandler.SignUpHandler)
+	r.POST("/signIn", authHandler.SignInHandler)
+	r.POST("/signout", authHandler.SignOutHandler)
+
+	r.GET("/recipes", recipesHandler.ListRecipesHandler)
+	r.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
+
+	authed := r.Group("/")
+	authed.Use(sessions.Sessions("recipes", store))
+	authed.Use(authHandler.AuthMiddleware())
+	{
+		authed.POST("/recipes", recipesHandler.NewRecipeHandler)
+		authed.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
+		authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+	}
 	r.Run(":3000")
 }
