@@ -22,7 +22,7 @@ type MongoContext struct {
 	Database *mongo.Database
 }
 
-func ConnectToMongo(ctx context.Context, cfg MongoConfig) (MongoContext, error) {
+func connectToMongo(ctx context.Context, cfg MongoConfig) (MongoContext, error) {
 	// TODO: distingus between 'dev' and 'prod' in terms of authentication
 	connStr := fmt.Sprintf("mongodb://%s:%s@%s:%d/%s?authSource=admin", cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
 	opts := options.Client().ApplyURI(connStr)
@@ -42,7 +42,7 @@ func ConnectToMongo(ctx context.Context, cfg MongoConfig) (MongoContext, error) 
 	}, nil
 }
 
-func DisconnectFromMongo(ctx context.Context, mongoCtx MongoContext) error {
+func disconnectFromMongo(ctx context.Context, mongoCtx MongoContext) error {
 	if err := mongoCtx.Client.Disconnect(ctx); err != nil {
 		return fmt.Errorf("'Client.Disconnect' failed: %w", err)
 	}

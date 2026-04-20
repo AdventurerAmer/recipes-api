@@ -32,7 +32,7 @@ func ConnectToRedis(ctx context.Context, cfg RedisConfig) (RedisContext, error) 
 	return RedisContext{Client: client}, nil
 }
 
-func DisconnectFromRedis(ctx context.Context, redisCtx RedisContext) error {
+func disconnectFromRedis(ctx context.Context, redisCtx RedisContext) error {
 	errCh := make(chan error)
 	go func() {
 		if err := redisCtx.Client.Close(); err != nil {
