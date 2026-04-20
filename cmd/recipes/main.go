@@ -38,7 +38,7 @@ type App struct {
 }
 
 func main() {
-	app := App{}
+	app := &App{}
 	infraCtx := infra.New()
 	infraCtx.BindMongo(infra.MongoConfig{
 		Username: "admin",
