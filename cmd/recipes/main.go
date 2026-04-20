@@ -26,55 +26,57 @@ import (
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/handlers"
+	"github.com/AdventurerAmer/recipes-api/infra"
 	"github.com/gin-gonic/gin"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 
 	"github.com/gin-contrib/sessions"
 	ginRedis "github.com/gin-contrib/sessions/redis"
-	"github.com/redis/go-redis/v9"
 )
+
+type Infra struct {
+	mainDB    infra.MongoContext
+	mainCache infra.RedisContext
+}
 
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	mongoOpts := options.Client().ApplyURI("mongodb://admin:admin@localhost:27017/dev?authSource=admin")
-	mongoClient, err := mongo.Connect(ctx, mongoOpts)
+	mongoCfg := infra.MongoConfig{
+		Username: "admin",
+		Password: "admin",
+		Host:     "localhost",
+		Port:     27017,
+		Database: "dev",
+	}
+
+	mongoCtx, err := infra.ConnectToMongo(ctx, mongoCfg)
 	if err != nil {
 		slog.Error("database connection failed", "error", err)
 		os.Exit(1)
 	}
 
-	if err := mongoClient.Ping(ctx, readpref.Primary()); err != nil {
-		slog.Error("database connection failed", "error", err)
-		os.Exit(1)
-	}
-
-	redisOpts := &redis.Options{
-		Addr:     "localhost:6379",
+	redisCfg := infra.RedisConfig{
+		Address:  "localhost:6379",
+		Username: "",
 		Password: "",
-		DB:       0,
+		Database: 0,
 	}
-	redisClient := redis.NewClient(redisOpts)
-
-	if _, err := redisClient.Ping(ctx).Result(); err != nil {
-		slog.Error("cache connection failed", "error", err)
-		os.Exit(1)
-	}
-
-	db := mongoClient.Database("dev")
-
-	store, err := ginRedis.NewStore(10, "tcp", "localhost:6379", "", "", []byte("xnx6D7fCxR47XqHGrnkqIBDjHIoz1csJ"))
+	redisCtx, err := infra.ConnectToRedis(ctx, redisCfg)
 	if err != nil {
 		slog.Error("cache connection failed", "error", err)
 		os.Exit(1)
 	}
 
-	recipesHandler := handlers.NewRecipesHandler(context.Background(), db.Collection("recipes"), redisClient)
-	authHandler := handlers.NewAuthHandler(context.Background(), mongoClient, db.Collection("users"))
+	// TODO: hardcoding connections
+	store, err := ginRedis.NewStore(10, "tcp", redisCfg.Address, redisCfg.Username, redisCfg.Password, []byte("xnx6D7fCxR47XqHGrnkqIBDjHIoz1csJ"))
+	if err != nil {
+		slog.Error("cache connection failed", "error", err)
+		os.Exit(1)
+	}
+
+	recipesHandler := handlers.NewRecipesHandler(context.Background(), mongoCtx.Database.Collection("recipes"), redisCtx.Client)
+	authHandler := handlers.NewAuthHandler(context.Background(), mongoCtx.Client, mongoCtx.Database.Collection("users"))
 
 	r := gin.Default()
 	r.POST("/signup", authHandler.SignUpHandler)
@@ -93,4 +95,17 @@ func main() {
 		authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
 	}
 	r.Run(":3000")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	if err := infra.DisconnectFromMongo(shutdownCtx, mongoCtx); err != nil {
+		slog.Error("database disconnection failed", "error", err)
+		os.Exit(1)
+	}
+
+	if err := infra.DisconnectFromRedis(shutdownCtx, redisCtx); err != nil {
+		slog.Error("cache disconnection failed", "error", err)
+		os.Exit(1)
+	}
 }
