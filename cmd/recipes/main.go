@@ -32,30 +32,33 @@ import (
 	ginRedis "github.com/gin-contrib/sessions/redis"
 )
 
+type App struct {
+	mainDB    infra.MongoContext
+	mainCache infra.RedisContext
+}
+
 func main() {
-	mongoCfg := infra.MongoConfig{
+	app := App{}
+	infraCtx := infra.New()
+	infraCtx.BindMongo(infra.MongoConfig{
 		Username: "admin",
 		Password: "admin",
 		Host:     "localhost",
 		Port:     27017,
 		Database: "dev",
-	}
+	}, &app.mainDB)
 	redisCfg := infra.RedisConfig{
 		Address:  "localhost:6379",
 		Username: "",
 		Password: "",
 		Database: 0,
 	}
-	var mainDB infra.MongoContext
-	var mainCache infra.RedisContext
-	ifa := infra.New()
-	ifa.BindMongo(mongoCfg, &mainDB)
-	ifa.BindRedis(redisCfg, &mainCache)
-	if err := ifa.Start(context.TODO()); err != nil {
+	infraCtx.BindRedis(redisCfg, &app.mainCache)
+	if err := infraCtx.Start(context.TODO()); err != nil {
 		slog.Error("infrastructure startup failed", "error", err)
 		os.Exit(1)
 	}
-	defer ifa.Shutdown(context.TODO())
+	defer infraCtx.Shutdown(context.TODO())
 
 	// TODO: hardcoding connections
 	store, err := ginRedis.NewStore(10, "tcp", redisCfg.Address, redisCfg.Username, redisCfg.Password, []byte("xnx6D7fCxR47XqHGrnkqIBDjHIoz1csJ"))
@@ -64,8 +67,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	recipesHandler := handlers.NewRecipesHandler(context.Background(), mainDB.Database.Collection("recipes"), mainCache.Client)
-	authHandler := handlers.NewAuthHandler(context.Background(), mainDB.Client, mainDB.Database.Collection("users"))
+	recipesHandler := handlers.NewRecipesHandler(context.Background(), app.mainDB.Database.Collection("recipes"), app.mainCache.Client)
+	authHandler := handlers.NewAuthHandler(context.Background(), app.mainDB.Client, app.mainDB.Database.Collection("users"))
 
 	r := gin.Default()
 	r.POST("/signup", authHandler.SignUpHandler)
