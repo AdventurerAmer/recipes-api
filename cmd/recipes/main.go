@@ -71,20 +71,23 @@ func main() {
 	authHandler := handlers.NewAuthHandler(context.Background(), app.mainDB.Client, app.mainDB.Database.Collection("users"))
 
 	r := gin.Default()
-	r.POST("/signup", authHandler.SignUpHandler)
-	r.POST("/signIn", authHandler.SignInHandler)
-	r.POST("/signout", authHandler.SignOutHandler)
-
-	r.GET("/recipes", recipesHandler.ListRecipesHandler)
-	r.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
-
-	authed := r.Group("/")
-	authed.Use(sessions.Sessions("recipes", store))
-	authed.Use(authHandler.AuthMiddleware())
+	v1 := r.Group("/api/v1/")
 	{
-		authed.POST("/recipes", recipesHandler.NewRecipeHandler)
-		authed.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
-		authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+		v1.POST("/signup", authHandler.SignUpHandler)
+		v1.POST("/signIn", authHandler.SignInHandler)
+		v1.POST("/signout", authHandler.SignOutHandler)
+
+		v1.GET("/recipes", recipesHandler.ListRecipesHandler)
+		v1.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
+
+		authed := v1.Group("/")
+		authed.Use(sessions.Sessions("recipes", store))
+		authed.Use(authHandler.AuthMiddleware())
+		{
+			authed.POST("/recipes", recipesHandler.NewRecipeHandler)
+			authed.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
+			authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+		}
 	}
-	r.Run(":3000")
+	r.Run(":3000") // TODO: configurations
 }
