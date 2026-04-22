@@ -41,8 +41,8 @@ func main() {
 	app := &App{}
 	infraCtx := infra.New()
 	infraCtx.BindMongo(infra.MongoConfig{
-		Username: "admin",
-		Password: "admin",
+		Username: "",
+		Password: "",
 		Host:     "localhost",
 		Port:     27017,
 		Database: "dev",

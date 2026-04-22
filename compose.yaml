@@ -2,15 +2,28 @@ name: recipes
 services:
   mongo:
     image: mongo:8
+    hostname: mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
     volumes:
       - mongo-data:/data/db
-
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: mongosh --eval "db.adminCommand('ping')" --quiet
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+  mongo-init:
+    image: mongo:8.0
+    restart: on-failure
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./scripts/mongo-init-replica.sh:/scripts/mongo-init-replica.sh:ro
+    entrypoint: ["/bin/bash", "/scripts/mongo-init-replica.sh"]
   redis:
     image: redis:8.6
     restart: unless-stopped              
@@ -18,7 +31,6 @@ services:
       - "6379:6379"              
     volumes:
       - redis-data:/data
-    
   redis-insight:
     image: redis/redisinsight:3.2
     restart: unless-stopped
@@ -28,7 +40,6 @@ services:
       - redis-insight-data:/data
     depends_on:
       - redis
-  
 volumes:
   mongo-data:
   redis-data:
