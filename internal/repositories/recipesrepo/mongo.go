@@ -3,6 +3,7 @@ package recipesrepo
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
@@ -49,6 +50,62 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (domain.Recipe, error
 	return recipe, nil
 }
 
+func (repo *mongoRepo) List(ctx context.Context, lastID, sort string, limit int) ([]domain.Recipe, int, error) {
+	filter := bson.M{}
+	if lastID != "" {
+		oid, err := primitive.ObjectIDFromHex(lastID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
+		}
+		filter["_id"] = bson.M{"$gt": oid}
+	}
+	match := bson.D{{Key: "$match", Value: filter}}
+	pagination := bson.D{
+		{Key: "recipes", Value: bson.A{
+			bson.D{{Key: "$sort", Value: sort}},
+			bson.D{{Key: "$limit", Value: limit}},
+		}},
+		{Key: "total", Value: bson.A{
+			bson.D{{Key: "$count", Value: "count"}},
+		}},
+	}
+	facet := bson.D{{Key: "$facet", Value: pagination}}
+	pipeline := mongo.Pipeline{match, facet}
+	cursor, err := repo.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, 0, fmt.Errorf("'collection.Aggregate' failed: %w", err)
+	}
+	defer func() {
+		cctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := cursor.Close(cctx); err != nil {
+			slog.Error("'cursor.Close' failed", "error", err)
+		}
+	}()
+
+	type Total struct {
+		Count int `bson:"count"`
+	}
+
+	var results []struct {
+		Recipes []domain.Recipe `bson:"recipes"`
+		Totals  []Total         `bson:"total"`
+	}
+
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, 0, fmt.Errorf("'cursor.All' failed: %w", err)
+	}
+	if len(results) == 0 {
+		return nil, 0, nil
+	}
+	result := results[0]
+	total := 0
+	if len(result.Totals) != 0 {
+		total = result.Totals[0].Count
+	}
+	return result.Recipes, total, nil
+}
+
 func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error {
 	oid, err := primitive.ObjectIDFromHex(recipe.ID)
 	if err != nil {
@@ -80,12 +137,12 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 	return nil
 }
 
-func (repo *mongoRepo) Delete(ctx context.Context, id string) error {
+func (repo *mongoRepo) Delete(ctx context.Context, userID, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
-	filter := bson.M{"_id": oid}
+	filter := bson.M{"_id": oid, "userID": userID}
 	if _, err := repo.collection.DeleteOne(ctx, filter); err != nil {
 		return fmt.Errorf("'collection.DeleteOne' failed: %w", err)
 	}
