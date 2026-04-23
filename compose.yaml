@@ -8,22 +8,19 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     healthcheck:
-      test: mongosh --eval "db.adminCommand('ping')" --quiet
+      test: >
+        echo "try { rs.status() } catch (err) { 
+          rs.initiate({
+            _id: 'rs0', 
+            members: [{ _id: 0, host: 'host.docker.internal:27017' }]
+          }) 
+        }" | mongosh --port 27017 --quiet
       interval: 5s
-      timeout: 10s
-      retries: 5
+      timeout: 30s
       start_period: 10s
-  mongo-init:
-    image: mongo:8.0
-    restart: on-failure
-    depends_on:
-      mongo:
-        condition: service_healthy
-    volumes:
-      - ./scripts/mongo-init-replica.sh:/scripts/mongo-init-replica.sh:ro
-    entrypoint: ["/bin/bash", "/scripts/mongo-init-replica.sh"]
+      retries: 30
   redis:
     image: redis:8.6
     restart: unless-stopped              
