@@ -26,6 +26,8 @@ import (
 
 	"github.com/AdventurerAmer/recipes-api/handlers"
 	"github.com/AdventurerAmer/recipes-api/infra"
+	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
+	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
 	"github.com/gin-gonic/gin"
 
 	"github.com/gin-contrib/sessions"
@@ -67,7 +69,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	recipesHandler := handlers.NewRecipesHandler(context.Background(), app.mainDB.Database.Collection("recipes"), app.mainCache.Client)
+	recipesRepoCfg := recipesrepo.MongoConfig{
+		Database: app.mainDB.Database,
+	}
+	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
+
+	recipesServiceCfg := recipessrv.Config{
+		RecipesRepo: recipesRepo,
+		MaxLimit:    100,
+	}
+
+	recipesService := recipessrv.New(recipesServiceCfg)
+
+	recipesHandler := handlers.NewRecipesHandler(recipesService)
 	authHandler := handlers.NewAuthHandler(context.Background(), app.mainDB.Client, app.mainDB.Database.Collection("users"))
 
 	r := gin.Default()
@@ -78,7 +92,6 @@ func main() {
 		v1.POST("/signout", authHandler.SignOutHandler)
 
 		v1.GET("/recipes", recipesHandler.ListRecipesHandler)
-		v1.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
 
 		authed := v1.Group("/")
 		authed.Use(sessions.Sessions("recipes", store))
