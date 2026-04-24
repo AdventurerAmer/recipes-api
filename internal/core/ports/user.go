@@ -16,6 +16,7 @@ type UsersRepository interface {
 
 type UsersService interface {
 	SignUp(ctx context.Context, req SignUpRequest) (SignUpResponse, error)
+	SignIn(ctx context.Context, req SignInRequest) (SignInResponse, error)
 }
 
 type SignUpRequest struct {
@@ -24,6 +25,16 @@ type SignUpRequest struct {
 }
 
 type SignUpResponse struct {
+	User    domain.User `json:"user"`
+	Message string      `json:"message"`
+}
+
+type SignInRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type SignInResponse struct {
 	User    domain.User `json:"user"`
 	Message string      `json:"message"`
 }

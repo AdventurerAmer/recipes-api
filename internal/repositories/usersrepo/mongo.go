@@ -13,8 +13,8 @@ import (
 )
 
 type MongoConfig struct {
-	database *mongo.Database
-	client   *mongo.Client
+	Database *mongo.Database
+	Client   *mongo.Client
 }
 
 type mongoRepo struct {
@@ -25,12 +25,12 @@ type mongoRepo struct {
 func NewMongo(cfg MongoConfig) ports.UsersRepository {
 	return &mongoRepo{
 		MongoConfig: cfg,
-		collection:  cfg.database.Collection("users"),
+		collection:  cfg.Database.Collection("users"),
 	}
 }
 
 func (repo *mongoRepo) Create(ctx context.Context, user *domain.User) error {
-	session, err := repo.client.StartSession()
+	session, err := repo.Client.StartSession()
 	if err != nil {
 		return fmt.Errorf("'client.StartSession' failed: %w", err)
 	}

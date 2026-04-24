@@ -1,26 +1,14 @@
 package handlers
 
 import (
-	"context"
-	"crypto/rand"
-	"crypto/subtle"
-	"encoding/base64"
-	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
-	"github.com/AdventurerAmer/recipes-api/models"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/crypto/argon2"
 )
 
 type RecipesHandler struct {
@@ -192,126 +180,56 @@ func (h *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-type AuthHandler struct {
-	ctx        context.Context
-	client     *mongo.Client
-	collection *mongo.Collection
+type UsersHandler struct {
+	UsersService ports.UsersService
 }
 
-func NewAuthHandler(ctx context.Context, client *mongo.Client, collection *mongo.Collection) *AuthHandler {
-	return &AuthHandler{
-		ctx:        ctx,
-		client:     client,
-		collection: collection,
+func NewUsersHandler(usersService ports.UsersService) *UsersHandler {
+	return &UsersHandler{
+		UsersService: usersService,
 	}
 }
 
-// Recommended parameters (RFC 9106)
-const (
-	argon2Time    = 1
-	argon2Memory  = 64 * 1024 // 64 MB
-	argon2Threads = 4
-	argon2KeyLen  = 32
-	argon2SaltLen = 16
-)
-
-func hashPassward(password string) (string, error) {
-	salt := make([]byte, argon2SaltLen)
-	if _, err := rand.Read(salt); err != nil {
-		return "", err
-	}
-	hash := argon2.IDKey([]byte(password), salt, argon2Time, argon2Memory, argon2Threads, argon2KeyLen)
-	b64Salt := base64.RawStdEncoding.EncodeToString(salt)
-	b64Hash := base64.RawStdEncoding.EncodeToString(hash)
-	encoded := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
-		argon2.Version, argon2Memory, argon2Time, argon2Threads, b64Salt, b64Hash)
-	return encoded, nil
-}
-
-func verifyPassword(password, encodedHash string) (bool, error) {
-	parts := strings.Split(encodedHash, "$")
-	var memory, time uint32
-	var threads uint8
-	fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &memory, &time, &threads)
-	salt, _ := base64.RawStdEncoding.DecodeString(parts[4])
-	decodedHash, _ := base64.RawStdEncoding.DecodeString(parts[5])
-	comparisonHash := argon2.IDKey([]byte(password), salt, time, memory, threads, uint32(len(decodedHash)))
-	return subtle.ConstantTimeCompare(decodedHash, comparisonHash) == 1, nil
-}
-
-func (h *AuthHandler) SignUpHandler(c *gin.Context) {
-	var user models.User
-	if err := c.ShouldBindJSON(&user); err != nil {
+func (h *UsersHandler) SignUpHandler(c *gin.Context) {
+	var req ports.SignUpRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	session, err := h.client.StartSession()
+	resp, err := h.UsersService.SignUp(c, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	var insertUser *models.User
-	_, err = session.WithTransaction(h.ctx, func(ctx mongo.SessionContext) (interface{}, error) {
-		filter := bson.M{"username": user.Username}
-		result := h.collection.FindOne(ctx, filter)
-		var findUser models.User
-		if err := result.Decode(&findUser); err != nil {
-			if !errors.Is(err, mongo.ErrNoDocuments) {
-				return nil, err
-			}
-		}
-		hash, err := hashPassward(user.Password)
-		if err != nil {
-			return nil, err
-		}
-		insertUser = &models.User{
-			ID:       primitive.NewObjectID(),
-			Username: user.Username,
-			Password: hash,
-		}
-		_, err = h.collection.InsertOne(ctx, insertUser)
-		if err != nil {
-			return nil, err
-		}
-		return nil, nil
-	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	c.JSON(http.StatusOK, resp)
+}
+
+type AuthHandler struct {
+	UsersService ports.UsersService
+}
+
+func NewAuthHandler(usersService ports.UsersService) *AuthHandler {
+	return &AuthHandler{
+		UsersService: usersService,
 	}
-	c.JSON(http.StatusOK, gin.H{"id": insertUser.ID})
 }
 
 func (h *AuthHandler) SignInHandler(c *gin.Context) {
-	var user models.User
-	if err := c.ShouldBindJSON(&user); err != nil {
+	var req ports.SignInRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	filter := bson.M{"username": user.Username}
-	result := h.collection.FindOne(h.ctx, filter)
-	var findUser models.User
-	if err := result.Decode(&findUser); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			c.AbortWithStatus(http.StatusUnauthorized)
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ok, err := verifyPassword(user.Password, findUser.Password)
+	resp, err := h.UsersService.SignIn(c, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if !ok {
 		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 
+	user := resp.User
 	token := uuid.New().String()
 	session := sessions.Default(c)
-	session.Set("id", findUser.ID)
-	session.Set("username", findUser.Username)
+	session.Set("id", user.ID)
+	session.Set("username", user.Username)
 	session.Set("token", token)
 	if err := session.Save(); err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -323,7 +241,10 @@ func (h *AuthHandler) SignInHandler(c *gin.Context) {
 func (handler *AuthHandler) SignOutHandler(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Clear()
-	session.Save()
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Signed out..."})
 }
 

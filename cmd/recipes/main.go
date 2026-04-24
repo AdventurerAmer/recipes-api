@@ -27,7 +27,9 @@ import (
 	"github.com/AdventurerAmer/recipes-api/handlers"
 	"github.com/AdventurerAmer/recipes-api/infra"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
+	"github.com/AdventurerAmer/recipes-api/internal/core/services/userssrv"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
+	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
 	"github.com/gin-gonic/gin"
 
 	"github.com/gin-contrib/sessions"
@@ -69,6 +71,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	usersRepoCfg := usersrepo.MongoConfig{
+		Database: app.mainDB.Database,
+		Client:   app.mainDB.Client,
+	}
+	usersRepo := usersrepo.NewMongo(usersRepoCfg)
+
+	usersServiceCfg := userssrv.Config{
+		UsersRepo: usersRepo,
+	}
+	usersService := userssrv.New(usersServiceCfg)
+
 	recipesRepoCfg := recipesrepo.MongoConfig{
 		Database: app.mainDB.Database,
 	}
@@ -81,13 +94,15 @@ func main() {
 
 	recipesService := recipessrv.New(recipesServiceCfg)
 
+	usersHandler := handlers.NewUsersHandler(usersService)
 	recipesHandler := handlers.NewRecipesHandler(recipesService)
-	authHandler := handlers.NewAuthHandler(context.Background(), app.mainDB.Client, app.mainDB.Database.Collection("users"))
+
+	authHandler := handlers.NewAuthHandler(usersService)
 
 	r := gin.Default()
 	v1 := r.Group("/api/v1/")
 	{
-		v1.POST("/signup", authHandler.SignUpHandler)
+		v1.POST("/signup", usersHandler.SignUpHandler)
 		v1.POST("/signIn", authHandler.SignInHandler)
 		v1.POST("/signout", authHandler.SignOutHandler)
 

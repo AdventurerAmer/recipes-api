@@ -48,6 +48,24 @@ func (srv *service) SignUp(ctx context.Context, req ports.SignUpRequest) (ports.
 	}, nil
 }
 
+func (srv *service) SignIn(ctx context.Context, req ports.SignInRequest) (ports.SignInResponse, error) {
+	user, err := srv.UsersRepo.GetByName(ctx, req.Username)
+	if err != nil {
+		return ports.SignInResponse{}, fmt.Errorf("'UsersRepo.GetByName' failed: %w", err)
+	}
+	ok, err := verifyPassword(req.Password, user.Password)
+	if err != nil {
+		return ports.SignInResponse{}, fmt.Errorf("'verifyPassword' failed: %w", err)
+	}
+	if !ok {
+		return ports.SignInResponse{}, fmt.Errorf("'verifyPassword' failed: %w", err)
+	}
+	return ports.SignInResponse{
+		User:    user,
+		Message: "sign in was successful",
+	}, nil
+}
+
 // Recommended parameters (RFC 9106)
 const (
 	argon2Time    = 1
