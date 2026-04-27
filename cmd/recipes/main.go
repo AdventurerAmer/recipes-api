@@ -22,6 +22,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/AdventurerAmer/recipes-api/handlers"
@@ -64,13 +65,6 @@ func main() {
 	}
 	defer infraCtx.Shutdown(context.TODO())
 
-	// TODO: hardcoding connections
-	store, err := ginRedis.NewStore(10, "tcp", redisCfg.Address, redisCfg.Username, redisCfg.Password, []byte("xnx6D7fCxR47XqHGrnkqIBDjHIoz1csJ"))
-	if err != nil {
-		slog.Error("cache connection failed", "error", err)
-		os.Exit(1)
-	}
-
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database: app.mainDB.Database,
 		Client:   app.mainDB.Client,
@@ -99,17 +93,34 @@ func main() {
 
 	authHandler := handlers.NewAuthHandler(usersService)
 
-	r := gin.Default()
-	v1 := r.Group("/api/v1/")
+	router := gin.Default()
+
+	// TODO: hardcoding connections and sceret
+	secret := []byte("xnx6D7fCxR47XqHGrnkqIBDjHIoz1csJ")
+	store, err := ginRedis.NewStore(10, "tcp", redisCfg.Address, redisCfg.Username, redisCfg.Password, secret)
+	if err != nil {
+		slog.Error("cache connection failed", "error", err)
+		os.Exit(1)
+	}
+	// TODO: hardcoding session config
+	store.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   60 * 60,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	})
+	router.Use(sessions.Sessions("recipes", store))
+
+	v1 := router.Group("/api/v1/")
 	{
 		v1.POST("/signup", usersHandler.SignUpHandler)
-		v1.POST("/signIn", authHandler.SignInHandler)
+		v1.POST("/signin", authHandler.SignInHandler)
 		v1.POST("/signout", authHandler.SignOutHandler)
 
 		v1.GET("/recipes", recipesHandler.ListRecipesHandler)
 
 		authed := v1.Group("/")
-		authed.Use(sessions.Sessions("recipes", store))
 		authed.Use(authHandler.AuthMiddleware())
 		{
 			authed.POST("/recipes", recipesHandler.NewRecipeHandler)
@@ -117,5 +128,5 @@ func main() {
 			authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
 		}
 	}
-	r.Run(":3000") // TODO: configurations
+	router.Run(":3000") // TODO: configurations
 }

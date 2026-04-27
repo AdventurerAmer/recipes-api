@@ -11,3 +11,20 @@ type User struct {
 	Password  string    `json:"password" bson:"password"`
 	Version   int       `json:"version" bson:"version"`
 }
+
+func (u User) Frontend() FrontendUser {
+	return FrontendUser{
+		ID:        u.ID,
+		CreatedAt: u.CreatedAt,
+		Username:  u.Username,
+		Version:   u.Version,
+	}
+}
+
+type FrontendUser struct {
+	//swagger:ignore
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	Username  string    `json:"username"`
+	Version   int       `json:"version"`
+}

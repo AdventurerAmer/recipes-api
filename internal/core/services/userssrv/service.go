@@ -43,8 +43,9 @@ func (srv *service) SignUp(ctx context.Context, req ports.SignUpRequest) (ports.
 	}
 
 	return ports.SignUpResponse{
-		User:    user,
-		Message: "user was created successfully",
+		User:         user,
+		FrontendUser: user.Frontend(),
+		Message:      "user was created successfully",
 	}, nil
 }
 

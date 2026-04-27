@@ -25,8 +25,9 @@ type SignUpRequest struct {
 }
 
 type SignUpResponse struct {
-	User    domain.User `json:"user"`
-	Message string      `json:"message"`
+	User         domain.User
+	FrontendUser domain.FrontendUser `json:"user"`
+	Message      string              `json:"message"`
 }
 
 type SignInRequest struct {
