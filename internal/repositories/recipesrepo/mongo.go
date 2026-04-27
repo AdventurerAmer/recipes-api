@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
@@ -50,7 +51,7 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (domain.Recipe, error
 	return recipe, nil
 }
 
-func (repo *mongoRepo) List(ctx context.Context, lastID, sort string, limit int) ([]domain.Recipe, int, error) {
+func (repo *mongoRepo) List(ctx context.Context, lastID, sortField string, limit int) ([]domain.Recipe, int, error) {
 	filter := bson.M{}
 	if lastID != "" {
 		oid, err := primitive.ObjectIDFromHex(lastID)
@@ -60,6 +61,22 @@ func (repo *mongoRepo) List(ctx context.Context, lastID, sort string, limit int)
 		filter["_id"] = bson.M{"$gt": oid}
 	}
 	match := bson.D{{Key: "$match", Value: filter}}
+	sortingOrder := 1
+	if strings.HasPrefix(sortField, "-") {
+		sortField, _ = strings.CutPrefix(sortField, "-")
+		sortingOrder = -1
+	}
+	if sortField == "id" {
+		sortField = "_id"
+	}
+	if sortField == "" {
+		sortField = "createdAt"
+	}
+	sort := bson.D{{Key: sortField, Value: sortingOrder}}
+	if sortField != "_id" {
+		sort = append(sort, bson.E{Key: "_id", Value: -1})
+	}
+
 	pagination := bson.D{
 		{Key: "recipes", Value: bson.A{
 			bson.D{{Key: "$sort", Value: sort}},

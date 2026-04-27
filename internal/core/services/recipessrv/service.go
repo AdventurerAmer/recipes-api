@@ -32,7 +32,7 @@ func (srv *service) Create(ctx context.Context, user domain.User, req ports.Crea
 		Name:         req.Name,
 		Tags:         req.Tags,
 		Ingredients:  req.Ingredients,
-		Instructions: req.Ingredients,
+		Instructions: req.Instructions,
 	}
 	if err := srv.RecipesRepo.Create(ctx, &recipe); err != nil {
 		return ports.CreateRecipeResponse{}, fmt.Errorf("'RecipesRepo.Create' failed: %w", err)
@@ -87,5 +87,7 @@ func (srv *service) Delete(ctx context.Context, user domain.User, req ports.Dele
 	if err := srv.RecipesRepo.Delete(ctx, user.ID, req.ID); err != nil {
 		return ports.DeleteRecipeResponse{}, fmt.Errorf("'RecipesRepo.Delete' failed: %w", err)
 	}
-	return ports.DeleteRecipeResponse{}, nil
+	return ports.DeleteRecipeResponse{
+		Message: "Recipe was deleted successfully",
+	}, nil
 }

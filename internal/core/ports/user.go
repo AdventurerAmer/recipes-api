@@ -20,8 +20,8 @@ type UsersService interface {
 }
 
 type SignUpRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 type SignUpResponse struct {
@@ -31,8 +31,8 @@ type SignUpResponse struct {
 }
 
 type SignInRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 type SignInResponse struct {

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
@@ -87,16 +86,16 @@ func (h *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 //	'200':
 //	    description: Successful operation
 func (h *RecipesHandler) ListRecipesHandler(c *gin.Context) {
-	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if err != nil {
+	req := ports.ListRecipesRequest{
+		LastID: "",
+		Sort:   "createdAt",
+		Limit:  20,
+	}
+	if err := c.ShouldBindQuery(req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	req := ports.ListRecipesRequest{
-		LastID: c.Query("lastID"),
-		Sort:   c.DefaultQuery("sort", "-createdAt"),
-		Limit:  limit,
-	}
+
 	resp, err := h.RecipesService.List(c, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -127,11 +126,14 @@ func (h *RecipesHandler) ListRecipesHandler(c *gin.Context) {
 //	    description: Invalid recipe ID
 func (h *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 	var req ports.UpdateRecipeRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	req.ID = c.Param("id")
 	session := sessions.Default(c)
 	user := domain.User{
 		ID:       session.Get("id").(string),
@@ -171,7 +173,11 @@ func (h *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
 		ID:       session.Get("id").(string),
 		Username: session.Get("username").(string),
 	}
-	req := ports.DeleteRecipeRequest{ID: c.Param("id")}
+	var req ports.DeleteRecipeRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	resp, err := h.RecipesService.Delete(c, user, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

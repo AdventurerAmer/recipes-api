@@ -23,10 +23,10 @@ type RecipesService interface {
 }
 
 type CreateRecipeRequest struct {
-	Name         string   `json:"name"`
+	Name         string   `json:"name" binding:"required,min=1"`
 	Tags         []string `json:"tags"`
-	Ingredients  []string `json:"ingredients"`
-	Instructions []string `json:"instructions"`
+	Ingredients  []string `json:"ingredients" binding:"required,min=1"`
+	Instructions []string `json:"instructions" binding:"required,min=1"`
 }
 
 type CreateRecipeResponse struct {
@@ -34,7 +34,7 @@ type CreateRecipeResponse struct {
 }
 
 type GetRecipeRequest struct {
-	ID string `json:"id"`
+	ID string `json:"id" uri:"id" binding:"required"`
 }
 
 type GetRecipeResponse struct {
@@ -42,9 +42,9 @@ type GetRecipeResponse struct {
 }
 
 type ListRecipesRequest struct {
-	LastID string `json:"lastID"`
-	Sort   string `json:"sort"`
-	Limit  int    `json:"limit"`
+	LastID string `json:"lastID" form:"lastID"`
+	Sort   string `json:"sort" form:"sort"`
+	Limit  int    `json:"limit" form:"limit"`
 }
 
 type ListRecipesResponse struct {
@@ -53,11 +53,11 @@ type ListRecipesResponse struct {
 }
 
 type UpdateRecipeRequest struct {
-	ID           string   `json:"id"`
-	Name         *string  `json:"name"`
-	Tags         []string `json:"tags"`
-	Ingredients  []string `json:"ingredients"`
-	Instructions []string `json:"instructions"`
+	ID           string   `json:"id" uri:"id" binding:"required"`
+	Name         *string  `json:"name" binding:"omitempty,min=1"`
+	Tags         []string `json:"tags" binding:"omitempty,min=1"`
+	Ingredients  []string `json:"ingredients" binding:"omitempty,min=1"`
+	Instructions []string `json:"instructions" binding:"omitempty,min=1"`
 }
 
 type UpdateRecipeResponse struct {
@@ -65,7 +65,7 @@ type UpdateRecipeResponse struct {
 }
 
 type DeleteRecipeRequest struct {
-	ID string `json:"id"`
+	ID string `json:"id" uri:"id" binding:"required"`
 }
 
 type DeleteRecipeResponse struct {
