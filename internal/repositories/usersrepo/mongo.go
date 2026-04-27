@@ -44,6 +44,8 @@ func (repo *mongoRepo) Create(ctx context.Context, user *domain.User) error {
 			if !errors.Is(err, mongo.ErrNoDocuments) {
 				return nil, fmt.Errorf("'collection.FindOne' failed: %w", err)
 			}
+		} else {
+			return nil, errors.New("user already registered")
 		}
 		result, err := repo.collection.InsertOne(ctx, user)
 		if err != nil {
