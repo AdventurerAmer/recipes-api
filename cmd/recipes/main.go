@@ -119,6 +119,7 @@ func main() {
 		v1.POST("/signout", authHandler.SignOutHandler)
 
 		v1.GET("/recipes", recipesHandler.ListRecipesHandler)
+		v1.GET("/recipes/:id", recipesHandler.GetRecipeHandler)
 
 		authed := v1.Group("/")
 		authed.Use(authHandler.AuthMiddleware())

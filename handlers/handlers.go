@@ -86,17 +86,37 @@ func (h *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 //	'200':
 //	    description: Successful operation
 func (h *RecipesHandler) ListRecipesHandler(c *gin.Context) {
-	req := ports.ListRecipesRequest{
-		LastID: "",
-		Sort:   "createdAt",
-		Limit:  20,
-	}
-	if err := c.ShouldBindQuery(req); err != nil {
+	var req ports.ListRecipesRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	resp, err := h.RecipesService.List(c, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// swagger:operation GET /recipes recipes getRecipe
+// Returns a recipe
+// --
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	    description: Successful operation
+func (h *RecipesHandler) GetRecipeHandler(c *gin.Context) {
+	var req ports.GetRecipeRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := h.RecipesService.Get(c, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

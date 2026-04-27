@@ -43,8 +43,8 @@ type GetRecipeResponse struct {
 
 type ListRecipesRequest struct {
 	LastID string `json:"lastID" form:"lastID"`
-	Sort   string `json:"sort" form:"sort"`
-	Limit  int    `json:"limit" form:"limit"`
+	Sort   string `json:"sort" form:"sort,default=createdAt"`
+	Limit  int    `json:"limit" form:"limit,default=20"`
 }
 
 type ListRecipesResponse struct {
