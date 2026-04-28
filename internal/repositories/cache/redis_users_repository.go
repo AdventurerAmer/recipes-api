@@ -2,7 +2,6 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -12,16 +11,17 @@ import (
 )
 
 type redisUsersRepository struct {
-	next   ports.UsersRepository
-	client *redis.Client
-	ttl    time.Duration
+	next    ports.UsersRepository
+	wrapper redisWrapper
 }
 
 func NewRedisUsersRepository(next ports.UsersRepository, client *redis.Client, ttl time.Duration) ports.UsersRepository {
 	return &redisUsersRepository{
-		next:   next,
-		client: client,
-		ttl:    ttl,
+		next: next,
+		wrapper: redisWrapper{
+			client: client,
+			ttl:    ttl,
+		},
 	}
 }
 
@@ -33,43 +33,35 @@ func (r *redisUsersRepository) Create(ctx context.Context, user *domain.User) er
 }
 
 func (r *redisUsersRepository) Get(ctx context.Context, id string) (domain.User, error) {
-	key := fmt.Sprintf("user id:%s", id)
-	data, cacheErr := r.client.Get(ctx, key).Result()
+	key := composeUserByIDKey(id)
+	var user domain.User
+	cacheErr := r.wrapper.get(ctx, key, &user)
 	if cacheErr == nil {
-		var user domain.User
-		if err := json.Unmarshal([]byte(data), &user); err == nil {
-			return user, nil
-		}
+		return user, nil
 	}
 	user, err := r.next.Get(ctx, id)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("'next.Get' failed: %w", err)
 	}
 	if cacheErr == redis.Nil {
-		if data, err := json.Marshal(user); err != nil {
-			_, _ = r.client.Set(ctx, key, data, r.ttl).Result()
-		}
+		_ = r.wrapper.set(ctx, key, user)
 	}
 	return user, nil
 }
 
 func (r *redisUsersRepository) GetByName(ctx context.Context, username string) (domain.User, error) {
-	key := fmt.Sprintf("user name:%s", username)
-	data, cacheErr := r.client.Get(ctx, key).Result()
+	key := composeUserByNameKey(username)
+	var user domain.User
+	cacheErr := r.wrapper.get(ctx, key, user)
 	if cacheErr == nil {
-		var user domain.User
-		if err := json.Unmarshal([]byte(data), &user); err == nil {
-			return user, nil
-		}
+		return user, nil
 	}
 	user, err := r.next.GetByName(ctx, username)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("'next.GetByName' failed: %w", err)
 	}
 	if cacheErr == redis.Nil {
-		if data, err := json.Marshal(user); err != nil {
-			_, _ = r.client.Set(ctx, key, data, r.ttl).Result()
-		}
+		_ = r.wrapper.set(ctx, key, user)
 	}
 	return user, nil
 }
@@ -78,16 +70,22 @@ func (r *redisUsersRepository) Update(ctx context.Context, user *domain.User) er
 	if err := r.next.Update(ctx, user); err != nil {
 		return fmt.Errorf("'next.Update' failed: %w", err)
 	}
-	keys := []string{fmt.Sprintf("user id:%s", user.ID), fmt.Sprintf("user name:%s", user.Username)}
-	_, _ = r.client.Del(ctx, keys...).Result()
+	_ = r.invalidateCache(ctx, *user)
 	return nil
 }
 
-func (r *redisUsersRepository) Delete(ctx context.Context, id string) error {
-	if err := r.next.Delete(ctx, id); err != nil {
+func (r *redisUsersRepository) Delete(ctx context.Context, user domain.User) error {
+	if err := r.next.Delete(ctx, user); err != nil {
 		return fmt.Errorf("'next.Update' failed: %w", err)
 	}
-	key := fmt.Sprintf("user id:%s", id)
-	_, _ = r.client.Del(ctx, key).Result()
+	_ = r.invalidateCache(ctx, user)
+	return nil
+}
+
+func (r *redisUsersRepository) invalidateCache(ctx context.Context, user domain.User) error {
+	keys := []string{composeUserByIDKey(user.ID), composeUserByNameKey(user.Username)}
+	if err := r.wrapper.del(ctx, keys...); err != nil {
+		return fmt.Errorf("'wrapper.del' failed: %w", err)
+	}
 	return nil
 }

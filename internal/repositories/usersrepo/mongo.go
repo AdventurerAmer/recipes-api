@@ -102,14 +102,14 @@ func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (repo *mongoRepo) Delete(ctx context.Context, id string) error {
-	oid, err := primitive.ObjectIDFromHex(id)
+func (repo *mongoRepo) Delete(ctx context.Context, user domain.User) error {
+	oid, err := primitive.ObjectIDFromHex(user.ID)
 	if err != nil {
 		return fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
 	filter := bson.M{"_id": oid}
 	if _, err := repo.collection.DeleteOne(ctx, filter); err != nil {
-		return fmt.Errorf("'collection.UpdateOne' failed: %w", err)
+		return fmt.Errorf("'collection.DeleteOne' failed: %w", err)
 	}
 	return nil
 }
