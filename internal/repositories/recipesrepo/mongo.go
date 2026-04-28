@@ -51,7 +51,7 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (domain.Recipe, error
 	return recipe, nil
 }
 
-func (repo *mongoRepo) List(ctx context.Context, lastID, sortField string, limit int) ([]domain.Recipe, int, error) {
+func (repo *mongoRepo) List(ctx context.Context, lastID, userID, sortBy string, limit int) ([]domain.Recipe, int, error) {
 	filter := bson.M{}
 	if lastID != "" {
 		oid, err := primitive.ObjectIDFromHex(lastID)
@@ -60,20 +60,23 @@ func (repo *mongoRepo) List(ctx context.Context, lastID, sortField string, limit
 		}
 		filter["_id"] = bson.M{"$gt": oid}
 	}
+	if userID != "" {
+		filter["userID"] = userID
+	}
 	match := bson.D{{Key: "$match", Value: filter}}
 	sortingOrder := 1
-	if strings.HasPrefix(sortField, "-") {
-		sortField, _ = strings.CutPrefix(sortField, "-")
+	if strings.HasPrefix(sortBy, "-") {
+		sortBy, _ = strings.CutPrefix(sortBy, "-")
 		sortingOrder = -1
 	}
-	if sortField == "id" {
-		sortField = "_id"
+	if sortBy == "id" {
+		sortBy = "_id"
 	}
-	if sortField == "" {
-		sortField = "createdAt"
+	if sortBy == "" {
+		sortBy = "createdAt"
 	}
-	sort := bson.D{{Key: sortField, Value: sortingOrder}}
-	if sortField != "_id" {
+	sort := bson.D{{Key: sortBy, Value: sortingOrder}}
+	if sortBy != "_id" {
 		sort = append(sort, bson.E{Key: "_id", Value: -1})
 	}
 

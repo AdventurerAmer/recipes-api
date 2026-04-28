@@ -50,7 +50,7 @@ func (srv *service) Get(ctx context.Context, req ports.GetRecipeRequest) (ports.
 
 func (srv *service) List(ctx context.Context, req ports.ListRecipesRequest) (ports.ListRecipesResponse, error) {
 	limit := min(req.Limit, srv.MaxLimit)
-	recipes, total, err := srv.RecipesRepo.List(ctx, req.LastID, req.Sort, limit)
+	recipes, total, err := srv.RecipesRepo.List(ctx, req.LastID, req.UserID, req.SortBy, limit)
 	if err != nil {
 		return ports.ListRecipesResponse{}, fmt.Errorf("'RecipesRepo.List' failed: %w", err)
 	}

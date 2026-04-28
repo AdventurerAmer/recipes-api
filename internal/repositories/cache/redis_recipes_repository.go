@@ -54,7 +54,7 @@ func (r *redisRecipesRepository) Get(ctx context.Context, id string) (domain.Rec
 	return recipe, nil
 }
 
-func (r *redisRecipesRepository) List(ctx context.Context, lastID, sort string, limit int) ([]domain.Recipe, int, error) {
+func (r *redisRecipesRepository) List(ctx context.Context, lastID, userID, sort string, limit int) ([]domain.Recipe, int, error) {
 	key := fmt.Sprintf("recipes: lastID=%s,sort=%s,limit=%d", lastID, sort, limit)
 	data, cacheErr := r.client.Get(ctx, key).Result()
 	type recipesCacheEntry struct {
@@ -67,9 +67,9 @@ func (r *redisRecipesRepository) List(ctx context.Context, lastID, sort string, 
 			return entry.Recipes, entry.Total, nil
 		}
 	}
-	recipes, total, err := r.next.List(ctx, lastID, sort, limit)
+	recipes, total, err := r.next.List(ctx, lastID, userID, sort, limit)
 	if err != nil {
-		return nil, 0, fmt.Errorf("'next.List' failed: %w", err)
+		return nil, 0, fmt.Errorf("'.Lnextist' failed: %w", err)
 	}
 	if cacheErr == redis.Nil {
 		entry := recipesCacheEntry{

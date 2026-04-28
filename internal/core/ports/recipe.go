@@ -9,7 +9,7 @@ import (
 type RecipesRepository interface {
 	Create(ctx context.Context, recipe *domain.Recipe) error
 	Get(ctx context.Context, id string) (domain.Recipe, error)
-	List(ctx context.Context, lastID, sort string, limit int) ([]domain.Recipe, int, error)
+	List(ctx context.Context, lastID, userID, sortBy string, limit int) ([]domain.Recipe, int, error)
 	Update(ctx context.Context, recipe *domain.Recipe) error
 	Delete(ctx context.Context, userID, id string) error
 }
@@ -43,7 +43,8 @@ type GetRecipeResponse struct {
 
 type ListRecipesRequest struct {
 	LastID string `json:"lastID" form:"lastID"`
-	Sort   string `json:"sort" form:"sort,default=createdAt"`
+	UserID string `json:"userID" from:"userID"`
+	SortBy string `json:"sortBy" form:"sortBy,default=-createdAt"`
 	Limit  int    `json:"limit" form:"limit,default=20"`
 }
 
