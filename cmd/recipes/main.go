@@ -24,11 +24,13 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/AdventurerAmer/recipes-api/handlers"
 	"github.com/AdventurerAmer/recipes-api/infra"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/userssrv"
+	"github.com/AdventurerAmer/recipes-api/internal/repositories/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
 	"github.com/gin-gonic/gin"
@@ -65,11 +67,13 @@ func main() {
 	}
 	defer infraCtx.Shutdown(context.TODO())
 
+	ttl := 10 * time.Minute
+
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database: app.mainDB.Database,
 		Client:   app.mainDB.Client,
 	}
-	usersRepo := usersrepo.NewMongo(usersRepoCfg)
+	usersRepo := cache.NewRedisUsersRepository(usersrepo.NewMongo(usersRepoCfg), app.mainCache.Client, ttl)
 
 	usersServiceCfg := userssrv.Config{
 		UsersRepo: usersRepo,
@@ -79,7 +83,7 @@ func main() {
 	recipesRepoCfg := recipesrepo.MongoConfig{
 		Database: app.mainDB.Database,
 	}
-	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
+	recipesRepo := cache.NewRedisRecipesRepository(recipesrepo.NewMongo(recipesRepoCfg), app.mainCache.Client, ttl)
 
 	recipesServiceCfg := recipessrv.Config{
 		RecipesRepo: recipesRepo,
