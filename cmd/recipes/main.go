@@ -26,6 +26,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/AdventurerAmer/recipes-api/config"
 	"github.com/AdventurerAmer/recipes-api/handlers"
 	"github.com/AdventurerAmer/recipes-api/infra"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
@@ -44,7 +45,34 @@ type App struct {
 	mainCache infra.RedisContext
 }
 
+type AppConfig struct {
+	AppName  string         `cffg:"appName"`
+	Port     int            `cfg:"port"`
+	Debug    bool           `cfg:"debug"`
+	Database DatabaseConfig `cfg:"database"`
+	Redis    RedisConfig    `cfg:"redis"`
+}
+
+type DatabaseConfig struct {
+	URL      string `cfg:"url"`
+	Username string `cfg:"username"`
+	Password string `cfg:"password"`
+	MaxConns int    `cfg:"maxConns"`
+}
+
+type RedisConfig struct {
+	Host     string `cfg:"host"`
+	Port     int    `cfg:"port"`
+	Password string `cfg:"password"`
+	DB       int    `cfg:"db"`
+}
+
 func main() {
+	var cfg AppConfig
+	if err := config.Load(&cfg); err != nil {
+		slog.Error("load config failed", "error", err)
+		os.Exit(1)
+	}
 	app := &App{}
 	infraCtx := infra.New()
 	infraCtx.BindMongo(infra.MongoConfig{
