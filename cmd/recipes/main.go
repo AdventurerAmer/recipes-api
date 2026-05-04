@@ -35,39 +35,48 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
+	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
 
 	"github.com/gin-contrib/sessions"
 	ginRedis "github.com/gin-contrib/sessions/redis"
 )
 
-type App struct {
-	mainDB        infra.MongoContext
-	mainCache     infra.RedisContext
-	sessionsCache infra.RedisContext
-}
-
-type InfraConfig struct {
+type InfraCfg struct {
 	MainDB        infra.MongoConfig `cfg:"mainDatabase"`
 	MainCache     infra.RedisConfig `cfg:"mainCache"`
 	SessionsCache infra.RedisConfig `cfg:"sessionsCache"`
 }
 
-type SessionsConfig struct {
+type SessionsCfg struct {
 	Secret       string        `cfg:"secret"`
 	MaxIdelConns int           `cfg:"maxIdelConns"`
 	Name         string        `cfg:"name"`
 	MaxAge       time.Duration `cfg:"maxAge"`
 }
 
-type ServerConfig struct {
-	Port     int            `cfg:"port"`
-	Sessions SessionsConfig `cfg:"sessions"`
+type ServerCfg struct {
+	Port     int         `cfg:"port"`
+	Sessions SessionsCfg `cfg:"sessions"`
+}
+
+type Constants struct {
+	DefaultTimeout  time.Duration `cfg:"defaultTimeout"`
+	UsersCacheTTL   time.Duration `cfg:"usersCacheTTL"`
+	RecipesCacheTTL time.Duration `cfg:"recipesCacheTTL"`
+	RecipesMaxLimit int           `cfg:"recipesMaxLimit"`
 }
 
 type Config struct {
-	Infra  InfraConfig  `cfg:"infra"`
-	Server ServerConfig `cfg:"server"`
+	Infra     InfraCfg  `cfg:"infra"`
+	Server    ServerCfg `cfg:"server"`
+	Constants Constants `cfg:"constants"`
+}
+
+type App struct {
+	mainDB        infra.MongoContext
+	mainCache     infra.RedisContext
+	sessionsCache infra.RedisContext
 }
 
 func main() {
@@ -76,6 +85,8 @@ func main() {
 		slog.Error("load configuation failed", "error", err)
 		os.Exit(1)
 	}
+
+	slog.Info("configuation loaded successfully", "data", cfg)
 
 	app := &App{}
 	infraCtx := infra.New()
@@ -87,12 +98,11 @@ func main() {
 	}
 	defer infraCtx.Shutdown(context.TODO())
 
-	ttl := 10 * time.Minute
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database: app.mainDB.Database,
 		Client:   app.mainDB.Client,
 	}
-	usersRepo := cache.NewRedisUsersRepository(usersrepo.NewMongo(usersRepoCfg), app.mainCache.Client, ttl)
+	usersRepo := cache.NewRedisUsersRepository(usersrepo.NewMongo(usersRepoCfg), app.mainCache.Client, cfg.Constants.UsersCacheTTL)
 
 	usersServiceCfg := userssrv.Config{
 		UsersRepo: usersRepo,
@@ -102,11 +112,11 @@ func main() {
 	recipesRepoCfg := recipesrepo.MongoConfig{
 		Database: app.mainDB.Database,
 	}
-	recipesRepo := cache.NewRedisRecipesRepository(recipesrepo.NewMongo(recipesRepoCfg), app.mainCache.Client, ttl)
+	recipesRepo := cache.NewRedisRecipesRepository(recipesrepo.NewMongo(recipesRepoCfg), app.mainCache.Client, cfg.Constants.RecipesCacheTTL)
 
 	recipesServiceCfg := recipessrv.Config{
 		RecipesRepo: recipesRepo,
-		MaxLimit:    100,
+		MaxLimit:    cfg.Constants.RecipesMaxLimit,
 	}
 
 	recipesService := recipessrv.New(recipesServiceCfg)
@@ -116,25 +126,27 @@ func main() {
 
 	authHandler := handlers.NewAuthHandler(usersService)
 
-	router := gin.Default()
-
 	secret := []byte(cfg.Server.Sessions.Secret)
-	sessionStore, err := ginRedis.NewStore(cfg.Server.Sessions.MaxIdelConns, "tcp", cfg.Infra.SessionsCache.Address, cfg.Infra.SessionsCache.Username, cfg.Infra.SessionsCache.Password, secret)
+	sessionsStore, err := ginRedis.NewStore(cfg.Server.Sessions.MaxIdelConns, "tcp", cfg.Infra.SessionsCache.Address, cfg.Infra.SessionsCache.Username, cfg.Infra.SessionsCache.Password, secret)
 	if err != nil {
 		slog.Error("cache connection failed", "error", err)
 		os.Exit(1)
 	}
-	// TODO: hardcoding session config
-	sessionStore.Options(sessions.Options{
+
+	// TODO: using dev config for new
+	sessionsStore.Options(sessions.Options{
 		Path:     "/",
 		MaxAge:   int(cfg.Server.Sessions.MaxAge.Seconds()),
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
-	router.Use(sessions.Sessions(cfg.Server.Sessions.Name, sessionStore))
+
+	router := gin.Default()
+	router.Use(sessions.Sessions(cfg.Server.Sessions.Name, sessionsStore))
 
 	v1 := router.Group("/api/v1/")
+	v1.Use(timeout.New(timeout.WithTimeout(cfg.Constants.DefaultTimeout)))
 	{
 		v1.POST("/signup", usersHandler.SignUpHandler)
 		v1.POST("/signin", authHandler.SignInHandler)

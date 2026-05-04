@@ -112,6 +112,16 @@ func setFieldsFromEnv(structVal reflect.Value, cfg *Config, prefix string) error
 }
 
 func setFieldValue(field reflect.Value, value string) error {
+	switch field.Interface().(type) {
+	case time.Duration:
+		d, err := time.ParseDuration(value)
+		if err != nil {
+			return fmt.Errorf("'time.ParseDuration' failed: %w", err)
+		}
+		field.Set(reflect.ValueOf(d))
+		return nil
+	}
+
 	switch field.Kind() {
 	case reflect.String:
 		field.SetString(value)
@@ -139,12 +149,6 @@ func setFieldValue(field reflect.Value, value string) error {
 			return fmt.Errorf("'strconv.ParseBool' failed: %w", err)
 		}
 		field.SetBool(b)
-	case reflect.ValueOf(time.Duration(0)).Kind():
-		d, err := time.ParseDuration(value)
-		if err != nil {
-			return fmt.Errorf("'time.ParseDuration' failed: %w", err)
-		}
-		field.Set(reflect.ValueOf(d))
 	default:
 		return fmt.Errorf("unsupported type: %s", field.Kind())
 	}
@@ -157,12 +161,13 @@ func camelCaseToEnvFmt(s string, cfg *Config) string {
 		parts                []string
 		lastUppercaseRuneIdx int
 	)
-
+	var prev rune
 	for i, r := range s {
-		if i > 0 && unicode.IsUpper(r) {
+		if i > 0 && unicode.IsUpper(r) && unicode.IsLower(prev) {
 			parts = append(parts, s[lastUppercaseRuneIdx:i])
 			lastUppercaseRuneIdx = i
 		}
+		prev = r
 	}
 	parts = append(parts, s[lastUppercaseRuneIdx:])
 	return strings.ToUpper(strings.Join(parts, cfg.Separator))
