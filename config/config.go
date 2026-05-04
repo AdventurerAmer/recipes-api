@@ -6,29 +6,69 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/joho/godotenv"
 )
 
-var Env Environment
+type Option = func(cfg *Config) error
 
-const TagName = "cfg"
-const EnvVariableSeparator = "_"
+func WithTagName(tagName string) Option {
+	return func(cfg *Config) error {
+		if tagName == "" {
+			return fmt.Errorf("'tagName' is empty")
+		}
+		cfg.TagName = tagName
+		return nil
+	}
+}
 
-func Load(i any) error {
-	err := godotenv.Load()
-	if err != nil {
+func WithSepartor(separator string) Option {
+	return func(cfg *Config) error {
+		if separator == "" {
+			return fmt.Errorf("'separator' is empty")
+		}
+		cfg.Separator = separator
+		return nil
+	}
+}
+
+func WithPrefix(prefix string) Option {
+	return func(cfg *Config) error {
+		cfg.Prefix = strings.ToUpper(prefix)
+		return nil
+	}
+}
+
+type Config struct {
+	TagName   string
+	Separator string
+	Prefix    string
+}
+
+func Load(v any, opts ...Option) error {
+	cfg := &Config{
+		TagName:   "cfg",
+		Separator: "_",
+		Prefix:    "",
+	}
+	for _, opt := range opts {
+		if err := opt(cfg); err != nil {
+			return fmt.Errorf("set option failed: %w", err)
+		}
+	}
+	if err := godotenv.Load(); err != nil {
 		return fmt.Errorf("'godotenv.Load' failed: %w", err)
 	}
-	if err := loadFromEnv(i); err != nil {
+	if err := loadFromEnv(v, cfg); err != nil {
 		return fmt.Errorf("'loadFromEnv' failed: %w", err)
 	}
 	return nil
 }
 
-func loadFromEnv(i any) error {
-	structPtrVal := reflect.ValueOf(i)
+func loadFromEnv(v any, cfg *Config) error {
+	structPtrVal := reflect.ValueOf(v)
 	if structPtrVal.Kind() != reflect.Pointer {
 		return fmt.Errorf("expected a pointer type got %+v", structPtrVal.Kind())
 	}
@@ -36,10 +76,14 @@ func loadFromEnv(i any) error {
 	if structVal.Kind() != reflect.Struct {
 		return fmt.Errorf("expected a struct type got %+v", structVal.Kind())
 	}
-	return setFieldsFromEnv(structVal, "")
+	prefix := cfg.Prefix
+	if prefix != "" && !strings.HasSuffix(cfg.Prefix, cfg.Separator) {
+		prefix += cfg.Separator
+	}
+	return setFieldsFromEnv(structVal, cfg, prefix)
 }
 
-func setFieldsFromEnv(structVal reflect.Value, prefix string) error {
+func setFieldsFromEnv(structVal reflect.Value, cfg *Config, prefix string) error {
 	t := structVal.Type()
 	for i := range t.NumField() {
 		field := t.Field(i)
@@ -47,21 +91,21 @@ func setFieldsFromEnv(structVal reflect.Value, prefix string) error {
 		if !field.IsExported() {
 			continue
 		}
-		rawTag := field.Tag.Get(TagName)
+		rawTag := field.Tag.Get(cfg.TagName)
 		if rawTag == "" {
 			rawTag = field.Name
 		}
-		tag := prefix + camelCaseToEnvFmt(rawTag)
+		tag := prefix + camelCaseToEnvFmt(rawTag, cfg)
 		if fieldVal.Kind() == reflect.Struct {
-			setFieldsFromEnv(fieldVal, tag+EnvVariableSeparator)
+			setFieldsFromEnv(fieldVal, cfg, tag+cfg.Separator)
 			continue
 		}
-		envVarVal, ok := os.LookupEnv(tag)
+		varVal, ok := os.LookupEnv(tag)
 		if !ok {
-			return fmt.Errorf("env var %q is not set", tag)
+			return fmt.Errorf("env-var: %q is not set", tag)
 		}
-		if err := setFieldValue(fieldVal, envVarVal); err != nil {
-			return fmt.Errorf("'setValue' failed: %w", err)
+		if err := setFieldValue(fieldVal, varVal); err != nil {
+			return fmt.Errorf("'setFieldValue' failed: %w", err)
 		}
 	}
 	return nil
@@ -95,6 +139,12 @@ func setFieldValue(field reflect.Value, value string) error {
 			return fmt.Errorf("'strconv.ParseBool' failed: %w", err)
 		}
 		field.SetBool(b)
+	case reflect.ValueOf(time.Duration(0)).Kind():
+		d, err := time.ParseDuration(value)
+		if err != nil {
+			return fmt.Errorf("'time.ParseDuration' failed: %w", err)
+		}
+		field.Set(reflect.ValueOf(d))
 	default:
 		return fmt.Errorf("unsupported type: %s", field.Kind())
 	}
@@ -102,7 +152,7 @@ func setFieldValue(field reflect.Value, value string) error {
 	return nil
 }
 
-func camelCaseToEnvFmt(s string) string {
+func camelCaseToEnvFmt(s string, cfg *Config) string {
 	var (
 		parts                []string
 		lastUppercaseRuneIdx int
@@ -115,5 +165,5 @@ func camelCaseToEnvFmt(s string) string {
 		}
 	}
 	parts = append(parts, s[lastUppercaseRuneIdx:])
-	return strings.ToUpper(strings.Join(parts, EnvVariableSeparator))
+	return strings.ToUpper(strings.Join(parts, cfg.Separator))
 }

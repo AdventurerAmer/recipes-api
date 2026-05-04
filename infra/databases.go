@@ -9,11 +9,11 @@ import (
 )
 
 type MongoConfig struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Database string `json:"database"`
+	Username string `cfg:"username"`
+	Password string `cfg:"password"`
+	Host     string `cfg:"host"`
+	Port     int    `cfg:"port"`
+	Name     string `cfg:"name"`
 }
 
 type MongoContext struct {
@@ -23,7 +23,7 @@ type MongoContext struct {
 
 func connectToMongo(ctx context.Context, cfg MongoConfig) (MongoContext, error) {
 	// TODO: distingus between 'dev' and 'prod' in terms of authentication
-	connStr := fmt.Sprintf("mongodb://%s:%d/%s?replicaSet=rs0", cfg.Host, cfg.Port, cfg.Database)
+	connStr := fmt.Sprintf("mongodb://%s:%d/%s?replicaSet=rs0", cfg.Host, cfg.Port, cfg.Name)
 	opts := options.Client().ApplyURI(connStr)
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
@@ -34,7 +34,7 @@ func connectToMongo(ctx context.Context, cfg MongoConfig) (MongoContext, error) 
 		return MongoContext{}, fmt.Errorf("'client.Ping' failed: %w", err)
 	}
 
-	db := client.Database(cfg.Database)
+	db := client.Database(cfg.Name)
 	return MongoContext{
 		Client:   client,
 		Database: db,

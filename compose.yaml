@@ -1,13 +1,13 @@
 name: recipes
 services:
-  mongo:
+  main-mongo:
     image: mongo:8
     hostname: mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
-      - mongo-data:/data/db
+      - main-mongo-data:/data/db
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     healthcheck:
       test: >
@@ -21,13 +21,20 @@ services:
       timeout: 30s
       start_period: 10s
       retries: 30
-  redis:
+  main-redis:
     image: redis:8.6
     restart: unless-stopped              
     ports:
       - "6379:6379"              
     volumes:
-      - redis-data:/data
+      - main-redis-data:/data
+  sessions-redis:
+    image: redis:8.6
+    restart: unless-stopped              
+    ports:
+      - "6380:6379"              
+    volumes:
+      - sessions-redis-data:/data
   redis-insight:
     image: redis/redisinsight:3.2
     restart: unless-stopped
@@ -36,8 +43,10 @@ services:
     volumes:
       - redis-insight-data:/data
     depends_on:
-      - redis
+      - main-redis
+      - sessions-redis
 volumes:
-  mongo-data:
-  redis-data:
+  main-mongo-data:
+  main-redis-data:
+  sessions-redis-data:
   redis-insight-data:

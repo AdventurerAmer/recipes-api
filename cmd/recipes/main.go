@@ -21,6 +21,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -41,54 +42,45 @@ import (
 )
 
 type App struct {
-	mainDB    infra.MongoContext
-	mainCache infra.RedisContext
+	mainDB        infra.MongoContext
+	mainCache     infra.RedisContext
+	sessionsCache infra.RedisContext
 }
 
-type AppConfig struct {
-	AppName  string         `cffg:"appName"`
+type InfraConfig struct {
+	MainDB        infra.MongoConfig `cfg:"mainDatabase"`
+	MainCache     infra.RedisConfig `cfg:"mainCache"`
+	SessionsCache infra.RedisConfig `cfg:"sessionsCache"`
+}
+
+type SessionsConfig struct {
+	Secret       string        `cfg:"secret"`
+	MaxIdelConns int           `cfg:"maxIdelConns"`
+	Name         string        `cfg:"name"`
+	MaxAge       time.Duration `cfg:"maxAge"`
+}
+
+type ServerConfig struct {
 	Port     int            `cfg:"port"`
-	Debug    bool           `cfg:"debug"`
-	Database DatabaseConfig `cfg:"database"`
-	Redis    RedisConfig    `cfg:"redis"`
+	Sessions SessionsConfig `cfg:"sessions"`
 }
 
-type DatabaseConfig struct {
-	URL      string `cfg:"url"`
-	Username string `cfg:"username"`
-	Password string `cfg:"password"`
-	MaxConns int    `cfg:"maxConns"`
-}
-
-type RedisConfig struct {
-	Host     string `cfg:"host"`
-	Port     int    `cfg:"port"`
-	Password string `cfg:"password"`
-	DB       int    `cfg:"db"`
+type Config struct {
+	Infra  InfraConfig  `cfg:"infra"`
+	Server ServerConfig `cfg:"server"`
 }
 
 func main() {
-	var cfg AppConfig
-	if err := config.Load(&cfg); err != nil {
-		slog.Error("load config failed", "error", err)
+	var cfg Config
+	if err := config.Load(&cfg, config.WithPrefix("RECIPES")); err != nil {
+		slog.Error("load configuation failed", "error", err)
 		os.Exit(1)
 	}
+
 	app := &App{}
 	infraCtx := infra.New()
-	infraCtx.BindMongo(infra.MongoConfig{
-		Username: "",
-		Password: "",
-		Host:     "localhost",
-		Port:     27017,
-		Database: "dev",
-	}, &app.mainDB)
-	redisCfg := infra.RedisConfig{
-		Address:  "localhost:6379",
-		Username: "",
-		Password: "",
-		Database: 0,
-	}
-	infraCtx.BindRedis(redisCfg, &app.mainCache)
+	infraCtx.BindMongo(cfg.Infra.MainDB, &app.mainDB)
+	infraCtx.BindRedis(cfg.Infra.MainCache, &app.mainCache)
 	if err := infraCtx.Start(context.TODO()); err != nil {
 		slog.Error("infrastructure startup failed", "error", err)
 		os.Exit(1)
@@ -96,7 +88,6 @@ func main() {
 	defer infraCtx.Shutdown(context.TODO())
 
 	ttl := 10 * time.Minute
-
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database: app.mainDB.Database,
 		Client:   app.mainDB.Client,
@@ -127,22 +118,21 @@ func main() {
 
 	router := gin.Default()
 
-	// TODO: hardcoding connections and sceret
-	secret := []byte("xnx6D7fCxR47XqHGrnkqIBDjHIoz1csJ")
-	store, err := ginRedis.NewStore(10, "tcp", redisCfg.Address, redisCfg.Username, redisCfg.Password, secret)
+	secret := []byte(cfg.Server.Sessions.Secret)
+	sessionStore, err := ginRedis.NewStore(cfg.Server.Sessions.MaxIdelConns, "tcp", cfg.Infra.SessionsCache.Address, cfg.Infra.SessionsCache.Username, cfg.Infra.SessionsCache.Password, secret)
 	if err != nil {
 		slog.Error("cache connection failed", "error", err)
 		os.Exit(1)
 	}
 	// TODO: hardcoding session config
-	store.Options(sessions.Options{
+	sessionStore.Options(sessions.Options{
 		Path:     "/",
-		MaxAge:   60 * 60,
+		MaxAge:   int(cfg.Server.Sessions.MaxAge.Seconds()),
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
-	router.Use(sessions.Sessions("recipes", store))
+	router.Use(sessions.Sessions(cfg.Server.Sessions.Name, sessionStore))
 
 	v1 := router.Group("/api/v1/")
 	{
@@ -161,5 +151,5 @@ func main() {
 			authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
 		}
 	}
-	router.Run(":3000") // TODO: configurations
+	router.Run(fmt.Sprintf(":%d", cfg.Server.Port))
 }

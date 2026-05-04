@@ -8,10 +8,10 @@ import (
 )
 
 type RedisConfig struct {
-	Address  string `json:"address"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Database int    `json:"database"`
+	Address  string `cfg:"address"`
+	Username string `cfg:"username"`
+	Password string `cfg:"password"`
+	Database int    `cfg:"database"`
 }
 
 type RedisContext struct {
