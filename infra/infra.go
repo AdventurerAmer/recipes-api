@@ -8,15 +8,15 @@ import (
 	"time"
 )
 
-type InfraContext struct {
+type Infra struct {
 	StartupTimeout  time.Duration
 	ShutdownTimeout time.Duration
 	Mongo           map[MongoConfig]*MongoContext
 	Redis           map[RedisConfig]*RedisContext
 }
 
-func New() *InfraContext {
-	return &InfraContext{
+func New() *Infra {
+	return &Infra{
 		StartupTimeout:  time.Second,
 		ShutdownTimeout: time.Second,
 		Mongo:           make(map[MongoConfig]*MongoContext),
@@ -24,21 +24,21 @@ func New() *InfraContext {
 	}
 }
 
-func (infra *InfraContext) BindMongo(cfg MongoConfig, ctx *MongoContext) {
+func (infra *Infra) BindMongo(cfg MongoConfig, ctx *MongoContext) {
 	if _, ok := infra.Mongo[cfg]; ok {
 		panic("cfg is already bound")
 	}
 	infra.Mongo[cfg] = ctx
 }
 
-func (infra *InfraContext) BindRedis(cfg RedisConfig, ctx *RedisContext) {
+func (infra *Infra) BindRedis(cfg RedisConfig, ctx *RedisContext) {
 	if _, ok := infra.Redis[cfg]; ok {
 		panic("cfg is already bound")
 	}
 	infra.Redis[cfg] = ctx
 }
 
-func (infra *InfraContext) Start(ctx context.Context) error {
+func (infra *Infra) Start(ctx context.Context) error {
 	dctx, cancel := context.WithTimeout(ctx, infra.StartupTimeout)
 	defer cancel()
 
@@ -100,7 +100,7 @@ func (infra *InfraContext) Start(ctx context.Context) error {
 	}
 }
 
-func (infra *InfraContext) Shutdown(ctx context.Context) {
+func (infra *Infra) Shutdown(ctx context.Context) {
 	dctx, cancel := context.WithTimeout(ctx, infra.ShutdownTimeout)
 	defer cancel()
 

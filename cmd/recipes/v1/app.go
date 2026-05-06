@@ -1,0 +1,165 @@
+// Recipes API
+//
+// This is a sample recipes API.
+//
+//	Schemes: http
+//	Host: localhost:3000
+//	BasePath: /
+//	Version: 1.0.0
+//	Contact: Ahmed Amer
+//
+// <ahamerdev@gmail.com>
+//
+//	Consumes:
+//	- application/json
+//
+//	Produces:
+//	- application/json
+//
+// swagger:meta
+package v1
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/AdventurerAmer/recipes-api/cmd/recipes/v1/handlers"
+	"github.com/AdventurerAmer/recipes-api/config"
+	"github.com/AdventurerAmer/recipes-api/infra"
+	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
+	"github.com/AdventurerAmer/recipes-api/internal/core/services/userssrv"
+	"github.com/AdventurerAmer/recipes-api/internal/repositories/cache"
+	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
+	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
+	"github.com/gin-contrib/timeout"
+	"github.com/gin-gonic/gin"
+
+	"github.com/gin-contrib/sessions"
+	ginRedis "github.com/gin-contrib/sessions/redis"
+)
+
+type InfraCfg struct {
+	MainDB        infra.MongoConfig `cfg:"mainDatabase"`
+	MainCache     infra.RedisConfig `cfg:"mainCache"`
+	SessionsCache infra.RedisConfig `cfg:"sessionsCache"`
+}
+
+type SessionsCfg struct {
+	Secret       string        `cfg:"secret"`
+	MaxIdelConns int           `cfg:"maxIdelConns"`
+	Name         string        `cfg:"name"`
+	MaxAge       time.Duration `cfg:"maxAge"`
+}
+
+type ServerCfg struct {
+	Port     int         `cfg:"port"`
+	Sessions SessionsCfg `cfg:"sessions"`
+}
+
+type Constants struct {
+	Env             config.Environment `cfg:"env"`
+	DefaultTimeout  time.Duration      `cfg:"defaultTimeout"`
+	UsersCacheTTL   time.Duration      `cfg:"usersCacheTTL"`
+	RecipesCacheTTL time.Duration      `cfg:"recipesCacheTTL"`
+	RecipesMaxLimit int                `cfg:"recipesMaxLimit"`
+}
+
+type Config struct {
+	Infra     InfraCfg  `cfg:"infra"`
+	Server    ServerCfg `cfg:"server"`
+	Constants Constants `cfg:"constants"`
+}
+
+type App struct {
+	mainDB        infra.MongoContext
+	mainCache     infra.RedisContext
+	sessionsCache infra.RedisContext
+}
+
+func Run() error {
+	var cfg Config
+	if err := config.Load(&cfg, config.WithPrefix("RECIPES")); err != nil {
+		return fmt.Errorf("'config.Load' failed: %w", err)
+	}
+
+	app := &App{}
+	infraCtx := infra.New()
+	infraCtx.BindMongo(cfg.Infra.MainDB, &app.mainDB)
+	infraCtx.BindRedis(cfg.Infra.MainCache, &app.mainCache)
+	if err := infraCtx.Start(context.TODO()); err != nil {
+		return fmt.Errorf("'infraCtx.Start' failed: %w", err)
+
+	}
+	defer infraCtx.Shutdown(context.TODO())
+
+	usersRepoCfg := usersrepo.MongoConfig{
+		Database: app.mainDB.Database,
+		Client:   app.mainDB.Client,
+	}
+	usersRepo := usersrepo.NewMongo(usersRepoCfg)
+	usersRepo = cache.NewRedisUsersRepository(usersRepo, app.mainCache.Client, cfg.Constants.UsersCacheTTL)
+
+	usersServiceCfg := userssrv.Config{
+		UsersRepo: usersRepo,
+	}
+	usersService := userssrv.New(usersServiceCfg)
+
+	recipesRepoCfg := recipesrepo.MongoConfig{
+		Database: app.mainDB.Database,
+	}
+	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
+	recipesRepo = cache.NewRedisRecipesRepository(recipesRepo, app.mainCache.Client, cfg.Constants.RecipesCacheTTL)
+
+	recipesServiceCfg := recipessrv.Config{
+		RecipesRepo: recipesRepo,
+		MaxLimit:    cfg.Constants.RecipesMaxLimit,
+	}
+	recipesService := recipessrv.New(recipesServiceCfg)
+
+	usersHandler := handlers.NewUsersHandler(usersService)
+	recipesHandler := handlers.NewRecipesHandler(recipesService)
+	authHandler := handlers.NewAuthHandler(usersService)
+
+	secret := []byte(cfg.Server.Sessions.Secret)
+	sessionsStore, err := ginRedis.NewStore(cfg.Server.Sessions.MaxIdelConns, "tcp", cfg.Infra.SessionsCache.Address, cfg.Infra.SessionsCache.Username, cfg.Infra.SessionsCache.Password, secret)
+	if err != nil {
+		return fmt.Errorf("'ginRedis.NewStore' failed: %w", err)
+	}
+
+	// TODO: using dev config for new
+	sessionsStore.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   int(cfg.Server.Sessions.MaxAge.Seconds()),
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	router := gin.Default()
+	router.Use(sessions.Sessions(cfg.Server.Sessions.Name, sessionsStore))
+
+	v1 := router.Group("/api/v1/")
+	v1.Use(timeout.New(timeout.WithTimeout(cfg.Constants.DefaultTimeout)))
+	{
+		v1.POST("/signup", usersHandler.SignUpHandler)
+		v1.POST("/signin", authHandler.SignInHandler)
+		v1.POST("/signout", authHandler.SignOutHandler)
+
+		v1.GET("/recipes", recipesHandler.ListRecipesHandler)
+		v1.GET("/recipes/:id", recipesHandler.GetRecipeHandler)
+
+		authed := v1.Group("/")
+		authed.Use(authHandler.AuthMiddleware())
+		{
+			authed.POST("/recipes", recipesHandler.NewRecipeHandler)
+			authed.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
+			authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+		}
+	}
+	if err := router.Run(fmt.Sprintf(":%d", cfg.Server.Port)); err != nil {
+		return fmt.Errorf("'router.Run' failed: %w", err)
+	}
+	return nil
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -113,6 +114,12 @@ func setFieldsFromEnv(structVal reflect.Value, cfg *Config, prefix string) error
 
 func setFieldValue(field reflect.Value, value string) error {
 	switch field.Interface().(type) {
+	case Environment:
+		if !slices.Contains(Environments, Environment(value)) {
+			return fmt.Errorf("supported environment expected one of %+v", Environments)
+		}
+		field.Set(reflect.ValueOf(Environment(value)))
+		return nil
 	case time.Duration:
 		d, err := time.ParseDuration(value)
 		if err != nil {
