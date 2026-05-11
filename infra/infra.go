@@ -13,6 +13,7 @@ type Infra struct {
 	ShutdownTimeout time.Duration
 	Mongo           map[MongoConfig]*MongoContext
 	Redis           map[RedisConfig]*RedisContext
+	Minio           map[MinioConfig]*MinioContext
 }
 
 func New() *Infra {
@@ -21,6 +22,7 @@ func New() *Infra {
 		ShutdownTimeout: time.Second,
 		Mongo:           make(map[MongoConfig]*MongoContext),
 		Redis:           make(map[RedisConfig]*RedisContext),
+		Minio:           make(map[MinioConfig]*MinioContext),
 	}
 }
 
@@ -38,24 +40,38 @@ func (infra *Infra) BindRedis(cfg RedisConfig, ctx *RedisContext) {
 	infra.Redis[cfg] = ctx
 }
 
+func (infra *Infra) BindMinio(cfg MinioConfig, ctx *MinioContext) {
+	if _, ok := infra.Minio[cfg]; ok {
+		panic("cfg is already bound")
+	}
+	infra.Minio[cfg] = ctx
+}
+
 func (infra *Infra) Start(ctx context.Context) error {
 	dctx, cancel := context.WithTimeout(ctx, infra.StartupTimeout)
 	defer cancel()
 
 	type mongoResult struct {
-		err      error
-		cfg      MongoConfig
-		mongoCtx MongoContext
+		err error
+		cfg MongoConfig
+		ctx MongoContext
 	}
 
 	type redisResult struct {
-		err      error
-		cfg      RedisConfig
-		redisCtx RedisContext
+		err error
+		cfg RedisConfig
+		ctx RedisContext
+	}
+
+	type minioResult struct {
+		err error
+		cfg MinioConfig
+		ctx MinioContext
 	}
 
 	mongoCh := make(chan mongoResult)
 	redisCh := make(chan redisResult)
+	minioCh := make(chan minioResult)
 
 	wg := sync.WaitGroup{}
 	done := make(chan struct{})
@@ -63,13 +79,20 @@ func (infra *Infra) Start(ctx context.Context) error {
 	for cfg := range infra.Mongo {
 		wg.Go(func() {
 			mongoCtx, err := connectToMongo(dctx, cfg)
-			mongoCh <- mongoResult{cfg: cfg, mongoCtx: mongoCtx, err: err}
+			mongoCh <- mongoResult{cfg: cfg, ctx: mongoCtx, err: err}
 		})
 	}
 	for cfg := range infra.Redis {
 		wg.Go(func() {
-			redisCtx, err := ConnectToRedis(dctx, cfg)
-			redisCh <- redisResult{cfg: cfg, redisCtx: redisCtx, err: err}
+			redisCtx, err := connectToRedis(dctx, cfg)
+			redisCh <- redisResult{cfg: cfg, ctx: redisCtx, err: err}
+		})
+	}
+
+	for cfg := range infra.Minio {
+		wg.Go(func() {
+			minioCtx, err := connectToMinio(dctx, cfg)
+			minioCh <- minioResult{cfg: cfg, ctx: minioCtx, err: err}
 		})
 	}
 
@@ -89,13 +112,19 @@ func (infra *Infra) Start(ctx context.Context) error {
 				return res.err
 			}
 			mongoCtx := infra.Mongo[res.cfg]
-			*mongoCtx = res.mongoCtx
+			*mongoCtx = res.ctx
 		case res := <-redisCh:
 			if res.err != nil {
 				return res.err
 			}
 			redisCtx := infra.Redis[res.cfg]
-			*redisCtx = res.redisCtx
+			*redisCtx = res.ctx
+		case res := <-minioCh:
+			if res.err != nil {
+				return res.err
+			}
+			minioCtx := infra.Minio[res.cfg]
+			*minioCtx = res.ctx
 		}
 	}
 }
@@ -122,7 +151,13 @@ func (infra *Infra) Shutdown(ctx context.Context) {
 			}
 		})
 	}
-
+	for _, c := range infra.Minio {
+		wg.Go(func() {
+			if err := disconnectFromMinio(dctx, *c); err != nil {
+				errCh <- fmt.Errorf("'disconnectFromMinio' failed: %w", err)
+			}
+		})
+	}
 	go func() {
 		wg.Wait()
 		close(done)

@@ -41,9 +41,10 @@ import (
 )
 
 type InfraCfg struct {
-	MainDB        infra.MongoConfig `cfg:"mainDatabase"`
-	MainCache     infra.RedisConfig `cfg:"mainCache"`
-	SessionsCache infra.RedisConfig `cfg:"sessionsCache"`
+	MainDB            infra.MongoConfig `cfg:"mainDatabase"`
+	MainCache         infra.RedisConfig `cfg:"mainCache"`
+	SessionsCache     infra.RedisConfig `cfg:"sessionsCache"`
+	MainObjectStorage infra.MinioConfig `cfg:"mainObjectStorage"`
 }
 
 type SessionsCfg struct {
@@ -73,9 +74,10 @@ type Config struct {
 }
 
 type App struct {
-	mainDB        infra.MongoContext
-	mainCache     infra.RedisContext
-	sessionsCache infra.RedisContext
+	mainDB            infra.MongoContext
+	mainCache         infra.RedisContext
+	sessionsCache     infra.RedisContext
+	mainObjectStorage infra.MinioContext
 }
 
 func Run() error {
@@ -88,6 +90,7 @@ func Run() error {
 	infraCtx := infra.New()
 	infraCtx.BindMongo(cfg.Infra.MainDB, &app.mainDB)
 	infraCtx.BindRedis(cfg.Infra.MainCache, &app.mainCache)
+	infraCtx.BindMinio(cfg.Infra.MainObjectStorage, &app.mainObjectStorage)
 	if err := infraCtx.Start(context.TODO()); err != nil {
 		return fmt.Errorf("'infraCtx.Start' failed: %w", err)
 

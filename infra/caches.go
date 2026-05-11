@@ -18,7 +18,7 @@ type RedisContext struct {
 	Client *redis.Client
 }
 
-func ConnectToRedis(ctx context.Context, cfg RedisConfig) (RedisContext, error) {
+func connectToRedis(ctx context.Context, cfg RedisConfig) (RedisContext, error) {
 	opts := &redis.Options{
 		Addr:     cfg.Address,
 		Username: cfg.Username,
