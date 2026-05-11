@@ -20,10 +20,8 @@ type MinioContext struct {
 }
 
 func connectToMinio(ctx context.Context, cfg MinioConfig) (MinioContext, error) {
-	accessKey := ""
-	secretKey := ""
 	opts := &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Creds:  credentials.NewStaticV4(cfg.Username, cfg.Passward, ""),
 		Secure: cfg.UseSSL,
 	}
 	type result struct {

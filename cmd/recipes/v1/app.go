@@ -22,7 +22,10 @@ package v1
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/cmd/recipes/v1/handlers"
@@ -86,16 +89,20 @@ func Run() error {
 		return fmt.Errorf("'config.Load' failed: %w", err)
 	}
 
+	sigCtx, sigCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer sigCancel()
+
 	app := &App{}
 	infraCtx := infra.New()
 	infraCtx.BindMongo(cfg.Infra.MainDB, &app.mainDB)
 	infraCtx.BindRedis(cfg.Infra.MainCache, &app.mainCache)
 	infraCtx.BindMinio(cfg.Infra.MainObjectStorage, &app.mainObjectStorage)
-	if err := infraCtx.Start(context.TODO()); err != nil {
+
+	if err := infraCtx.Start(sigCtx); err != nil {
 		return fmt.Errorf("'infraCtx.Start' failed: %w", err)
 
 	}
-	defer infraCtx.Shutdown(context.TODO())
+	defer infraCtx.Shutdown(sigCtx)
 
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database: app.mainDB.Database,
@@ -161,8 +168,25 @@ func Run() error {
 			authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
 		}
 	}
-	if err := router.Run(fmt.Sprintf(":%d", cfg.Server.Port)); err != nil {
-		return fmt.Errorf("'router.Run' failed: %w", err)
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
+		Handler: router,
 	}
+
+	go func() {
+		slog.Info("Staring server", "port", cfg.Server.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("Listen error", "error", err)
+		}
+	}()
+	<-sigCtx.Done()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("'srv.Shutdown' failed: %w", err)
+	}
+	slog.Info("Server was shutdown gracefully")
 	return nil
 }
