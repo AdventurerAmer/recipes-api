@@ -8,11 +8,13 @@ import (
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
+	"github.com/google/uuid"
 )
 
 type Config struct {
-	RecipesRepo ports.RecipesRepository
-	MaxLimit    int
+	RecipesRepo   ports.RecipesRepository
+	ObjectStorage ports.ObjectStorage
+	MaxLimit      int
 }
 
 type service struct {
@@ -26,13 +28,19 @@ func New(cfg Config) ports.RecipesService {
 }
 
 func (srv *service) Create(ctx context.Context, user domain.User, req ports.CreateRecipeRequest) (ports.CreateRecipeResponse, error) {
+	bucket := ports.RecipeImagesBucketName
+	objectName := uuid.NewString()
+	if err := srv.ObjectStorage.Upload(ctx, bucket, objectName, req.Image); err != nil {
+		return ports.CreateRecipeResponse{}, fmt.Errorf("'ObjectStorage.Upload' failed: %w", err)
+	}
 	recipe := domain.Recipe{
 		CreatedAt:    time.Now().UTC(),
 		UserID:       user.ID,
-		Name:         req.Name,
-		Tags:         req.Tags,
-		Ingredients:  req.Ingredients,
-		Instructions: req.Instructions,
+		Name:         req.Recipe.Name,
+		Tags:         req.Recipe.Tags,
+		Ingredients:  req.Recipe.Ingredients,
+		Instructions: req.Recipe.Instructions,
+		Image:        srv.ObjectStorage.GetURL(bucket, objectName),
 	}
 	if err := srv.RecipesRepo.Create(ctx, &recipe); err != nil {
 		return ports.CreateRecipeResponse{}, fmt.Errorf("'RecipesRepo.Create' failed: %w", err)
@@ -65,17 +73,25 @@ func (srv *service) Update(ctx context.Context, user domain.User, req ports.Upda
 	if recipe.UserID != user.ID {
 		return ports.UpdateRecipeResponse{}, errors.New("permission denied")
 	}
-	if req.Name != nil {
-		recipe.Name = *req.Name
+	if req.Recipe.Name != nil {
+		recipe.Name = *req.Recipe.Name
 	}
-	if req.Tags != nil {
-		recipe.Tags = req.Tags
+	if req.Recipe.Tags != nil {
+		recipe.Tags = req.Recipe.Tags
 	}
-	if req.Instructions != nil {
-		recipe.Instructions = req.Instructions
+	if req.Recipe.Instructions != nil {
+		recipe.Instructions = req.Recipe.Instructions
 	}
-	if req.Ingredients != nil {
-		recipe.Ingredients = req.Ingredients
+	if req.Recipe.Ingredients != nil {
+		recipe.Ingredients = req.Recipe.Ingredients
+	}
+	if req.Image != nil {
+		bucket := ports.RecipeImagesBucketName
+		objectName := uuid.NewString()
+		if err := srv.ObjectStorage.Upload(ctx, bucket, objectName, *req.Image); err != nil {
+			return ports.UpdateRecipeResponse{}, fmt.Errorf("'ObjectStorage.Upload' failed: %w", err)
+		}
+		recipe.Image = srv.ObjectStorage.GetURL(bucket, objectName)
 	}
 	if err := srv.RecipesRepo.Update(ctx, &recipe); err != nil {
 		return ports.UpdateRecipeResponse{}, fmt.Errorf("'RecipesRepo.Update' failed: %w", err)

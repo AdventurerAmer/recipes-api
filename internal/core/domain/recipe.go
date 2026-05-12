@@ -14,5 +14,6 @@ type Recipe struct {
 	Tags         []string  `json:"tags" bson:"tags"`
 	Ingredients  []string  `json:"ingredients" bson:"ingredients"`
 	Instructions []string  `json:"instructions" bson:"instructions"`
+	Image        string    `json:"image" bson:"image"`
 	Version      int       `json:"version" bson:"version"`
 }

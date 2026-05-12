@@ -3,7 +3,6 @@ package minio
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/minio/minio-go/v7"
@@ -19,11 +18,16 @@ func New(client *minio.Client) ports.ObjectStorage {
 	}
 }
 
-func (mos *minioObjectStorage) Upload(ctx context.Context, bucket, objectName string, reader io.Reader, size int, contentType string) error {
+func (mos *minioObjectStorage) GetURL(bucket, objectName string) string {
+	endpoint := mos.client.EndpointURL()
+	return fmt.Sprintf("http://%s/%s/%s", endpoint, bucket, objectName)
+}
+
+func (mos *minioObjectStorage) Upload(ctx context.Context, bucket, objectName string, file ports.ObjectStorageFile) error {
 	opts := minio.PutObjectOptions{
-		ContentType: contentType,
+		ContentType: file.ContentType,
 	}
-	_, err := mos.client.PutObject(ctx, bucket, objectName, reader, int64(size), opts)
+	_, err := mos.client.PutObject(ctx, bucket, objectName, file.Reader, int64(file.Size), opts)
 	if err != nil {
 		return fmt.Errorf("'client.PutObject' failed: %w", err)
 	}

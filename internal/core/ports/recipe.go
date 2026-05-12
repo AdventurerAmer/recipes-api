@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"mime/multipart"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 )
@@ -23,10 +24,14 @@ type RecipesService interface {
 }
 
 type CreateRecipeRequest struct {
-	Name         string   `json:"name" binding:"required,min=1"`
-	Tags         []string `json:"tags"`
-	Ingredients  []string `json:"ingredients" binding:"required,min=1"`
-	Instructions []string `json:"instructions" binding:"required,min=1"`
+	Recipe struct {
+		Name         string   `json:"name" binding:"required,min=1"`
+		Tags         []string `json:"tags"`
+		Ingredients  []string `json:"ingredients" binding:"required,min=1"`
+		Instructions []string `json:"instructions" binding:"required,min=1"`
+	} `form:"recipe" binding:"required"`
+	ImageHeader *multipart.FileHeader `form:"image" binding:"required"`
+	Image       ObjectStorageFile
 }
 
 type CreateRecipeResponse struct {
@@ -54,11 +59,15 @@ type ListRecipesResponse struct {
 }
 
 type UpdateRecipeRequest struct {
-	ID           string   `json:"id" uri:"id" binding:"required"`
-	Name         *string  `json:"name" binding:"omitempty,min=1"`
-	Tags         []string `json:"tags" binding:"omitempty,min=1"`
-	Ingredients  []string `json:"ingredients" binding:"omitempty,min=1"`
-	Instructions []string `json:"instructions" binding:"omitempty,min=1"`
+	ID     string `json:"id" uri:"id" binding:"required"`
+	Recipe struct {
+		Name         *string  `json:"name" binding:"omitempty,min=1"`
+		Tags         []string `json:"tags" binding:"omitempty,min=1"`
+		Ingredients  []string `json:"ingredients" binding:"omitempty,min=1"`
+		Instructions []string `json:"instructions" binding:"omitempty,min=1"`
+	} `form:"recipe"`
+	ImageHeader *multipart.FileHeader `form:"image"`
+	Image       *ObjectStorageFile
 }
 
 type UpdateRecipeResponse struct {

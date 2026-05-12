@@ -59,7 +59,7 @@ func NewRecipesHandler(recipesService ports.RecipesService) *RecipesHandler {
 //	    description: Invalid input
 func (h *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 	var req ports.CreateRecipeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -67,6 +67,16 @@ func (h *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 	user := domain.User{
 		ID:       session.Get("id").(string),
 		Username: session.Get("username").(string),
+	}
+	file, err := req.ImageHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	req.Image = ports.ObjectStorageFile{
+		Reader:      file,
+		Size:        int(req.ImageHeader.Size),
+		ContentType: req.ImageHeader.Header.Get("Content-Type"),
 	}
 	resp, err := h.RecipesService.Create(c, user, req)
 	if err != nil {
@@ -146,11 +156,7 @@ func (h *RecipesHandler) GetRecipeHandler(c *gin.Context) {
 //	    description: Invalid recipe ID
 func (h *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 	var req ports.UpdateRecipeRequest
-	if err := c.ShouldBindUri(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -158,6 +164,18 @@ func (h *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 	user := domain.User{
 		ID:       session.Get("id").(string),
 		Username: session.Get("username").(string),
+	}
+	if req.ImageHeader != nil {
+		file, err := req.ImageHeader.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		req.Image = &ports.ObjectStorageFile{
+			Reader:      file,
+			Size:        int(req.ImageHeader.Size),
+			ContentType: req.ImageHeader.Header.Get("Content-Type"),
+		}
 	}
 	resp, err := h.RecipesService.Update(c, user, req)
 	if err != nil {

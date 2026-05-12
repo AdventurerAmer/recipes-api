@@ -139,6 +139,7 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 		Tags         []string  `bson:"tags"`
 		Ingredients  []string  `bson:"ingredients"`
 		Instructions []string  `bson:"instructions"`
+		Image        string    `bson:"image"`
 		Version      int       `bson:"-"`
 	}
 	filter := bson.M{"_id": oid, "version": recipe.Version}
