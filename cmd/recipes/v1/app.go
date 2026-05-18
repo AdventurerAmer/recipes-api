@@ -44,10 +44,11 @@ import (
 )
 
 type InfraCfg struct {
-	MainDB            infra.MongoConfig `cfg:"mainDatabase"`
-	MainCache         infra.RedisConfig `cfg:"mainCache"`
-	SessionsCache     infra.RedisConfig `cfg:"sessionsCache"`
-	MainObjectStorage infra.MinioConfig `cfg:"mainObjectStorage"`
+	MainDB            infra.MongoConfig         `cfg:"mainDatabase"`
+	MainCache         infra.RedisConfig         `cfg:"mainCache"`
+	SessionsCache     infra.RedisConfig         `cfg:"sessionsCache"`
+	MainObjectStorage infra.MinioConfig         `cfg:"mainObjectStorage"`
+	MainTextSearch    infra.ElasticSearchConfig `cfg:"mainTextSearch"`
 }
 
 type SessionsCfg struct {
@@ -81,6 +82,7 @@ type App struct {
 	mainCache         infra.RedisContext
 	sessionsCache     infra.RedisContext
 	mainObjectStorage infra.MinioContext
+	mainTextSearch    infra.ElasticSearchContext
 }
 
 func Run() error {
@@ -97,7 +99,7 @@ func Run() error {
 	infraCtx.BindMongo(cfg.Infra.MainDB, &app.mainDB)
 	infraCtx.BindRedis(cfg.Infra.MainCache, &app.mainCache)
 	infraCtx.BindMinio(cfg.Infra.MainObjectStorage, &app.mainObjectStorage)
-
+	infraCtx.BindElasticSearch(cfg.Infra.MainTextSearch, &app.mainTextSearch)
 	if err := infraCtx.Start(sigCtx); err != nil {
 		return fmt.Errorf("'infraCtx.Start' failed: %w", err)
 

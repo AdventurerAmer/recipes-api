@@ -14,6 +14,7 @@ type Infra struct {
 	Mongo           map[MongoConfig]*MongoContext
 	Redis           map[RedisConfig]*RedisContext
 	Minio           map[MinioConfig]*MinioContext
+	ElasticSearch   map[ElasticSearchConfig]*ElasticSearchContext
 }
 
 func New() *Infra {
@@ -23,6 +24,7 @@ func New() *Infra {
 		Mongo:           make(map[MongoConfig]*MongoContext),
 		Redis:           make(map[RedisConfig]*RedisContext),
 		Minio:           make(map[MinioConfig]*MinioContext),
+		ElasticSearch:   make(map[ElasticSearchConfig]*ElasticSearchContext),
 	}
 }
 
@@ -47,6 +49,13 @@ func (infra *Infra) BindMinio(cfg MinioConfig, ctx *MinioContext) {
 	infra.Minio[cfg] = ctx
 }
 
+func (infra *Infra) BindElasticSearch(cfg ElasticSearchConfig, ctx *ElasticSearchContext) {
+	if _, ok := infra.ElasticSearch[cfg]; ok {
+		panic("cfg is already bound")
+	}
+	infra.ElasticSearch[cfg] = ctx
+}
+
 func (infra *Infra) Start(ctx context.Context) error {
 	dctx, cancel := context.WithTimeout(ctx, infra.StartupTimeout)
 	defer cancel()
@@ -69,9 +78,16 @@ func (infra *Infra) Start(ctx context.Context) error {
 		ctx MinioContext
 	}
 
+	type elasticSearchResult struct {
+		err error
+		cfg ElasticSearchConfig
+		ctx ElasticSearchContext
+	}
+
 	mongoCh := make(chan mongoResult)
 	redisCh := make(chan redisResult)
 	minioCh := make(chan minioResult)
+	elasticSearchCh := make(chan elasticSearchResult)
 
 	wg := sync.WaitGroup{}
 	done := make(chan struct{})
@@ -88,14 +104,18 @@ func (infra *Infra) Start(ctx context.Context) error {
 			redisCh <- redisResult{cfg: cfg, ctx: redisCtx, err: err}
 		})
 	}
-
 	for cfg := range infra.Minio {
 		wg.Go(func() {
 			minioCtx, err := connectToMinio(dctx, cfg)
 			minioCh <- minioResult{cfg: cfg, ctx: minioCtx, err: err}
 		})
 	}
-
+	for cfg := range infra.ElasticSearch {
+		wg.Go(func() {
+			elasticSearchCtx, err := connectToElasticSearch(dctx, cfg)
+			elasticSearchCh <- elasticSearchResult{cfg: cfg, ctx: elasticSearchCtx, err: err}
+		})
+	}
 	go func() {
 		wg.Wait()
 		close(done)
@@ -125,6 +145,12 @@ func (infra *Infra) Start(ctx context.Context) error {
 			}
 			minioCtx := infra.Minio[res.cfg]
 			*minioCtx = res.ctx
+		case res := <-elasticSearchCh:
+			if res.err != nil {
+				return res.err
+			}
+			elasticSearchCtx := infra.ElasticSearch[res.cfg]
+			*elasticSearchCtx = res.ctx
 		}
 	}
 }
@@ -144,6 +170,7 @@ func (infra *Infra) Shutdown(ctx context.Context) {
 			}
 		})
 	}
+
 	for _, c := range infra.Redis {
 		wg.Go(func() {
 			if err := disconnectFromRedis(dctx, *c); err != nil {
@@ -151,6 +178,7 @@ func (infra *Infra) Shutdown(ctx context.Context) {
 			}
 		})
 	}
+
 	for _, c := range infra.Minio {
 		wg.Go(func() {
 			if err := disconnectFromMinio(dctx, *c); err != nil {
@@ -158,6 +186,15 @@ func (infra *Infra) Shutdown(ctx context.Context) {
 			}
 		})
 	}
+
+	for _, c := range infra.ElasticSearch {
+		wg.Go(func() {
+			if err := disconnectFromElasticSearch(dctx, *c); err != nil {
+				errCh <- fmt.Errorf("'disconnectFromElasticSearch' failed: %w", err)
+			}
+		})
+	}
+
 	go func() {
 		wg.Wait()
 		close(done)
