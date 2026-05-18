@@ -11,11 +11,7 @@ type ElasticSearchConfig struct {
 	Address string `cfg:"address"`
 }
 
-type ElasticSearchContext struct {
-	Client *elasticsearch.TypedClient
-}
-
-func connectToElasticSearch(ctx context.Context, cfg ElasticSearchConfig) (ElasticSearchContext, error) {
+func (cfg *ElasticSearchConfig) Connect(ctx context.Context) (Disconnecter, error) {
 	type result struct {
 		client *elasticsearch.TypedClient
 		err    error
@@ -32,19 +28,23 @@ func connectToElasticSearch(ctx context.Context, cfg ElasticSearchConfig) (Elast
 	}()
 	select {
 	case <-ctx.Done():
-		return ElasticSearchContext{}, ctx.Err()
+		return nil, ctx.Err()
 	case res := <-resCh:
 		if res.err != nil {
-			return ElasticSearchContext{}, res.err
+			return nil, res.err
 		}
-		return ElasticSearchContext{
+		return &ElasticSearchContext{
 			Client: res.client,
 		}, nil
 	}
 }
 
-func disconnectFromElasticSearch(ctx context.Context, elasticSearchCtx ElasticSearchContext) error {
-	if err := elasticSearchCtx.Client.Close(ctx); err != nil {
+type ElasticSearchContext struct {
+	Client *elasticsearch.TypedClient
+}
+
+func (c *ElasticSearchContext) Disconnect(ctx context.Context) error {
+	if err := c.Client.Close(ctx); err != nil {
 		return fmt.Errorf("'Client.Close' failed: %w", err)
 	}
 	return nil

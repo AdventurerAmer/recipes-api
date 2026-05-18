@@ -14,11 +14,7 @@ type RedisConfig struct {
 	Database int    `cfg:"database"`
 }
 
-type RedisContext struct {
-	Client *redis.Client
-}
-
-func connectToRedis(ctx context.Context, cfg RedisConfig) (RedisContext, error) {
+func (cfg *RedisConfig) Connect(ctx context.Context) (Disconnecter, error) {
 	opts := &redis.Options{
 		Addr:     cfg.Address,
 		Username: cfg.Username,
@@ -27,15 +23,19 @@ func connectToRedis(ctx context.Context, cfg RedisConfig) (RedisContext, error) 
 	}
 	client := redis.NewClient(opts)
 	if _, err := client.Ping(ctx).Result(); err != nil {
-		return RedisContext{}, fmt.Errorf("'client.Ping' failed: %w", err)
+		return nil, fmt.Errorf("'client.Ping' failed: %w", err)
 	}
-	return RedisContext{Client: client}, nil
+	return &RedisContext{Client: client}, nil
 }
 
-func disconnectFromRedis(ctx context.Context, redisCtx RedisContext) error {
+type RedisContext struct {
+	Client *redis.Client
+}
+
+func (c *RedisContext) Disconnect(ctx context.Context) error {
 	errCh := make(chan error)
 	go func() {
-		if err := redisCtx.Client.Close(); err != nil {
+		if err := c.Client.Close(); err != nil {
 			errCh <- fmt.Errorf("'Client.Close' failed: %w", err)
 		}
 		errCh <- nil

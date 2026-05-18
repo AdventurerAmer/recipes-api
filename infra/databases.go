@@ -16,34 +16,35 @@ type MongoConfig struct {
 	Name     string `cfg:"name"`
 }
 
-type MongoContext struct {
-	Client   *mongo.Client
-	Database *mongo.Database
-}
-
-func connectToMongo(ctx context.Context, cfg MongoConfig) (MongoContext, error) {
+func (cfg *MongoConfig) Connect(ctx context.Context) (Disconnecter, error) {
 	// TODO: distingus between 'dev' and 'prod' in terms of authentication
 	connStr := fmt.Sprintf("mongodb://%s:%d/%s?replicaSet=rs0", cfg.Host, cfg.Port, cfg.Name)
 	opts := options.Client().ApplyURI(connStr)
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		return MongoContext{}, fmt.Errorf("'mongo.Connect' failed: %w", err)
+		return nil, fmt.Errorf("'mongo.Connect' failed: %w", err)
 	}
 
 	if err := client.Ping(ctx, nil); err != nil {
-		return MongoContext{}, fmt.Errorf("'client.Ping' failed: %w", err)
+		return nil, fmt.Errorf("'client.Ping' failed: %w", err)
 	}
 
-	db := client.Database(cfg.Name)
-	return MongoContext{
+	return &MongoContext{
 		Client:   client,
-		Database: db,
+		Database: client.Database(cfg.Name),
 	}, nil
 }
 
-func disconnectFromMongo(ctx context.Context, mongoCtx MongoContext) error {
-	if err := mongoCtx.Client.Disconnect(ctx); err != nil {
+type MongoContext struct {
+	Client   *mongo.Client
+	Database *mongo.Database
+}
+
+func (c *MongoContext) Disconnect(ctx context.Context) error {
+	if err := c.Client.Disconnect(ctx); err != nil {
 		return fmt.Errorf("'Client.Disconnect' failed: %w", err)
 	}
+	c.Client = nil
+	c.Database = nil
 	return nil
 }

@@ -2,120 +2,62 @@ package infra
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
+	"reflect"
 	"sync"
 	"time"
 )
 
+type Connecter interface {
+	Connect(ctx context.Context) (Disconnecter, error)
+}
+
+type Disconnecter interface {
+	Disconnect(ctx context.Context) error
+}
+
 type Infra struct {
 	StartupTimeout  time.Duration
 	ShutdownTimeout time.Duration
-	Mongo           map[MongoConfig]*MongoContext
-	Redis           map[RedisConfig]*RedisContext
-	Minio           map[MinioConfig]*MinioContext
-	ElasticSearch   map[ElasticSearchConfig]*ElasticSearchContext
+	Components      map[Connecter]Disconnecter
 }
 
 func New() *Infra {
 	return &Infra{
 		StartupTimeout:  time.Second,
 		ShutdownTimeout: time.Second,
-		Mongo:           make(map[MongoConfig]*MongoContext),
-		Redis:           make(map[RedisConfig]*RedisContext),
-		Minio:           make(map[MinioConfig]*MinioContext),
-		ElasticSearch:   make(map[ElasticSearchConfig]*ElasticSearchContext),
+		Components:      make(map[Connecter]Disconnecter),
 	}
 }
 
-func (infra *Infra) BindMongo(cfg MongoConfig, ctx *MongoContext) {
-	if _, ok := infra.Mongo[cfg]; ok {
-		panic("cfg is already bound")
+func (infra *Infra) Bind(connector Connecter, disconnector Disconnecter) {
+	if _, ok := infra.Components[connector]; ok {
+		panic("connector is already bound")
 	}
-	infra.Mongo[cfg] = ctx
-}
-
-func (infra *Infra) BindRedis(cfg RedisConfig, ctx *RedisContext) {
-	if _, ok := infra.Redis[cfg]; ok {
-		panic("cfg is already bound")
-	}
-	infra.Redis[cfg] = ctx
-}
-
-func (infra *Infra) BindMinio(cfg MinioConfig, ctx *MinioContext) {
-	if _, ok := infra.Minio[cfg]; ok {
-		panic("cfg is already bound")
-	}
-	infra.Minio[cfg] = ctx
-}
-
-func (infra *Infra) BindElasticSearch(cfg ElasticSearchConfig, ctx *ElasticSearchContext) {
-	if _, ok := infra.ElasticSearch[cfg]; ok {
-		panic("cfg is already bound")
-	}
-	infra.ElasticSearch[cfg] = ctx
+	infra.Components[connector] = disconnector
 }
 
 func (infra *Infra) Start(ctx context.Context) error {
 	dctx, cancel := context.WithTimeout(ctx, infra.StartupTimeout)
 	defer cancel()
 
-	type mongoResult struct {
-		err error
-		cfg MongoConfig
-		ctx MongoContext
-	}
-
-	type redisResult struct {
-		err error
-		cfg RedisConfig
-		ctx RedisContext
-	}
-
-	type minioResult struct {
-		err error
-		cfg MinioConfig
-		ctx MinioContext
-	}
-
-	type elasticSearchResult struct {
-		err error
-		cfg ElasticSearchConfig
-		ctx ElasticSearchContext
-	}
-
-	mongoCh := make(chan mongoResult)
-	redisCh := make(chan redisResult)
-	minioCh := make(chan minioResult)
-	elasticSearchCh := make(chan elasticSearchResult)
+	errCh := make(chan error)
 
 	wg := sync.WaitGroup{}
 	done := make(chan struct{})
 
-	for cfg := range infra.Mongo {
+	for conn, dstDisconn := range infra.Components {
 		wg.Go(func() {
-			mongoCtx, err := connectToMongo(dctx, cfg)
-			mongoCh <- mongoResult{cfg: cfg, ctx: mongoCtx, err: err}
+			srcDisconn, err := conn.Connect(dctx)
+			if err != nil {
+				errCh <- err
+			} else {
+				ele := reflect.ValueOf(dstDisconn).Elem()
+				ele.Set(reflect.ValueOf(srcDisconn).Elem())
+			}
 		})
 	}
-	for cfg := range infra.Redis {
-		wg.Go(func() {
-			redisCtx, err := connectToRedis(dctx, cfg)
-			redisCh <- redisResult{cfg: cfg, ctx: redisCtx, err: err}
-		})
-	}
-	for cfg := range infra.Minio {
-		wg.Go(func() {
-			minioCtx, err := connectToMinio(dctx, cfg)
-			minioCh <- minioResult{cfg: cfg, ctx: minioCtx, err: err}
-		})
-	}
-	for cfg := range infra.ElasticSearch {
-		wg.Go(func() {
-			elasticSearchCtx, err := connectToElasticSearch(dctx, cfg)
-			elasticSearchCh <- elasticSearchResult{cfg: cfg, ctx: elasticSearchCtx, err: err}
-		})
-	}
+
 	go func() {
 		wg.Wait()
 		close(done)
@@ -127,30 +69,8 @@ func (infra *Infra) Start(ctx context.Context) error {
 			return ctx.Err()
 		case <-done:
 			return nil
-		case res := <-mongoCh:
-			if res.err != nil {
-				return res.err
-			}
-			mongoCtx := infra.Mongo[res.cfg]
-			*mongoCtx = res.ctx
-		case res := <-redisCh:
-			if res.err != nil {
-				return res.err
-			}
-			redisCtx := infra.Redis[res.cfg]
-			*redisCtx = res.ctx
-		case res := <-minioCh:
-			if res.err != nil {
-				return res.err
-			}
-			minioCtx := infra.Minio[res.cfg]
-			*minioCtx = res.ctx
-		case res := <-elasticSearchCh:
-			if res.err != nil {
-				return res.err
-			}
-			elasticSearchCtx := infra.ElasticSearch[res.cfg]
-			*elasticSearchCtx = res.ctx
+		case err := <-errCh:
+			return err
 		}
 	}
 }
@@ -163,34 +83,10 @@ func (infra *Infra) Shutdown(ctx context.Context) {
 	done := make(chan struct{})
 	errCh := make(chan error)
 
-	for _, c := range infra.Mongo {
+	for _, disconn := range infra.Components {
 		wg.Go(func() {
-			if err := disconnectFromMongo(dctx, *c); err != nil {
-				errCh <- fmt.Errorf("'disconnectFromMongo' failed: %w", err)
-			}
-		})
-	}
-
-	for _, c := range infra.Redis {
-		wg.Go(func() {
-			if err := disconnectFromRedis(dctx, *c); err != nil {
-				errCh <- fmt.Errorf("'disconnectFromRedis' failed: %w", err)
-			}
-		})
-	}
-
-	for _, c := range infra.Minio {
-		wg.Go(func() {
-			if err := disconnectFromMinio(dctx, *c); err != nil {
-				errCh <- fmt.Errorf("'disconnectFromMinio' failed: %w", err)
-			}
-		})
-	}
-
-	for _, c := range infra.ElasticSearch {
-		wg.Go(func() {
-			if err := disconnectFromElasticSearch(dctx, *c); err != nil {
-				errCh <- fmt.Errorf("'disconnectFromElasticSearch' failed: %w", err)
+			if err := disconn.Disconnect(dctx); err != nil {
+				errCh <- err
 			}
 		})
 	}
@@ -210,4 +106,20 @@ func (infra *Infra) Shutdown(ctx context.Context) {
 			slog.Error("infrastructure shutdown failed", "error", err)
 		}
 	}
+}
+
+func (infra *Infra) BindMongo(cfg *MongoConfig, ctx *MongoContext) {
+	infra.Bind(cfg, ctx)
+}
+
+func (infra *Infra) BindRedis(cfg *RedisConfig, ctx *RedisContext) {
+	infra.Bind(cfg, ctx)
+}
+
+func (infra *Infra) BindMinio(cfg *MinioConfig, ctx *MinioContext) {
+	infra.Bind(cfg, ctx)
+}
+
+func (infra *Infra) BindElasticSearch(cfg *ElasticSearchConfig, ctx *ElasticSearchContext) {
+	infra.Bind(cfg, ctx)
 }

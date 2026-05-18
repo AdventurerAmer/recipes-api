@@ -96,15 +96,16 @@ func Run() error {
 
 	app := &App{}
 	infraCtx := infra.New()
-	infraCtx.BindMongo(cfg.Infra.MainDB, &app.mainDB)
-	infraCtx.BindRedis(cfg.Infra.MainCache, &app.mainCache)
-	infraCtx.BindMinio(cfg.Infra.MainObjectStorage, &app.mainObjectStorage)
-	infraCtx.BindElasticSearch(cfg.Infra.MainTextSearch, &app.mainTextSearch)
+	infraCtx.BindMongo(&cfg.Infra.MainDB, &app.mainDB)
+	infraCtx.BindRedis(&cfg.Infra.MainCache, &app.mainCache)
+	infraCtx.BindMinio(&cfg.Infra.MainObjectStorage, &app.mainObjectStorage)
+	infraCtx.BindElasticSearch(&cfg.Infra.MainTextSearch, &app.mainTextSearch)
 	if err := infraCtx.Start(sigCtx); err != nil {
 		return fmt.Errorf("'infraCtx.Start' failed: %w", err)
-
 	}
 	defer infraCtx.Shutdown(sigCtx)
+
+	slog.Info("mainDB", "value", app.mainDB)
 
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database: app.mainDB.Database,

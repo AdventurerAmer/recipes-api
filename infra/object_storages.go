@@ -9,17 +9,13 @@ import (
 )
 
 type MinioConfig struct {
-	Addr     string `json:"addr"`
+	Address  string `json:"address"`
 	Username string `json:"username"`
 	Passward string `json:"password"`
 	UseSSL   bool   `json:"userSSL"`
 }
 
-type MinioContext struct {
-	client *minio.Client
-}
-
-func connectToMinio(ctx context.Context, cfg MinioConfig) (MinioContext, error) {
+func (cfg *MinioConfig) Connect(ctx context.Context) (Disconnecter, error) {
 	opts := &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.Username, cfg.Passward, ""),
 		Secure: cfg.UseSSL,
@@ -30,7 +26,7 @@ func connectToMinio(ctx context.Context, cfg MinioConfig) (MinioContext, error) 
 	}
 	ch := make(chan result)
 	go func() {
-		client, err := minio.New(cfg.Addr, opts)
+		client, err := minio.New(cfg.Address, opts)
 		if err != nil {
 			err = fmt.Errorf("'minio.New' failed: %w", err)
 		}
@@ -38,15 +34,19 @@ func connectToMinio(ctx context.Context, cfg MinioConfig) (MinioContext, error) 
 	}()
 	select {
 	case <-ctx.Done():
-		return MinioContext{}, ctx.Err()
+		return nil, ctx.Err()
 	case res := <-ch:
 		if res.err != nil {
-			return MinioContext{}, res.err
+			return nil, res.err
 		}
-		return MinioContext{client: res.client}, nil
+		return &MinioContext{client: res.client}, nil
 	}
 }
 
-func disconnectFromMinio(_ context.Context, _ MinioContext) error {
+type MinioContext struct {
+	client *minio.Client
+}
+
+func (c *MinioContext) Disconnect(context.Context) error {
 	return nil
 }
