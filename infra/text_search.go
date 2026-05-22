@@ -13,12 +13,12 @@ type ElasticSearchConfig struct {
 
 func (cfg *ElasticSearchConfig) Connect(ctx context.Context) (Disconnecter, error) {
 	type result struct {
-		client *elasticsearch.TypedClient
+		client *elasticsearch.Client
 		err    error
 	}
 	resCh := make(chan result)
 	go func() {
-		client, err := elasticsearch.NewTyped(
+		client, err := elasticsearch.New(
 			elasticsearch.WithAddresses(cfg.Address),
 		)
 		if err != nil {
@@ -40,7 +40,7 @@ func (cfg *ElasticSearchConfig) Connect(ctx context.Context) (Disconnecter, erro
 }
 
 type ElasticSearchContext struct {
-	Client *elasticsearch.TypedClient
+	Client *elasticsearch.Client
 }
 
 func (c *ElasticSearchContext) Disconnect(ctx context.Context) error {

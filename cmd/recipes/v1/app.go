@@ -36,6 +36,7 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
+	"github.com/AdventurerAmer/recipes-api/internal/text_searches/elasticsearch"
 	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
 
@@ -105,8 +106,6 @@ func Run() error {
 	}
 	defer infraCtx.Shutdown(sigCtx)
 
-	slog.Info("mainDB", "value", app.mainDB)
-
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database: app.mainDB.Database,
 		Client:   app.mainDB.Client,
@@ -119,8 +118,15 @@ func Run() error {
 	}
 	usersService := userssrv.New(usersServiceCfg)
 
+	textSearch, err := elasticsearch.New(app.mainTextSearch.Client)
+	if err != nil {
+		return fmt.Errorf("'elasticsearch.New' failed: %w", err)
+	}
+
 	recipesRepoCfg := recipesrepo.MongoConfig{
-		Database: app.mainDB.Database,
+		Database:   app.mainDB.Database,
+		Client:     app.mainDB.Client,
+		TextSearch: textSearch,
 	}
 	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
 	recipesRepo = cache.NewRedisRecipesRepository(recipesRepo, app.mainCache.Client, cfg.Constants.RecipesCacheTTL)
@@ -161,6 +167,7 @@ func Run() error {
 		v1.POST("/signout", authHandler.SignOutHandler)
 
 		v1.GET("/recipes", recipesHandler.ListRecipesHandler)
+		v1.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
 		v1.GET("/recipes/:id", recipesHandler.GetRecipeHandler)
 
 		authed := v1.Group("/")

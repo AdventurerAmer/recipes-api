@@ -110,6 +110,30 @@ func (h *RecipesHandler) ListRecipesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// swagger:operation GET /recipes recipes listRecipes
+// Returns list of recipes
+// --
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//	    description: Successful operation
+func (h *RecipesHandler) SearchRecipesHandler(c *gin.Context) {
+	var req ports.SearchRecipesRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := h.RecipesService.Search(c, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 // swagger:operation GET /recipes recipes getRecipe
 // Returns a recipe
 // --

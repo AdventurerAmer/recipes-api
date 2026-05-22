@@ -65,6 +65,15 @@ func (srv *service) List(ctx context.Context, req ports.ListRecipesRequest) (por
 	return ports.ListRecipesResponse{Recipes: recipes, Total: total}, nil
 }
 
+func (srv *service) Search(ctx context.Context, req ports.SearchRecipesRequest) (ports.SearchRecipesResponse, error) {
+	pageSize := min(req.PageSize, srv.MaxLimit)
+	recipes, total, err := srv.RecipesRepo.Search(ctx, req.Name, req.Page, pageSize)
+	if err != nil {
+		return ports.SearchRecipesResponse{}, fmt.Errorf("'RecipesRepo.Search' failed: %w", err)
+	}
+	return ports.SearchRecipesResponse{Recipes: recipes, Total: total}, nil
+}
+
 func (srv *service) Update(ctx context.Context, user domain.User, req ports.UpdateRecipeRequest) (ports.UpdateRecipeResponse, error) {
 	recipe, err := srv.RecipesRepo.Get(ctx, req.ID)
 	if err != nil {

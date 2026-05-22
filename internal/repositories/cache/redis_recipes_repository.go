@@ -73,6 +73,10 @@ func (r *redisRecipesRepository) List(ctx context.Context, lastID, userID, sort 
 	return recipes, total, nil
 }
 
+func (r *redisRecipesRepository) Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error) {
+	return r.Search(ctx, name, page, pageSize)
+}
+
 func (r *redisRecipesRepository) Update(ctx context.Context, recipe *domain.Recipe) error {
 	if err := r.next.Update(ctx, recipe); err != nil {
 		return fmt.Errorf("'next.Update' failed: %w", err)

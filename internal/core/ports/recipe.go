@@ -11,6 +11,7 @@ type RecipesRepository interface {
 	Create(ctx context.Context, recipe *domain.Recipe) error
 	Get(ctx context.Context, id string) (domain.Recipe, error)
 	List(ctx context.Context, lastID, userID, sortBy string, limit int) ([]domain.Recipe, int, error)
+	Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error)
 	Update(ctx context.Context, recipe *domain.Recipe) error
 	Delete(ctx context.Context, userID, id string) error
 }
@@ -19,6 +20,7 @@ type RecipesService interface {
 	Create(ctx context.Context, user domain.User, req CreateRecipeRequest) (CreateRecipeResponse, error)
 	Get(ctx context.Context, req GetRecipeRequest) (GetRecipeResponse, error)
 	List(ctx context.Context, req ListRecipesRequest) (ListRecipesResponse, error)
+	Search(ctx context.Context, name SearchRecipesRequest) (SearchRecipesResponse, error)
 	Update(ctx context.Context, user domain.User, req UpdateRecipeRequest) (UpdateRecipeResponse, error)
 	Delete(ctx context.Context, user domain.User, req DeleteRecipeRequest) (DeleteRecipeResponse, error)
 }
@@ -51,6 +53,17 @@ type ListRecipesRequest struct {
 	UserID string `json:"userID" from:"userID"`
 	SortBy string `json:"sortBy" form:"sortBy,default=-createdAt"`
 	Limit  int    `json:"limit" form:"limit,default=20"`
+}
+
+type SearchRecipesRequest struct {
+	Name     string `json:"name" form:"name"`
+	Page     int    `json:"page" form:"page" binding:"omitempty,min=1"`
+	PageSize int    `json:"pageSize" form:"pageSize" binding:"omitempty,min=1"`
+}
+
+type SearchRecipesResponse struct {
+	Recipes []domain.Recipe `json:"recipes"`
+	Total   int             `json:"total"`
 }
 
 type ListRecipesResponse struct {
