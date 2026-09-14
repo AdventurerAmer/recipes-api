@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/AdventurerAmer/recipes-api/config"
 	"github.com/elastic/go-elasticsearch/v9"
 )
 
-type ElasticSearchConfig struct {
-	Address string `cfg:"address"`
+type ElasticSearch struct {
+	*config.ElasticSearch
 }
 
-func (cfg *ElasticSearchConfig) Connect(ctx context.Context) (Disconnecter, error) {
+func (cfg *ElasticSearch) Connect(ctx context.Context) (Disconnecter, error) {
 	type result struct {
 		client *elasticsearch.Client
 		err    error
@@ -19,7 +20,7 @@ func (cfg *ElasticSearchConfig) Connect(ctx context.Context) (Disconnecter, erro
 	resCh := make(chan result)
 	go func() {
 		client, err := elasticsearch.New(
-			elasticsearch.WithAddresses(cfg.Address),
+			elasticsearch.WithAddresses(cfg.Addr()),
 		)
 		if err != nil {
 			err = fmt.Errorf("'elasticsearch.NewTyped' failed: %w", err)

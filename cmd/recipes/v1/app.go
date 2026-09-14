@@ -37,46 +37,13 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
 	"github.com/AdventurerAmer/recipes-api/internal/text_searches/elasticsearch"
+	"github.com/AdventurerAmer/recipes-api/logging"
 	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
 
 	"github.com/gin-contrib/sessions"
 	ginRedis "github.com/gin-contrib/sessions/redis"
 )
-
-type InfraCfg struct {
-	MainDB            infra.MongoConfig         `cfg:"mainDatabase"`
-	MainCache         infra.RedisConfig         `cfg:"mainCache"`
-	SessionsCache     infra.RedisConfig         `cfg:"sessionsCache"`
-	MainObjectStorage infra.MinioConfig         `cfg:"mainObjectStorage"`
-	MainTextSearch    infra.ElasticSearchConfig `cfg:"mainTextSearch"`
-}
-
-type SessionsCfg struct {
-	Secret       string        `cfg:"secret"`
-	MaxIdelConns int           `cfg:"maxIdelConns"`
-	Name         string        `cfg:"name"`
-	MaxAge       time.Duration `cfg:"maxAge"`
-}
-
-type ServerCfg struct {
-	Port     int         `cfg:"port"`
-	Sessions SessionsCfg `cfg:"sessions"`
-}
-
-type Constants struct {
-	Env             config.Environment `cfg:"env"`
-	DefaultTimeout  time.Duration      `cfg:"defaultTimeout"`
-	UsersCacheTTL   time.Duration      `cfg:"usersCacheTTL"`
-	RecipesCacheTTL time.Duration      `cfg:"recipesCacheTTL"`
-	RecipesMaxLimit int                `cfg:"recipesMaxLimit"`
-}
-
-type Config struct {
-	Infra     InfraCfg  `cfg:"infra"`
-	Server    ServerCfg `cfg:"server"`
-	Constants Constants `cfg:"constants"`
-}
 
 type App struct {
 	mainDB            infra.MongoContext
@@ -86,32 +53,50 @@ type App struct {
 	mainTextSearch    infra.ElasticSearchContext
 }
 
-func Run() error {
-	var cfg Config
-	if err := config.Load(&cfg, config.WithPrefix("RECIPES")); err != nil {
-		return fmt.Errorf("'config.Load' failed: %w", err)
+func Run() int {
+	cfg, err := config.Load()
+	if err != nil {
+		logger := logging.New(nil)
+		logger.Error("failed to load config", "error", err)
+		return 1
 	}
+
+	serviceCfg := cfg.Services.Recipes
+
+	format := "json"
+	if cfg.Env == config.EnvLocal {
+		format = "text"
+	}
+	loggingCfg := logging.Config{
+		IsLocalEnv: cfg.Env == config.EnvLocal,
+		Level:      logging.ParseLevel(cfg.Observability.Logging.Level),
+		AddSource:  cfg.Env != config.EnvProduction,
+		Format:     format,
+	}
+	logger := logging.New(&loggingCfg).With(slog.String("service", serviceCfg.Name))
 
 	sigCtx, sigCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer sigCancel()
 
 	app := &App{}
 	infraCtx := infra.New()
-	infraCtx.BindMongo(&cfg.Infra.MainDB, &app.mainDB)
+	infraCtx.BindMongo(&cfg.Infra.MainDatabase, &app.mainDB)
 	infraCtx.BindRedis(&cfg.Infra.MainCache, &app.mainCache)
 	infraCtx.BindMinio(&cfg.Infra.MainObjectStorage, &app.mainObjectStorage)
 	infraCtx.BindElasticSearch(&cfg.Infra.MainTextSearch, &app.mainTextSearch)
 	if err := infraCtx.Start(sigCtx); err != nil {
-		return fmt.Errorf("'infraCtx.Start' failed: %w", err)
+		logger.Error("failed to connect to infrastructure", "error", err)
+		return 1
 	}
-	defer infraCtx.Shutdown(sigCtx)
+	defer infraCtx.Shutdown(context.Background())
 
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database: app.mainDB.Database,
 		Client:   app.mainDB.Client,
 	}
 	usersRepo := usersrepo.NewMongo(usersRepoCfg)
-	usersRepo = cache.NewRedisUsersRepository(usersRepo, app.mainCache.Client, cfg.Constants.UsersCacheTTL)
+	usersRepo = cache.NewRedisUsersRepository(usersRepo,
+		app.mainCache.Client, 10*time.Minute) // TODO:hardcoding
 
 	usersServiceCfg := userssrv.Config{
 		UsersRepo: usersRepo,
@@ -120,7 +105,8 @@ func Run() error {
 
 	textSearch, err := elasticsearch.New(app.mainTextSearch.Client)
 	if err != nil {
-		return fmt.Errorf("'elasticsearch.New' failed: %w", err)
+		logger.Error("failed to create elastic search port", "error", err)
+		return 1
 	}
 
 	recipesRepoCfg := recipesrepo.MongoConfig{
@@ -129,11 +115,11 @@ func Run() error {
 		TextSearch: textSearch,
 	}
 	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
-	recipesRepo = cache.NewRedisRecipesRepository(recipesRepo, app.mainCache.Client, cfg.Constants.RecipesCacheTTL)
+	recipesRepo = cache.NewRedisRecipesRepository(recipesRepo, app.mainCache.Client, 10*time.Minute) // TODO: hardcoding
 
 	recipesServiceCfg := recipessrv.Config{
 		RecipesRepo: recipesRepo,
-		MaxLimit:    cfg.Constants.RecipesMaxLimit,
+		MaxLimit:    100, // TODO: hardcoding
 	}
 	recipesService := recipessrv.New(recipesServiceCfg)
 
@@ -141,26 +127,27 @@ func Run() error {
 	recipesHandler := handlers.NewRecipesHandler(recipesService)
 	authHandler := handlers.NewAuthHandler(usersService)
 
-	secret := []byte(cfg.Server.Sessions.Secret)
-	sessionsStore, err := ginRedis.NewStore(cfg.Server.Sessions.MaxIdelConns, "tcp", cfg.Infra.SessionsCache.Address, cfg.Infra.SessionsCache.Username, cfg.Infra.SessionsCache.Password, secret)
+	secret := []byte(cfg.Auth.Secret)
+	sessionsStore, err := ginRedis.NewStore(cfg.Auth.MaxIdelConns, "tcp", cfg.Infra.SessionsCache.Addr(), cfg.Infra.SessionsCache.Username, cfg.Infra.SessionsCache.Password, secret)
 	if err != nil {
-		return fmt.Errorf("'ginRedis.NewStore' failed: %w", err)
+		logger.Error("failed to create redis sessions store", "error", err)
+		return 1
 	}
 
 	// TODO: using dev config for new
 	sessionsStore.Options(sessions.Options{
 		Path:     "/",
-		MaxAge:   int(cfg.Server.Sessions.MaxAge.Seconds()),
+		MaxAge:   int(cfg.Auth.MaxAge.Seconds()),
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
 
 	router := gin.Default()
-	router.Use(sessions.Sessions(cfg.Server.Sessions.Name, sessionsStore))
+	router.Use(sessions.Sessions(cfg.Auth.Name, sessionsStore))
 
 	v1 := router.Group("/api/v1/")
-	v1.Use(timeout.New(timeout.WithTimeout(cfg.Constants.DefaultTimeout)))
+	v1.Use(timeout.New(timeout.WithTimeout(cfg.Services.Recipes.DefaultTimeout)))
 	{
 		v1.POST("/signup", usersHandler.SignUpHandler)
 		v1.POST("/signin", authHandler.SignInHandler)
@@ -179,14 +166,13 @@ func Run() error {
 		}
 	}
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
+		Addr:    fmt.Sprintf(":%d", cfg.Services.Recipes.Port),
 		Handler: router,
 	}
 
 	go func() {
-		slog.Info("Staring server", "port", cfg.Server.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("Listen error", "error", err)
+			logger.Error("'srv.ListenAndServe' failed", "error", err)
 		}
 	}()
 	<-sigCtx.Done()
@@ -195,8 +181,11 @@ func Run() error {
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("'srv.Shutdown' failed: %w", err)
+		logger.Error("'srv.Shutdown' failed", "error", err)
+		return 1
 	}
-	slog.Info("Server was shutdown gracefully")
-	return nil
+
+	logger.Info("Gracefully shutdown was successful")
+
+	return 0
 }

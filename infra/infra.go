@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/AdventurerAmer/recipes-api/config"
 )
 
 type Connecter interface {
@@ -108,18 +110,22 @@ func (infra *Infra) Shutdown(ctx context.Context) {
 	}
 }
 
-func (infra *Infra) BindMongo(cfg *MongoConfig, ctx *MongoContext) {
-	infra.Bind(cfg, ctx)
+func (infra *Infra) BindMongo(cfg *config.Mongo, ctx *MongoContext) {
+	wrapper := &Mongo{Mongo: cfg}
+	infra.Bind(wrapper, ctx)
 }
 
-func (infra *Infra) BindRedis(cfg *RedisConfig, ctx *RedisContext) {
-	infra.Bind(cfg, ctx)
+func (infra *Infra) BindRedis(cfg *config.Redis, ctx *RedisContext) {
+	wrapper := &Redis{Redis: cfg}
+	infra.Bind(wrapper, ctx)
 }
 
-func (infra *Infra) BindMinio(cfg *MinioConfig, ctx *MinioContext) {
-	infra.Bind(cfg, ctx)
+func (infra *Infra) BindMinio(cfg *config.Minio, ctx *MinioContext) {
+	wrapper := &Minio{Minio: cfg}
+	infra.Bind(wrapper, ctx)
 }
 
-func (infra *Infra) BindElasticSearch(cfg *ElasticSearchConfig, ctx *ElasticSearchContext) {
-	infra.Bind(cfg, ctx)
+func (infra *Infra) BindElasticSearch(cfg *config.ElasticSearch, ctx *ElasticSearchContext) {
+	wrapper := &ElasticSearch{ElasticSearch: cfg}
+	infra.Bind(wrapper, ctx)
 }

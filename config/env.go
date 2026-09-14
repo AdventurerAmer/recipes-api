@@ -1,19 +1,15 @@
 package config
 
-type Environment string
+type Env string
 
 const (
-	Dev  Environment = "dev"
-	Test Environment = "test"
-	Prod Environment = "prod"
+	EnvLocal      Env = "local"
+	EnvStaging    Env = "staging"
+	EnvProduction Env = "production"
 )
 
-func (e Environment) String() string {
+func (e Env) String() string {
 	return string(e)
 }
 
-var Environments = []Environment{
-	Dev,
-	Test,
-	Prod,
-}
+var EnvValues = []Env{EnvLocal, EnvStaging, EnvProduction}

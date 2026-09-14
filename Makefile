@@ -1,8 +1,25 @@
+# docker
+
+PHONY: up
+up: 
+	@docker-compose up
+
+PHONY: down
+down:
+	@docker-compose down
+
+PHONY: downrv
+down:
+	@docker-compose down -v
+
+PHONY: build
 build:
 	@go build -o ./bin/recipes ./cmd/recipes 
 
+PHONY: run
 run: build
-	@./bin/recipes
+	@./bin/recipes -env-file=.env.local
 
-gen_docs:
+PHONY: docs
+docs:
 	@swagger generate spec –o ./swagger.json

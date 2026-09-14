@@ -1,181 +1,164 @@
 package config
 
 import (
+	"errors"
+	"flag"
 	"fmt"
-	"os"
-	"reflect"
-	"slices"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
+	"github.com/AdventurerAmer/recipes-api/errs"
+	"github.com/AdventurerAmer/recipes-api/validation"
 	"github.com/joho/godotenv"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env/v2"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 )
 
-type Option = func(cfg *Config) error
-
-func WithTagName(tagName string) Option {
-	return func(cfg *Config) error {
-		if tagName == "" {
-			return fmt.Errorf("'tagName' is empty")
-		}
-		cfg.TagName = tagName
-		return nil
-	}
-}
-
-func WithSepartor(separator string) Option {
-	return func(cfg *Config) error {
-		if separator == "" {
-			return fmt.Errorf("'separator' is empty")
-		}
-		cfg.Separator = separator
-		return nil
-	}
-}
-
-func WithPrefix(prefix string) Option {
-	return func(cfg *Config) error {
-		cfg.Prefix = strings.ToUpper(prefix)
-		return nil
-	}
-}
-
 type Config struct {
-	TagName   string
-	Separator string
-	Prefix    string
+	Env           Env            `koanf:"env" validate:"oneof=local staging production"`
+	App           App            `koanf:"app"`
+	Infra         Infra          `koanf:"infra"`
+	Auth          Authentication `koanf:"auth"`
+	Observability Observability  `koanf:"observability"`
+	Services      Services       `koanf:"services"`
+	Constants     Constants      `koanf:"constants"`
 }
 
-func Load(v any, opts ...Option) error {
-	cfg := &Config{
-		TagName:   "cfg",
-		Separator: "_",
-		Prefix:    "",
-	}
-	for _, opt := range opts {
-		if err := opt(cfg); err != nil {
-			return fmt.Errorf("set option failed: %w", err)
-		}
-	}
-	if err := godotenv.Load(); err != nil {
-		return fmt.Errorf("'godotenv.Load' failed: %w", err)
-	}
-	if err := loadFromEnv(v, cfg); err != nil {
-		return fmt.Errorf("'loadFromEnv' failed: %w", err)
-	}
-	return nil
+type App struct {
+	Name    string `koanf:"name" validate:"required,max=128"`
+	Domain  string `koanf:"domain" validate:"required,fqdn"`
+	Version string `koanf:"version" validate:"required,semver"`
 }
 
-func loadFromEnv(v any, cfg *Config) error {
-	structPtrVal := reflect.ValueOf(v)
-	if structPtrVal.Kind() != reflect.Pointer {
-		return fmt.Errorf("expected a pointer type got %+v", structPtrVal.Kind())
+func Load() (*Config, error) {
+	var envFile string
+	flag.StringVar(&envFile, "env-file", ".env.prod", "env file to load config from")
+	flag.Parse()
+
+	if err := godotenv.Load(envFile); err != nil {
+		return nil, fmt.Errorf("failed to load env vars: %w", err)
 	}
-	structVal := structPtrVal.Elem()
-	if structVal.Kind() != reflect.Struct {
-		return fmt.Errorf("expected a struct type got %+v", structVal.Kind())
+
+	delim := "."
+	k := koanf.New(delim)
+
+	if err := k.Load(file.Provider("config.yaml"), yaml.Parser()); err != nil {
+		return nil, fmt.Errorf("failed to load config.yaml: %w", err)
 	}
-	prefix := cfg.Prefix
-	if prefix != "" && !strings.HasSuffix(cfg.Prefix, cfg.Separator) {
-		prefix += cfg.Separator
+
+	envPrefix := "RECIPES."
+
+	envOpt := env.Opt{
+		Prefix: envPrefix,
+		TransformFunc: func(k, v string) (string, any) {
+			k = strings.TrimPrefix(k, envPrefix)
+			k = strings.ToLower(k)
+			keyParts := strings.Split(k, delim)
+			for idx, part := range keyParts {
+				keyParts[idx] = snakeCaseToCamelCase(part)
+			}
+			k = strings.Join(keyParts, delim)
+
+			if strings.Contains(v, " ") {
+				valParts := strings.Split(v, " ")
+				if len(valParts) > 1 {
+					return k, valParts
+				}
+			}
+
+			return k, v
+		},
 	}
-	return setFieldsFromEnv(structVal, cfg, prefix)
+
+	if err := k.Load(env.Provider(delim, envOpt), nil); err != nil {
+		return nil, fmt.Errorf("failed to parse env vars: %w", err)
+	}
+
+	unmarshalConf := koanf.UnmarshalConf{
+		Tag: "koanf",
+	}
+	var cfg Config
+	if err := k.UnmarshalWithConf("", &cfg, unmarshalConf); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	setDefaults(&cfg)
+
+	if err := validation.Validate(cfg); err != nil {
+		if errs.IsValidation(err) {
+			var e *errs.Error
+			errors.As(err, &e)
+			return nil, fmt.Errorf("failed to validate config: %w", fmt.Errorf("one or more invalid fields: %+v", e.Fields))
+		}
+		return nil, fmt.Errorf("failed to validate config: %w", err)
+	}
+
+	return &cfg, nil
 }
 
-func setFieldsFromEnv(structVal reflect.Value, cfg *Config, prefix string) error {
-	t := structVal.Type()
-	for i := range t.NumField() {
-		field := t.Field(i)
-		fieldVal := structVal.Field(i)
-		if !field.IsExported() {
-			continue
-		}
-		rawTag := field.Tag.Get(cfg.TagName)
-		if rawTag == "" {
-			rawTag = field.Name
-		}
-		tag := prefix + camelCaseToEnvFmt(rawTag, cfg)
-		if fieldVal.Kind() == reflect.Struct {
-			setFieldsFromEnv(fieldVal, cfg, tag+cfg.Separator)
-			continue
-		}
-		varVal, ok := os.LookupEnv(tag)
-		if !ok {
-			return fmt.Errorf("env-var: %q is not set", tag)
-		}
-		if err := setFieldValue(fieldVal, varVal); err != nil {
-			return fmt.Errorf("'setFieldValue' failed: %w", err)
+func setDefaults(cfg *Config) {
+	if cfg.Env == "" {
+		cfg.Env = EnvLocal
+	}
+
+	if cfg.App.Name == "" {
+		cfg.App.Name = "Recipes"
+	}
+
+	if cfg.App.Version == "" {
+		cfg.App.Version = "0.1.0"
+	}
+
+	if cfg.Observability.Logging.Level == "" {
+		if cfg.Env == EnvLocal {
+			cfg.Observability.Logging.Level = "debug"
+		} else {
+			cfg.Observability.Logging.Level = "info"
 		}
 	}
-	return nil
+
+	if cfg.Observability.Logging.Format == "" {
+		if cfg.Env == EnvLocal {
+			cfg.Observability.Logging.Format = "text"
+		} else {
+			cfg.Observability.Logging.Format = "json"
+		}
+	}
+
+	if cfg.Observability.Logging.AddSource == nil {
+		addSource := (cfg.Env == EnvLocal || cfg.Env == EnvStaging)
+		cfg.Observability.Logging.AddSource = &addSource
+	}
+
+	if cfg.Observability.HealthChecks.Interval == 0 {
+		cfg.Observability.HealthChecks.Interval = 30 * time.Second
+	}
+
+	if cfg.Observability.HealthChecks.Timeout == 0 {
+		cfg.Observability.HealthChecks.Timeout = 5 * time.Second
+	}
+
+	setServiceDefaults(&cfg.Services.Recipes)
 }
 
-func setFieldValue(field reflect.Value, value string) error {
-	switch field.Interface().(type) {
-	case Environment:
-		if !slices.Contains(Environments, Environment(value)) {
-			return fmt.Errorf("supported environment expected one of %+v", Environments)
-		}
-		field.Set(reflect.ValueOf(Environment(value)))
-		return nil
-	case time.Duration:
-		d, err := time.ParseDuration(value)
-		if err != nil {
-			return fmt.Errorf("'time.ParseDuration' failed: %w", err)
-		}
-		field.Set(reflect.ValueOf(d))
-		return nil
+func snakeCaseToCamelCase(s string) string {
+	if s == "" {
+		return ""
+	}
+	parts := strings.Split(s, "_")
+
+	builder := &strings.Builder{}
+	builder.WriteString(parts[0])
+
+	for _, part := range parts[1:] {
+		first, size := utf8.DecodeRuneInString(part)
+		builder.WriteRune(unicode.ToUpper(first))
+		builder.WriteString(part[size:])
 	}
 
-	switch field.Kind() {
-	case reflect.String:
-		field.SetString(value)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		i, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return fmt.Errorf("'strconv.ParseInt' failed: %w", err)
-		}
-		field.SetInt(i)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		u, err := strconv.ParseUint(value, 10, 64)
-		if err != nil {
-			return fmt.Errorf("'strconv.ParseUint' failed: %w", err)
-		}
-		field.SetUint(u)
-	case reflect.Float32, reflect.Float64:
-		f, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return fmt.Errorf("'strconv.ParseFloat' failed: %w", err)
-		}
-		field.SetFloat(f)
-	case reflect.Bool:
-		b, err := strconv.ParseBool(value)
-		if err != nil {
-			return fmt.Errorf("'strconv.ParseBool' failed: %w", err)
-		}
-		field.SetBool(b)
-	default:
-		return fmt.Errorf("unsupported type: %s", field.Kind())
-	}
-
-	return nil
-}
-
-func camelCaseToEnvFmt(s string, cfg *Config) string {
-	var (
-		parts                []string
-		lastUppercaseRuneIdx int
-	)
-	var prev rune
-	for i, r := range s {
-		if i > 0 && unicode.IsUpper(r) && unicode.IsLower(prev) {
-			parts = append(parts, s[lastUppercaseRuneIdx:i])
-			lastUppercaseRuneIdx = i
-		}
-		prev = r
-	}
-	parts = append(parts, s[lastUppercaseRuneIdx:])
-	return strings.ToUpper(strings.Join(parts, cfg.Separator))
+	return builder.String()
 }
