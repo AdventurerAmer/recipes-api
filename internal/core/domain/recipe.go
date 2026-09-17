@@ -4,16 +4,14 @@ import (
 	"time"
 )
 
-// swagger:parameters recipes newRecipe
 type Recipe struct {
-	//swagger:ignore
-	ID           string    `json:"id" bson:"_id,omitempty"`
+	Id           string    `json:"id" bson:"_id,omitempty"`
 	CreatedAt    time.Time `json:"createdAt" bson:"createdAt"`
-	UserID       string    `json:"userID" bson:"userID"`
+	UserId       string    `json:"userId" bson:"userId"`
 	Name         string    `json:"name" bson:"name"`
 	Tags         []string  `json:"tags" bson:"tags"`
 	Ingredients  []string  `json:"ingredients" bson:"ingredients"`
 	Instructions []string  `json:"instructions" bson:"instructions"`
-	Image        string    `json:"image" bson:"image"`
+	ImageURL     string    `json:"imageURL" bson:"imageURL"`
 	Version      int       `json:"version" bson:"version"`
 }

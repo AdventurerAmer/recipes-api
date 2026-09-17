@@ -3,10 +3,10 @@ package errs
 import "fmt"
 
 type Error struct {
-	Code    Code              `json:"code"`
-	Message string            `json:"message"`
-	Fields  map[string]string `json:"fields,omitempty"`
-	Err     error             `json:"omitempty"`
+	Code    Code   `json:"code"`
+	Message string `json:"message"`
+	Fields  Fields `json:"fields,omitempty"`
+	Err     error  `json:"omitempty"`
 }
 
 func New(code Code, message string) *Error {

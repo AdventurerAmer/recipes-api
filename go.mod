@@ -18,6 +18,7 @@ require (
 	github.com/minio/minio-go/v7 v7.1.0
 	github.com/redis/go-redis/v9 v9.18.0
 	go.mongodb.org/mongo-driver v1.17.9
+	go.mongodb.org/mongo-driver/v2 v2.5.1
 	golang.org/x/crypto v0.50.0
 )
 
@@ -74,7 +75,6 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
-	go.mongodb.org/mongo-driver/v2 v2.5.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect

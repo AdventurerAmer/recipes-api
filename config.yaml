@@ -1,9 +1,17 @@
 app:
   name: Recipes
-  domain: www.recipes.com
-  version: 0.1.1
+  domain: recipes.com
+  version: 0.0.1
+
+auth:
+  maxIdelConns: 10
+  name: recipes
+  maxAge: 24h
 
 services:
   recipes:
     name: recipes
     port: 3000
+  
+constants:
+  

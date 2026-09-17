@@ -1,6 +1,10 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/AdventurerAmer/recipes-api/logging"
+)
 
 type Observability struct {
 	Logging      Logging      `koanf:"logging"`
@@ -10,9 +14,9 @@ type Observability struct {
 }
 
 type Logging struct {
-	Level     string `koanf:"level" validate:"oneof=debug info warn error"`
-	Format    string `koanf:"format" validate:"oneof=json text"`
-	AddSource *bool  `koanf:"addSource"`
+	Level     logging.Level  `koanf:"level" validate:"oneof=debug info warn error"`
+	Format    logging.Format `koanf:"format" validate:"oneof=json text"`
+	AddSource *bool          `koanf:"addSource"`
 }
 
 type Tracing struct {

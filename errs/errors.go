@@ -6,7 +6,9 @@ func NewInternal(err error) *Error {
 	return Wrap(err, CodeInternal, "internal server error")
 }
 
-func NewValidation(fields map[string]string) *Error {
+type Fields = map[string]string
+
+func NewValidation(fields Fields) *Error {
 	err := New(CodeValidation, "one or more invalid fields")
 	err.Fields = fields
 	return err

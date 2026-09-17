@@ -65,8 +65,9 @@ func (h *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 	}
 	session := sessions.Default(c)
 	user := domain.User{
-		ID:       session.Get("id").(string),
-		Username: session.Get("username").(string),
+		Id:          session.Get("id").(string),
+		Email:       session.Get("email").(string),
+		DisplayName: session.Get("displayName").(string),
 	}
 	file, err := req.ImageHeader.Open()
 	if err != nil {
@@ -186,8 +187,9 @@ func (h *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 	}
 	session := sessions.Default(c)
 	user := domain.User{
-		ID:       session.Get("id").(string),
-		Username: session.Get("username").(string),
+		Id:          session.Get("id").(string),
+		Email:       session.Get("email").(string),
+		DisplayName: session.Get("displayName").(string),
 	}
 	if req.ImageHeader != nil {
 		file, err := req.ImageHeader.Open()
@@ -232,8 +234,9 @@ func (h *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 func (h *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
 	session := sessions.Default(c)
 	user := domain.User{
-		ID:       session.Get("id").(string),
-		Username: session.Get("username").(string),
+		Id:          session.Get("id").(string),
+		Email:       session.Get("email").(string),
+		DisplayName: session.Get("displayName").(string),
 	}
 	var req ports.DeleteRecipeRequest
 	if err := c.ShouldBindUri(&req); err != nil {
@@ -264,7 +267,7 @@ func (h *UsersHandler) SignUpHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	resp, err := h.UsersService.SignUp(c, req)
+	resp, _, err := h.UsersService.SignUp(c, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -296,8 +299,9 @@ func (h *AuthHandler) SignInHandler(c *gin.Context) {
 	user := resp.User
 	token := uuid.New().String()
 	session := sessions.Default(c)
-	session.Set("id", user.ID)
-	session.Set("username", user.Username)
+	session.Set("id", user.Id)
+	session.Set("email", user.Email)
+	session.Set("displayName", user.DisplayName)
 	session.Set("token", token)
 	if err := session.Save(); err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)

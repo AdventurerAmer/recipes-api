@@ -8,34 +8,32 @@ import (
 
 type UsersRepository interface {
 	Create(ctx context.Context, user *domain.User) error
-	Get(ctx context.Context, id string) (domain.User, error)
-	GetByName(ctx context.Context, username string) (domain.User, error)
+	GetById(ctx context.Context, id string) (*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) error
-	Delete(ctx context.Context, user domain.User) error
+	Delete(ctx context.Context, user *domain.User) error
 }
 
 type UsersService interface {
-	SignUp(ctx context.Context, req SignUpRequest) (SignUpResponse, error)
+	SignUp(ctx context.Context, req SignUpRequest) (SignUpResponse, *domain.User, error)
 	SignIn(ctx context.Context, req SignInRequest) (SignInResponse, error)
 }
 
 type SignUpRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Email       string `json:"email" validate:"required,email"`
+	DisplayName string `json:"displayName" validate:"required,min=8,max=32"`
+	Password    string `json:"password" validate:"required,strong_password"`
 }
 
 type SignUpResponse struct {
-	User         domain.User
-	FrontendUser domain.FrontendUser `json:"user"`
-	Message      string              `json:"message"`
+	User domain.FrontendUser `json:"user"`
 }
 
 type SignInRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,strong_password"`
 }
 
 type SignInResponse struct {
-	User    domain.User `json:"user"`
-	Message string      `json:"message"`
+	User *domain.User `json:"user"`
 }

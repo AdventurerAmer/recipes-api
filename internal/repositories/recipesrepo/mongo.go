@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
-	"strings"
 	"time"
 
+	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
+	"github.com/AdventurerAmer/recipes-api/mongoutils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,95 +18,86 @@ import (
 type MongoConfig struct {
 	Database   *mongo.Database
 	Client     *mongo.Client
+	Cache      ports.Cache
 	TextSearch ports.TextSearch
 }
 
 type mongoRepo struct {
+	MongoConfig
 	collection *mongo.Collection
-	client     *mongo.Client
-	textSearch ports.TextSearch
+	txnMgr     *mongoutils.TxnManager
 }
 
 func NewMongo(cfg MongoConfig) ports.RecipesRepository {
 	return &mongoRepo{
-		collection: cfg.Database.Collection("recipes"),
-		client:     cfg.Client,
-		textSearch: cfg.TextSearch,
+		MongoConfig: cfg,
+		collection:  cfg.Database.Collection("recipes"),
+		txnMgr:      mongoutils.NewTxnManager(cfg.Client),
 	}
 }
 
 func (repo *mongoRepo) Create(ctx context.Context, recipe *domain.Recipe) error {
-	session, err := repo.client.StartSession()
-	if err != nil {
-		return fmt.Errorf("'StartSession' failed: %w", err)
-	}
-	defer session.EndSession(ctx)
-
-	h := func(sessCtx mongo.SessionContext) (any, error) {
-		result, err := repo.collection.InsertOne(sessCtx, recipe)
+	txn := func(tctx context.Context) error {
+		result, err := repo.collection.InsertOne(tctx, recipe)
 		if err != nil {
-			return nil, fmt.Errorf("'collection.InsertOne' failed: %w", err)
-		}
-		recipe.ID = result.InsertedID.(primitive.ObjectID).Hex()
-
-		if err := repo.textSearch.Index(sessCtx, "recipes", recipe.ID, recipe); err != nil {
-			return nil, fmt.Errorf("'textSearch.Index' failed: %w", err)
+			return fmt.Errorf("'collection.InsertOne' failed: %w", err)
 		}
 
-		return nil, nil
+		if err := repo.TextSearch.Index(tctx, "recipes", recipe.Id, recipe); err != nil {
+			return fmt.Errorf("'textSearch.Index' failed: %w", err)
+		}
+
+		recipe.Id = result.InsertedID.(primitive.ObjectID).Hex()
+		return nil
 	}
-	if _, err := session.WithTransaction(ctx, h); err != nil {
-		return fmt.Errorf("'WithTransaction' failed: %w", err)
+
+	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
+
 	return nil
 }
 
-func (repo *mongoRepo) Get(ctx context.Context, id string) (domain.Recipe, error) {
+func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return domain.Recipe{}, fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
+		return nil, fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
+	var recipe domain.Recipe
+
+	key := composeRecipeCacheKey(id)
+	if err := repo.Cache.Get(ctx, key, &recipe); err == nil {
+		return &recipe, nil
+	} else if errs.IsNotFound(err) {
+		defer func() {
+			_ = repo.Cache.Put(ctx, key, recipe, 10*time.Second)
+		}()
+	}
+
 	filter := bson.M{"_id": oid}
 	result := repo.collection.FindOne(ctx, filter)
-	var recipe domain.Recipe
 	if err := result.Decode(&recipe); err != nil {
-		return domain.Recipe{}, fmt.Errorf("'result.Decode' failed: %w", err)
+		return nil, fmt.Errorf("'result.Decode' failed: %w", err)
 	}
-	return recipe, nil
+	return &recipe, nil
 }
 
-func (repo *mongoRepo) List(ctx context.Context, lastID, userID, sortBy string, limit int) ([]domain.Recipe, int, error) {
+func (repo *mongoRepo) List(ctx context.Context, userId, lastId, sort string, limit int) ([]domain.Recipe, int, error) {
 	filter := bson.M{}
-	if lastID != "" {
-		oid, err := primitive.ObjectIDFromHex(lastID)
+	if lastId != "" {
+		oid, err := primitive.ObjectIDFromHex(lastId)
 		if err != nil {
 			return nil, 0, fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 		}
 		filter["_id"] = bson.M{"$gt": oid}
 	}
-	if userID != "" {
-		filter["userID"] = userID
+	if userId != "" {
+		filter["userId"] = userId
 	}
 	match := bson.D{{Key: "$match", Value: filter}}
-	sortingOrder := 1
-	if strings.HasPrefix(sortBy, "-") {
-		sortBy, _ = strings.CutPrefix(sortBy, "-")
-		sortingOrder = -1
-	}
-	if sortBy == "id" {
-		sortBy = "_id"
-	}
-	if sortBy == "" {
-		sortBy = "createdAt"
-	}
-	sort := bson.D{{Key: sortBy, Value: sortingOrder}}
-	if sortBy != "_id" {
-		sort = append(sort, bson.E{Key: "_id", Value: -1})
-	}
-
 	pagination := bson.D{
 		{Key: "recipes", Value: bson.A{
-			bson.D{{Key: "$sort", Value: sort}},
+			bson.D{{Key: "$sort", Value: mongoutils.ComposeSortStage(sort)}},
 			bson.D{{Key: "$limit", Value: limit}},
 		}},
 		{Key: "total", Value: bson.A{
@@ -119,13 +110,7 @@ func (repo *mongoRepo) List(ctx context.Context, lastID, userID, sortBy string, 
 	if err != nil {
 		return nil, 0, fmt.Errorf("'collection.Aggregate' failed: %w", err)
 	}
-	defer func() {
-		cctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		if err := cursor.Close(cctx); err != nil {
-			slog.Error("'cursor.Close' failed", "error", err)
-		}
-	}()
+	defer mongoutils.CloseCursor(cursor)
 
 	type Total struct {
 		Count int `bson:"count"`
@@ -151,9 +136,9 @@ func (repo *mongoRepo) List(ctx context.Context, lastID, userID, sortBy string, 
 }
 
 func (repo *mongoRepo) Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error) {
-	results, total, err := repo.textSearch.Search(ctx, "recipes", "name", name, page, pageSize)
+	results, total, err := repo.TextSearch.Search(ctx, "recipes", "name", name, page, pageSize)
 	if err != nil {
-		return nil, 0, fmt.Errorf("'textSearch.Search': %w", err)
+		return nil, 0, fmt.Errorf("'TextSearch.Search': %w", err)
 	}
 
 	recipes := make([]domain.Recipe, 0, len(results))
@@ -169,80 +154,75 @@ func (repo *mongoRepo) Search(ctx context.Context, name string, page, pageSize i
 }
 
 func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error {
-	oid, err := primitive.ObjectIDFromHex(recipe.ID)
+	oid, err := primitive.ObjectIDFromHex(recipe.Id)
 	if err != nil {
 		return fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
+
 	type updateRecipeModel struct {
-		ID           string    `bson:"-"`
+		Id           string    `bson:"-"`
 		CreatedAt    time.Time `bson:"-"`
-		UserID       string    `bson:"-"`
+		UserId       string    `bson:"-"`
 		Name         string    `bson:"name"`
 		Tags         []string  `bson:"tags"`
 		Ingredients  []string  `bson:"ingredients"`
 		Instructions []string  `bson:"instructions"`
-		Image        string    `bson:"image"`
+		ImageURL     string    `bson:"imageURL"`
 		Version      int       `bson:"-"`
 	}
 
-	session, err := repo.client.StartSession()
-	if err != nil {
-		return fmt.Errorf("'StartSession' failed: %w", err)
-	}
-	defer session.EndSession(ctx)
-
-	h := func(sessCtx mongo.SessionContext) (any, error) {
+	txn := func(tctx context.Context) error {
 		filter := bson.M{"_id": oid, "version": recipe.Version}
 		update := bson.D{
 			{Key: "$set", Value: updateRecipeModel(*recipe)},
-			{
-				Key: "$inc", Value: bson.D{
-					{Key: "version", Value: 1},
-				},
-			},
+			{Key: "$inc", Value: bson.D{{Key: "version", Value: 1}}},
 		}
-		if _, err := repo.collection.UpdateOne(sessCtx, filter, update); err != nil {
-			return nil, fmt.Errorf("'collection.UpdateOne' failed: %w", err)
+		if _, err := repo.collection.UpdateOne(tctx, filter, update); err != nil {
+			return fmt.Errorf("'collection.UpdateOne' failed: %w", err)
 		}
+
+		if err := repo.Cache.Delete(ctx, composeRecipeCacheKey(recipe.Id)); err != nil {
+			return fmt.Errorf("'Cache.Delet' failed: %w", err)
+		}
+
+		if err := repo.TextSearch.Index(tctx, "recipes", recipe.Id, recipe); err != nil {
+			return fmt.Errorf("'textSearch.Index' failed: %w", err)
+		}
+
 		recipe.Version += 1
-
-		if err := repo.textSearch.Index(sessCtx, "recipes", recipe.ID, recipe); err != nil {
-			return nil, fmt.Errorf("'textSearch.Index' failed: %w", err)
-		}
-
-		return nil, nil
+		return nil
 	}
 
-	if _, err := session.WithTransaction(ctx, h); err != nil {
-		return fmt.Errorf("'WithTransaction' failed: %w", err)
+	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 
 	return nil
 }
 
-func (repo *mongoRepo) Delete(ctx context.Context, userID, id string) error {
+func (repo *mongoRepo) Delete(ctx context.Context, userId, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
 
-	session, err := repo.client.StartSession()
-	if err != nil {
-		return fmt.Errorf("'StartSession' failed: %w", err)
-	}
-	defer session.EndSession(ctx)
-	h := func(sessCtx mongo.SessionContext) (any, error) {
-		filter := bson.M{"_id": oid, "userID": userID}
-		if _, err := repo.collection.DeleteOne(sessCtx, filter); err != nil {
-			return nil, fmt.Errorf("'collection.DeleteOne' failed: %w", err)
+	txn := func(tctx context.Context) error {
+		filter := bson.M{"_id": oid, "userId": userId}
+		if _, err := repo.collection.DeleteOne(tctx, filter); err != nil {
+			return fmt.Errorf("'collection.DeleteOne' failed: %w", err)
 		}
-		if err := repo.textSearch.Delete(sessCtx, "recipes", id); err != nil {
-			return nil, fmt.Errorf("'textSearch.Delete' failed: %w", err)
+
+		if err := repo.Cache.Delete(ctx, composeRecipeCacheKey(id)); err != nil {
+			return fmt.Errorf("'Cache.Delet' failed: %w", err)
 		}
-		return nil, nil
+
+		if err := repo.TextSearch.Delete(tctx, "recipes", id); err != nil {
+			return fmt.Errorf("'TextSearch.Delete' failed: %w", err)
+		}
+		return nil
 	}
-	if _, err := session.WithTransaction(ctx, h); err != nil {
-		return fmt.Errorf("'WithTransaction' failed: %w", err)
+	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 	return nil
 }

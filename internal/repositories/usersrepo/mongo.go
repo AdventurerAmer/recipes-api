@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
+	"github.com/AdventurerAmer/recipes-api/mongoutils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,101 +18,166 @@ import (
 type MongoConfig struct {
 	Database *mongo.Database
 	Client   *mongo.Client
+	Cache    ports.Cache
 }
 
 type mongoRepo struct {
 	MongoConfig
 	collection *mongo.Collection
+	txnMgr     *mongoutils.TxnManager
 }
 
 func NewMongo(cfg MongoConfig) ports.UsersRepository {
 	return &mongoRepo{
 		MongoConfig: cfg,
 		collection:  cfg.Database.Collection("users"),
+		txnMgr:      mongoutils.NewTxnManager(cfg.Client),
 	}
 }
 
 func (repo *mongoRepo) Create(ctx context.Context, user *domain.User) error {
-	session, err := repo.Client.StartSession()
-	if err != nil {
-		return fmt.Errorf("'client.StartSession' failed: %w", err)
-	}
-	defer session.EndSession(ctx)
-
-	txn := func(ctx mongo.SessionContext) (any, error) {
-		filter := bson.M{"username": user.Username}
-		findResult := repo.collection.FindOne(ctx, filter)
+	txn := func(tctx context.Context) error {
 		var findUser domain.User
+		filter := bson.M{"email": user.Email}
+		findResult := repo.collection.FindOne(tctx, filter)
 		if err := findResult.Decode(&findUser); err != nil {
 			if !errors.Is(err, mongo.ErrNoDocuments) {
-				return nil, fmt.Errorf("'collection.FindOne' failed: %w", err)
+				return fmt.Errorf("'collection.FindOne' failed: %w", err)
 			}
 		} else {
-			return nil, errors.New("user already registered")
+			return errs.NewAlreadyExists(err, "user already exists")
 		}
-		result, err := repo.collection.InsertOne(ctx, user)
+
+		result, err := repo.collection.InsertOne(tctx, user)
 		if err != nil {
-			return nil, fmt.Errorf("'collection.InsertOne' failed: %w", err)
+			return fmt.Errorf("'collection.InsertOne' failed: %w", err)
 		}
-		user.ID = result.InsertedID.(primitive.ObjectID).Hex()
-		return nil, nil
+		user.Id = result.InsertedID.(primitive.ObjectID).Hex()
+
+		return nil
 	}
-	if _, err := session.WithTransaction(ctx, txn); err != nil {
-		return fmt.Errorf("'session.WithTransaction' failed: %w", err)
+	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 
 	return nil
 }
 
-func (repo *mongoRepo) Get(ctx context.Context, id string) (domain.User, error) {
+func (repo *mongoRepo) GetById(ctx context.Context, id string) (*domain.User, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return domain.User{}, fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
+		return nil, fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
+
+	var user domain.User
+
+	key := composeUserByIdCacheKey(id)
+	if err := repo.Cache.Get(ctx, key, &user); err == nil {
+		return &user, nil
+	} else if errs.IsNotFound(err) {
+		defer func() {
+			_ = repo.Cache.Put(ctx, key, user, 10*time.Second)
+		}()
+	}
+
 	filter := bson.M{"_id": oid}
 	result := repo.collection.FindOne(ctx, filter)
-	var user domain.User
 	if err := result.Decode(&user); err != nil {
-		return domain.User{}, fmt.Errorf("'collection.FindOne' failed: %w", err)
+		return nil, fmt.Errorf("'collection.FindOne' failed: %w", err)
 	}
-	return user, nil
+
+	return &user, nil
 }
 
-func (repo *mongoRepo) GetByName(ctx context.Context, username string) (domain.User, error) {
-	filter := bson.M{"username": username}
-	result := repo.collection.FindOne(ctx, filter)
+func (repo *mongoRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
-	if err := result.Decode(&user); err != nil {
-		return domain.User{}, fmt.Errorf("'collection.FindOne' failed: %w", err)
+
+	key := composeUserByEmailCacheKey(email)
+	if err := repo.Cache.Get(ctx, key, &user); err == nil {
+		return &user, nil
+	} else if errs.IsNotFound(err) {
+		defer func() {
+			_ = repo.Cache.Put(ctx, key, user, 10*time.Second)
+		}()
 	}
-	return user, nil
+
+	filter := bson.M{"email": email}
+	result := repo.collection.FindOne(ctx, filter)
+	if err := result.Decode(&user); err != nil {
+		return nil, fmt.Errorf("'collection.FindOne' failed: %w", err)
+	}
+	return &user, nil
 }
 
 func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
-	oid, err := primitive.ObjectIDFromHex(user.ID)
+	oid, err := primitive.ObjectIDFromHex(user.Id)
 	if err != nil {
 		return fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
-	filter := bson.M{"_id": oid}
-	update := bson.D{
-		{Key: "$set", Value: bson.D{{Key: "password", Value: user.Password}}},
-		{Key: "$inc", Value: bson.D{{Key: "version", Value: 1}}},
+
+	type userUpdateModel struct {
+		Id           string    `bson:"-"`
+		CreatedAt    time.Time `bson:"-"`
+		Email        string    `bson:"email"`
+		DisplayName  string    `bson:"displayName"`
+		PasswordHash string    `bson:"passwordHash"`
+		Version      int       `bson:"-"`
 	}
-	if _, err := repo.collection.UpdateOne(ctx, filter, update); err != nil {
-		return fmt.Errorf("'collection.UpdateOne' failed: %w", err)
+
+	txn := func(tctx context.Context) error {
+		filter := bson.M{"_id": oid}
+		update := bson.D{
+			{Key: "$set", Value: userUpdateModel(*user)},
+			{Key: "$inc", Value: bson.D{{Key: "version", Value: 1}}},
+		}
+		if _, err := repo.collection.UpdateOne(tctx, filter, update); err != nil {
+			return fmt.Errorf("'collection.UpdateOne' failed: %w", err)
+		}
+
+		keys := []string{
+			composeUserByIdCacheKey(user.Id),
+			composeUserByEmailCacheKey(user.Email),
+		}
+		if err := repo.Cache.Delete(ctx, keys...); err != nil {
+			return fmt.Errorf("'Cache.Delete' failed: %w", err)
+		}
+
+		user.Version += 1
+
+		return nil
 	}
-	user.Version += 1
+	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
+	}
+
 	return nil
 }
 
-func (repo *mongoRepo) Delete(ctx context.Context, user domain.User) error {
-	oid, err := primitive.ObjectIDFromHex(user.ID)
+func (repo *mongoRepo) Delete(ctx context.Context, user *domain.User) error {
+	oid, err := primitive.ObjectIDFromHex(user.Id)
 	if err != nil {
 		return fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
-	filter := bson.M{"_id": oid}
-	if _, err := repo.collection.DeleteOne(ctx, filter); err != nil {
-		return fmt.Errorf("'collection.DeleteOne' failed: %w", err)
+
+	txn := func(tctx context.Context) error {
+		filter := bson.M{"_id": oid}
+		if _, err := repo.collection.DeleteOne(ctx, filter); err != nil {
+			return fmt.Errorf("'collection.DeleteOne' failed: %w", err)
+		}
+
+		keys := []string{
+			composeUserByIdCacheKey(user.Id),
+			composeUserByEmailCacheKey(user.Email),
+		}
+		if err := repo.Cache.Delete(ctx, keys...); err != nil {
+			return fmt.Errorf("'Cache.Delete' failed: %w", err)
+		}
+
+		return nil
 	}
+	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
+	}
+
 	return nil
 }

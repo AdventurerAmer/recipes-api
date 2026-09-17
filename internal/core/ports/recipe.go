@@ -9,11 +9,11 @@ import (
 
 type RecipesRepository interface {
 	Create(ctx context.Context, recipe *domain.Recipe) error
-	Get(ctx context.Context, id string) (domain.Recipe, error)
-	List(ctx context.Context, lastID, userID, sortBy string, limit int) ([]domain.Recipe, int, error)
+	Get(ctx context.Context, id string) (*domain.Recipe, error)
+	List(ctx context.Context, userId, lastId, sort string, limit int) ([]domain.Recipe, int, error)
 	Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error)
 	Update(ctx context.Context, recipe *domain.Recipe) error
-	Delete(ctx context.Context, userID, id string) error
+	Delete(ctx context.Context, userId, id string) error
 }
 
 type RecipesService interface {
@@ -27,12 +27,12 @@ type RecipesService interface {
 
 type CreateRecipeRequest struct {
 	Recipe struct {
-		Name         string   `json:"name" binding:"required,min=1"`
+		Name         string   `json:"name" validate:"required,min=1"`
 		Tags         []string `json:"tags"`
-		Ingredients  []string `json:"ingredients" binding:"required,min=1"`
-		Instructions []string `json:"instructions" binding:"required,min=1"`
-	} `form:"recipe" binding:"required"`
-	ImageHeader *multipart.FileHeader `form:"image" binding:"required"`
+		Ingredients  []string `json:"ingredients" validate:"required,min=1"`
+		Instructions []string `json:"instructions" validate:"required,min=1"`
+	} `form:"recipe" validate:"required"`
+	ImageHeader *multipart.FileHeader `form:"image" validate:"required"`
 	Image       ObjectStorageFile
 }
 
@@ -45,13 +45,13 @@ type GetRecipeRequest struct {
 }
 
 type GetRecipeResponse struct {
-	Recipe domain.Recipe `json:"recipe"`
+	Recipe *domain.Recipe `json:"recipe"`
 }
 
 type ListRecipesRequest struct {
-	LastID string `json:"lastID" form:"lastID"`
-	UserID string `json:"userID" from:"userID"`
-	SortBy string `json:"sortBy" form:"sortBy,default=-createdAt"`
+	LastId string `json:"lastID" form:"lastID"`
+	UserId string `json:"userID" from:"userID"`
+	Sort   string `json:"sortBy" form:"sortBy,default=-createdAt"`
 	Limit  int    `json:"limit" form:"limit,default=20"`
 }
 
@@ -72,25 +72,24 @@ type ListRecipesResponse struct {
 }
 
 type UpdateRecipeRequest struct {
-	ID     string `json:"id" uri:"id" binding:"required"`
+	Id     string `json:"id" uri:"id" validate:"required"`
 	Recipe struct {
-		Name         *string  `json:"name" binding:"omitempty,min=1"`
-		Tags         []string `json:"tags" binding:"omitempty,min=1"`
-		Ingredients  []string `json:"ingredients" binding:"omitempty,min=1"`
-		Instructions []string `json:"instructions" binding:"omitempty,min=1"`
+		Name         *string  `json:"name" validate:"omitempty,min=1"`
+		Tags         []string `json:"tags" validate:"omitempty,min=1"`
+		Ingredients  []string `json:"ingredients" validate:"omitempty,min=1"`
+		Instructions []string `json:"instructions" validate:"omitempty,min=1"`
 	} `form:"recipe"`
 	ImageHeader *multipart.FileHeader `form:"image"`
 	Image       *ObjectStorageFile
 }
 
 type UpdateRecipeResponse struct {
-	Recipe domain.Recipe `json:"recipe"`
+	Recipe *domain.Recipe `json:"recipe"`
 }
 
 type DeleteRecipeRequest struct {
-	ID string `json:"id" uri:"id" binding:"required"`
+	Id string `json:"id" uri:"id" binding:"required"`
 }
 
 type DeleteRecipeResponse struct {
-	Message string `json:"message"`
 }

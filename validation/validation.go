@@ -17,6 +17,8 @@ func Validate(s any) error {
 		}
 		return name
 	})
+	v.RegisterValidation("strong_password", StrongPasswordValidator)
+
 	if err := v.Struct(s); err != nil {
 		fields := formatValidationErrors(err)
 		return errs.NewValidation(fields)
@@ -24,13 +26,17 @@ func Validate(s any) error {
 	return nil
 }
 
-func formatValidationErrors(err error) map[string]string {
-	errs := make(map[string]string)
+func formatValidationErrors(err error) errs.Fields {
+	fields := make(errs.Fields)
 	for _, err := range err.(validator.ValidationErrors) {
-		field := err.Field()
-		errs[field] = getErrorMessage(err)
+		key := err.Namespace()
+		field := key
+		if _, after, ok := strings.Cut(key, "."); ok {
+			field = after
+		}
+		fields[field] = getErrorMessage(err)
 	}
-	return errs
+	return fields
 }
 
 func getErrorMessage(err validator.FieldError) string {

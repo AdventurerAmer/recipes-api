@@ -9,39 +9,42 @@ import (
 	"github.com/ThreeDotsLabs/humanslog"
 )
 
-type Level = slog.Level
 type Logger = slog.Logger
 
-type Config struct {
-	IsLocalEnv bool
-	Level      Level
-	AddSource  bool
-	Format     string
-}
+func New(opts ...Option) *Logger {
+	cfg := Config{
+		LocalEnv:  false,
+		AddSource: false,
+		Level:     LevelDebug,
+		Format:    "json",
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
 
-func New(cfg *Config) *Logger {
-	if cfg == nil {
-		cfg = &Config{
-			IsLocalEnv: false,
-			Level:      slog.LevelError,
-			AddSource:  false,
-			Format:     "json",
-		}
+	level := slog.LevelDebug
+	switch cfg.Level {
+	case LevelInfo:
+		level = slog.LevelInfo
+	case LevelWarn:
+		level = slog.LevelWarn
+	case LevelError:
+		level = slog.LevelError
 	}
 
 	replaceAttr := replaceAttrNonLocal
-	if cfg.IsLocalEnv {
+	if cfg.LocalEnv {
 		replaceAttr = replaceAttrLocal
 	}
 
 	handlerOpts := &slog.HandlerOptions{
-		Level:       cfg.Level,
+		Level:       level,
 		AddSource:   cfg.AddSource,
 		ReplaceAttr: replaceAttr,
 	}
 
 	var handler slog.Handler
-	if cfg.Format == "text" {
+	if cfg.Format == FormatText {
 		opts := &humanslog.Options{
 			HandlerOptions:    handlerOpts,
 			SortKeys:          true,
@@ -72,19 +75,6 @@ func Get(ctx context.Context) *Logger {
 		return logger
 	}
 	return slog.Default()
-}
-
-func ParseLevel(level string) Level {
-	switch level {
-	case "info":
-		return slog.LevelInfo
-	case "warn":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
-	default:
-		return slog.LevelDebug
-	}
 }
 
 func replaceAttrLocal(groups []string, attr slog.Attr) slog.Attr {

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"time"
 )
 
@@ -10,8 +11,9 @@ type Services struct {
 }
 
 type Service struct {
-	Name                    string        `koanf:"name" validate:"required,min=1,max=128"`
-	Port                    int           `koanf:"port" validate:"required,min=1,max=65535"`
+	Name                    string        `koanf:"name" validate:"required,max=128"`
+	Host                    string        `koanf:"host" validate:"required,max=128"`
+	Port                    int           `koanf:"port" validate:"required,max=65535"`
 	Version                 string        `koanf:"version" validate:"required,semver"`
 	MaxHeaderBytes          int           `koanf:"maxHeaderBytes" validate:"required,min=1"`
 	ReadHeaderTimeout       time.Duration `koanf:"readHeaderTimeout" validate:"required,min=1s"`
@@ -24,14 +26,17 @@ type Service struct {
 	allowedOrigins          []string      `koanf:"allowedOrigins" validate:"required"`
 }
 
-func (srv *Service) Address() string {
-	// TODO: using http here
-	return fmt.Sprintf("http://localhost:%d", srv.Port)
+func (srv *Service) Addr() string {
+	return net.JoinHostPort(srv.Host, fmt.Sprintf("%d", srv.Port))
 }
 
 func setServiceDefaults(cfg *Service) {
 	if cfg.Name == "" {
 		cfg.Name = "service"
+	}
+
+	if cfg.Host == "" {
+		cfg.Host = "localhost"
 	}
 
 	if cfg.Port == 0 {

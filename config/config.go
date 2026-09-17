@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/AdventurerAmer/recipes-api/errs"
+	"github.com/AdventurerAmer/recipes-api/logging"
 	"github.com/AdventurerAmer/recipes-api/validation"
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -28,21 +29,17 @@ type Config struct {
 	Constants     Constants      `koanf:"constants"`
 }
 
-type App struct {
-	Name    string `koanf:"name" validate:"required,max=128"`
-	Domain  string `koanf:"domain" validate:"required,fqdn"`
-	Version string `koanf:"version" validate:"required,semver"`
+func (cfg *Config) NewLogger() *logging.Logger {
+	logger := logging.New(
+		logging.WithLocalEnv(cfg.Env == EnvLocal),
+		logging.WithFormat(cfg.Observability.Logging.Format),
+		logging.WithLevel(cfg.Observability.Logging.Level),
+		logging.WithAddSource(*cfg.Observability.Logging.AddSource),
+	)
+	return logger
 }
 
 func Load() (*Config, error) {
-	var envFile string
-	flag.StringVar(&envFile, "env-file", ".env.prod", "env file to load config from")
-	flag.Parse()
-
-	if err := godotenv.Load(envFile); err != nil {
-		return nil, fmt.Errorf("failed to load env vars: %w", err)
-	}
-
 	delim := "."
 	k := koanf.New(delim)
 
@@ -50,8 +47,15 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load config.yaml: %w", err)
 	}
 
-	envPrefix := "RECIPES."
+	var envFile string
+	flag.StringVar(&envFile, "env-file", ".env.production", "env file to load config from")
+	flag.Parse()
 
+	if err := godotenv.Load(envFile); err != nil {
+		return nil, fmt.Errorf("failed to load env vars: %w", err)
+	}
+
+	envPrefix := "RECIPES."
 	envOpt := env.Opt{
 		Prefix: envPrefix,
 		TransformFunc: func(k, v string) (string, any) {

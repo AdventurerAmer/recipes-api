@@ -28,33 +28,33 @@ func New(cfg Config) ports.UsersService {
 	}
 }
 
-func (srv *service) SignUp(ctx context.Context, req ports.SignUpRequest) (ports.SignUpResponse, error) {
+func (srv *service) SignUp(ctx context.Context, req ports.SignUpRequest) (ports.SignUpResponse, *domain.User, error) {
 	hash, err := hashPassward(req.Password)
 	if err != nil {
-		return ports.SignUpResponse{}, fmt.Errorf("'hashPassward' failed: %w", err)
+		return ports.SignUpResponse{}, nil, fmt.Errorf("'hashPassward' failed: %w", err)
 	}
-	user := domain.User{
-		CreatedAt: time.Now(),
-		Username:  req.Username,
-		Password:  hash,
+	user := &domain.User{
+		CreatedAt:    time.Now(),
+		Email:        req.Email,
+		DisplayName:  req.DisplayName,
+		PasswordHash: hash,
 	}
-	if err := srv.UsersRepo.Create(ctx, &user); err != nil {
-		return ports.SignUpResponse{}, fmt.Errorf("'UsersRepo.Create' failed: %w", err)
+	if err := srv.UsersRepo.Create(ctx, user); err != nil {
+		return ports.SignUpResponse{}, nil, fmt.Errorf("'UsersRepo.Create' failed: %w", err)
 	}
 
-	return ports.SignUpResponse{
-		User:         user,
-		FrontendUser: user.Frontend(),
-		Message:      "user was created successfully",
-	}, nil
+	resp := ports.SignUpResponse{
+		User: domain.NewFrontendUser(user),
+	}
+	return resp, user, nil
 }
 
 func (srv *service) SignIn(ctx context.Context, req ports.SignInRequest) (ports.SignInResponse, error) {
-	user, err := srv.UsersRepo.GetByName(ctx, req.Username)
+	user, err := srv.UsersRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		return ports.SignInResponse{}, fmt.Errorf("'UsersRepo.GetByName' failed: %w", err)
+		return ports.SignInResponse{}, fmt.Errorf("'UsersRepo.GetByUsername' failed: %w", err)
 	}
-	ok, err := verifyPassword(req.Password, user.Password)
+	ok, err := verifyPassword(req.Password, user.PasswordHash)
 	if err != nil {
 		return ports.SignInResponse{}, fmt.Errorf("'verifyPassword' failed: %w", err)
 	}
@@ -62,8 +62,7 @@ func (srv *service) SignIn(ctx context.Context, req ports.SignInRequest) (ports.
 		return ports.SignInResponse{}, fmt.Errorf("'verifyPassword' failed: %w", err)
 	}
 	return ports.SignInResponse{
-		User:    user,
-		Message: "sign in was successful",
+		User: user,
 	}, nil
 }
 

@@ -8,8 +8,8 @@ PHONY: down
 down:
 	@docker-compose down
 
-PHONY: downrv
-down:
+PHONY: downv
+downv:
 	@docker-compose down -v
 
 PHONY: build
