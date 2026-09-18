@@ -20,7 +20,7 @@ func (cfg *ElasticSearch) Connect(ctx context.Context) (Disconnecter, error) {
 	resCh := make(chan result)
 	go func() {
 		client, err := elasticsearch.New(
-			elasticsearch.WithAddresses(cfg.Addr()),
+			elasticsearch.WithAddresses(fmt.Sprintf("http://%s", cfg.Addr())),
 		)
 		if err != nil {
 			err = fmt.Errorf("'elasticsearch.NewTyped' failed: %w", err)

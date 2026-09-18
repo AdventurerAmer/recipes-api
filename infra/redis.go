@@ -3,6 +3,7 @@ package infra
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/AdventurerAmer/recipes-api/config"
 	"github.com/redis/go-redis/v9"
@@ -19,6 +20,7 @@ func (cfg *Redis) Connect(ctx context.Context) (Disconnecter, error) {
 		Password: cfg.Password,
 		DB:       cfg.Database,
 	}
+	slog.Info("redis creds", "username", cfg.Username, "password", cfg.Password)
 	client := redis.NewClient(opts)
 	if _, err := client.Ping(ctx).Result(); err != nil {
 		return nil, fmt.Errorf("'client.Ping' failed: %w", err)

@@ -7,10 +7,10 @@ import (
 )
 
 func ComposeSortStage(field string) bson.D {
-	sortingOrder := 1
+	order := 1
 	if strings.HasPrefix(field, "-") {
 		field, _ = strings.CutPrefix(field, "-")
-		sortingOrder = -1
+		order = -1
 	}
 	if field == "id" {
 		field = "_id"
@@ -18,9 +18,9 @@ func ComposeSortStage(field string) bson.D {
 	if field == "" {
 		field = "createdAt"
 	}
-	sort := bson.D{{Key: field, Value: sortingOrder}}
+	stage := bson.D{{Key: field, Value: order}}
 	if field != "_id" {
-		sort = append(sort, bson.E{Key: "_id", Value: -1})
+		stage = append(stage, bson.E{Key: "_id", Value: -1})
 	}
-	return sort
+	return stage
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/elastic/go-elasticsearch/v9"
@@ -19,46 +18,47 @@ type textSearch struct {
 }
 
 func NewElasticSearch(client *elasticsearch.Client) (ports.TextSearch, error) {
-	mapping := `{
-        "mappings": {
-            "properties": {
-                "id": { "type": "keyword" },
-                "createdAt": { "type": "date" }
-				"userID": { "type": "keyword" },
-				"name": {
-                    "type": "text",
-                    "analyzer": "standard",
-                    "fields": {
-                        "keyword": { "type": "keyword" },
-                        "suggest": { "type": "completion" }
-                    }
-                },
-                "tags": { "type": "keyword" },
-                "ingredients": { "type": "keyword" },
-				"instructions": { "type": "keyword" },
-				"image": { "type": "keyword" },
-				"version": { "type": "long" }
-            }
-        }
-    }`
+	// TODO: move this to a migrator
+	// mapping := `{
+	//     "mappings": {
+	//         "properties": {
+	//             "id": { "type": "keyword" },
+	//             "createdAt": { "type": "date" },
+	// 			"userId": { "type": "keyword" },
+	// 			"name": {
+	//                 "type": "text",
+	//                 "analyzer": "standard",
+	//                 "fields": {
+	//                     "keyword": { "type": "keyword" },
+	//                     "suggest": { "type": "completion" }
+	//                 }
+	//             },
+	//             "tags": { "type": "keyword" },
+	//             "ingredients": { "type": "keyword" },
+	// 			"instructions": { "type": "keyword" },
+	// 			"imageURL": { "type": "keyword" },
+	// 			"version": { "type": "long" }
+	//         }
+	//     }
+	// }`
 
-	req := esapi.IndicesCreateRequest{
-		Index: "recipes",
-		Body:  strings.NewReader(mapping),
-	}
+	// req := esapi.IndicesCreateRequest{
+	// 	Index: "recipes",
+	// 	Body:  strings.NewReader(mapping),
+	// }
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// defer cancel()
 
-	res, err := req.Do(ctx, client)
-	if err != nil {
-		return nil, fmt.Errorf("create index failed: %w", err)
-	}
-	defer res.Body.Close()
+	// res, err := req.Do(ctx, client)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("create index failed: %w", err)
+	// }
+	// defer res.Body.Close()
 
-	if res.IsError() {
-		return nil, fmt.Errorf("create index failed: %s", res.String())
-	}
+	// if res.IsError() {
+	// 	return nil, fmt.Errorf("create index failed: %s", res.String())
+	// }
 
 	return &textSearch{client: client}, nil
 }

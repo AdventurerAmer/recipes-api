@@ -1,13 +1,13 @@
 name: recipes
 services:
   mongo:
-    image: mongo:8
+    image: mongo:8.0
     hostname: mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
-      - recipes-mongo-data:/data/db
+      - mongo-data:/data/db
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     healthcheck:
       test: >
@@ -21,6 +21,7 @@ services:
       timeout: 30s
       start_period: 10s
       retries: 30
+      
   redis:
     image: redis:8.6
     restart: unless-stopped
@@ -28,27 +29,30 @@ services:
     ports:
       - "6379:6379"              
     volumes:
-      - recipes-redis-data:/data
+      - redis-data:/data
       - ./redis/users.acl:/etc/redis/users.acl
   
   redis-sessions:
     image: redis:8.6
-    restart: unless-stopped              
+    restart: unless-stopped
+    command: ["redis-server", "--aclfile", "/etc/redis/users.acl"]              
     ports:
       - "6380:6379"              
     volumes:
-      - recipes-redis-sessions-data:/data
+      - redis-sessions-data:/data
       - ./redis/users.acl:/etc/redis/users.acl
+
   redis-insight:
     image: redis/redisinsight:3.2
     restart: unless-stopped
     ports:
       - "5540:5540"
     volumes:
-      - recipes-redis-insight-data:/data
+      - redis-insight-data:/data
     depends_on:
       - redis
       - redis-sessions
+
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
@@ -57,16 +61,17 @@ services:
       - "9001:9001"    # Web Console
     environment:
       MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: admin
+      MINIO_ROOT_PASSWORD: Tr0ub4dor&3@792041856321948576
       MINIO_CONSOLE_ADDRESS: ":9001"
     volumes:
-      - recipes-minio-data:/data
+      - minio-data:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 10s
       retries: 3
+
   elastic-search:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.4.1
     restart: unless-stopped
@@ -79,7 +84,7 @@ services:
       - cluster.name=es-local-cluster
       - node.name=es-local
     volumes:
-      - recipes-elastic-search-data:/usr/share/elasticsearch/data
+      - elastic-search-data:/usr/share/elasticsearch/data
     ulimits:
       memlock:
         soft: -1
@@ -89,10 +94,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
 volumes:
-  recipes-mongo-data:
-  recipes-redis-data:
-  recipes-redis-sessions-data:
-  recipes-redis-insight-data:
-  recipes-minio-data:
-  recipes-elastic-search-data:
+  mongo-data:
+  redis-data:
+  redis-sessions-data:
+  redis-insight-data:
+  minio-data:
+  elastic-search-data:
