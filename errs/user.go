@@ -5,6 +5,7 @@ type UserError struct {
 	Code    Code   `json:"code"`
 	Message string `json:"message"`
 	Fields  Fields `json:"fields,omitempty"`
+	Retry   bool   `json:"retry"`
 }
 
 func NewUserError(traceId string, err *Error) UserError {
@@ -13,5 +14,6 @@ func NewUserError(traceId string, err *Error) UserError {
 		Code:    err.Code,
 		Message: err.Message,
 		Fields:  err.Fields,
+		Retry:   IsRetryCode(err.Code),
 	}
 }

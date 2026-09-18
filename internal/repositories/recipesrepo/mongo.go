@@ -40,7 +40,7 @@ func (repo *mongoRepo) Create(ctx context.Context, recipe *domain.Recipe) error 
 	txn := func(tctx context.Context) error {
 		result, err := repo.collection.InsertOne(tctx, recipe)
 		if err != nil {
-			return fmt.Errorf("'collection.InsertOne' failed: %w", err)
+			return fmt.Errorf("'collection.InsertOne' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
 		}
 
 		if err := repo.TextSearch.Index(tctx, "recipes", recipe.Id, recipe); err != nil {
@@ -77,7 +77,7 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, erro
 	filter := bson.M{"_id": oid}
 	result := repo.collection.FindOne(ctx, filter)
 	if err := result.Decode(&recipe); err != nil {
-		return nil, fmt.Errorf("'result.Decode' failed: %w", err)
+		return nil, fmt.Errorf("'result.Decode' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
 	}
 	return &recipe, nil
 }
@@ -108,7 +108,7 @@ func (repo *mongoRepo) List(ctx context.Context, userId, lastId, sort string, li
 	pipeline := mongo.Pipeline{match, facet}
 	cursor, err := repo.collection.Aggregate(ctx, pipeline)
 	if err != nil {
-		return nil, 0, fmt.Errorf("'collection.Aggregate' failed: %w", err)
+		return nil, 0, fmt.Errorf("'collection.Aggregate' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
 	}
 	defer mongoutils.CloseCursor(cursor)
 
@@ -122,7 +122,7 @@ func (repo *mongoRepo) List(ctx context.Context, userId, lastId, sort string, li
 	}
 
 	if err := cursor.All(ctx, &results); err != nil {
-		return nil, 0, fmt.Errorf("'cursor.All' failed: %w", err)
+		return nil, 0, fmt.Errorf("'cursor.All' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
 	}
 	if len(results) == 0 {
 		return nil, 0, nil
@@ -145,7 +145,7 @@ func (repo *mongoRepo) Search(ctx context.Context, name string, page, pageSize i
 	for _, data := range results {
 		var recipe domain.Recipe
 		if err := json.Unmarshal(data, &recipe); err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("'json.Unmarshal' failed: %w", err)
 		}
 		recipes = append(recipes, recipe)
 	}
@@ -168,6 +168,7 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 		Ingredients  []string  `bson:"ingredients"`
 		Instructions []string  `bson:"instructions"`
 		ImageURL     string    `bson:"imageURL"`
+		UpdatedAt    time.Time `bson:"updatedAt"`
 		Version      int       `bson:"-"`
 	}
 
@@ -177,8 +178,12 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 			{Key: "$set", Value: updateRecipeModel(*recipe)},
 			{Key: "$inc", Value: bson.D{{Key: "version", Value: 1}}},
 		}
-		if _, err := repo.collection.UpdateOne(tctx, filter, update); err != nil {
-			return fmt.Errorf("'collection.UpdateOne' failed: %w", err)
+		result, err := repo.collection.UpdateOne(tctx, filter, update)
+		if err != nil {
+			return fmt.Errorf("'collection.UpdateOne' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
+		}
+		if result.MatchedCount == 0 {
+			return errs.NewConflict(nil, "recipe was modified by another request")
 		}
 
 		if err := repo.Cache.Delete(ctx, composeRecipeCacheKey(recipe.Id)); err != nil {
@@ -200,23 +205,28 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 	return nil
 }
 
-func (repo *mongoRepo) Delete(ctx context.Context, userId, id string) error {
-	oid, err := primitive.ObjectIDFromHex(id)
+func (repo *mongoRepo) Delete(ctx context.Context, recipe *domain.Recipe) error {
+	oid, err := primitive.ObjectIDFromHex(recipe.Id)
 	if err != nil {
 		return fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
 
 	txn := func(tctx context.Context) error {
-		filter := bson.M{"_id": oid, "userId": userId}
-		if _, err := repo.collection.DeleteOne(tctx, filter); err != nil {
+		filter := bson.M{"_id": oid, "version": recipe.Version}
+		result, err := repo.collection.DeleteOne(tctx, filter)
+		if err != nil {
 			return fmt.Errorf("'collection.DeleteOne' failed: %w", err)
 		}
 
-		if err := repo.Cache.Delete(ctx, composeRecipeCacheKey(id)); err != nil {
+		if result.DeletedCount == 0 {
+			return errs.NewConflict(nil, "recipe was modified by another request")
+		}
+
+		if err := repo.Cache.Delete(ctx, composeRecipeCacheKey(recipe.Id)); err != nil {
 			return fmt.Errorf("'Cache.Delet' failed: %w", err)
 		}
 
-		if err := repo.TextSearch.Delete(tctx, "recipes", id); err != nil {
+		if err := repo.TextSearch.Delete(tctx, "recipes", recipe.Id); err != nil {
 			return fmt.Errorf("'TextSearch.Delete' failed: %w", err)
 		}
 		return nil

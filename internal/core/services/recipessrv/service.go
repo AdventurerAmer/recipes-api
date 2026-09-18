@@ -27,7 +27,7 @@ func New(cfg Config) ports.RecipesService {
 	}
 }
 
-func (srv *service) Create(ctx context.Context, user domain.User, req ports.CreateRecipeRequest) (ports.CreateRecipeResponse, error) {
+func (srv *service) Create(ctx context.Context, user *domain.User, req ports.CreateRecipeRequest) (ports.CreateRecipeResponse, error) {
 	bucket := ports.RecipeImagesBucketName
 	objectName := uuid.NewString()
 	if err := srv.ObjectStorage.Upload(ctx, bucket, objectName, req.Image); err != nil {
@@ -74,13 +74,14 @@ func (srv *service) Search(ctx context.Context, req ports.SearchRecipesRequest) 
 	return ports.SearchRecipesResponse{Recipes: recipes, Total: total}, nil
 }
 
-func (srv *service) Update(ctx context.Context, user domain.User, req ports.UpdateRecipeRequest) (ports.UpdateRecipeResponse, error) {
+func (srv *service) Update(ctx context.Context, user *domain.User, req ports.UpdateRecipeRequest) (ports.UpdateRecipeResponse, error) {
 	recipe, err := srv.RecipesRepo.Get(ctx, req.Id)
 	if err != nil {
 		return ports.UpdateRecipeResponse{}, fmt.Errorf("'RecipesRepo.Get' failed: %w", err)
 	}
 	if recipe.UserId != user.Id {
-		return ports.UpdateRecipeResponse{}, errors.New("permission denied")
+		// TODO: auth and author errors
+		return ports.UpdateRecipeResponse{}, errors.New("access denied")
 	}
 	if req.Recipe.Name != nil {
 		recipe.Name = *req.Recipe.Name
@@ -108,8 +109,16 @@ func (srv *service) Update(ctx context.Context, user domain.User, req ports.Upda
 	return ports.UpdateRecipeResponse{Recipe: recipe}, nil
 }
 
-func (srv *service) Delete(ctx context.Context, user domain.User, req ports.DeleteRecipeRequest) (ports.DeleteRecipeResponse, error) {
-	if err := srv.RecipesRepo.Delete(ctx, user.Id, req.Id); err != nil {
+func (srv *service) Delete(ctx context.Context, user *domain.User, req ports.DeleteRecipeRequest) (ports.DeleteRecipeResponse, error) {
+	recipe, err := srv.RecipesRepo.Get(ctx, req.Id)
+	if err != nil {
+		return ports.DeleteRecipeResponse{}, fmt.Errorf("'RecipesRepo.Get' failed: %w", err)
+	}
+	if recipe.UserId != user.Id {
+		// TODO: auth and author errors
+		return ports.DeleteRecipeResponse{}, fmt.Errorf("access denied")
+	}
+	if err := srv.RecipesRepo.Delete(ctx, recipe); err != nil {
 		return ports.DeleteRecipeResponse{}, fmt.Errorf("'RecipesRepo.Delete' failed: %w", err)
 	}
 	resp := ports.DeleteRecipeResponse{}

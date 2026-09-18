@@ -6,7 +6,7 @@ import (
 
 func HTTPStatus(code Code) int {
 	switch code {
-	case CodeInternal:
+	case CodeInternal, CodeNetwork:
 		return http.StatusInternalServerError
 	case CodeValidation:
 		return http.StatusBadRequest

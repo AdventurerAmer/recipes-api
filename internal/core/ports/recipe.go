@@ -13,16 +13,16 @@ type RecipesRepository interface {
 	List(ctx context.Context, userId, lastId, sort string, limit int) ([]domain.Recipe, int, error)
 	Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error)
 	Update(ctx context.Context, recipe *domain.Recipe) error
-	Delete(ctx context.Context, userId, id string) error
+	Delete(ctx context.Context, recipe *domain.Recipe) error
 }
 
 type RecipesService interface {
-	Create(ctx context.Context, user domain.User, req CreateRecipeRequest) (CreateRecipeResponse, error)
+	Create(ctx context.Context, user *domain.User, req CreateRecipeRequest) (CreateRecipeResponse, error)
 	Get(ctx context.Context, req GetRecipeRequest) (GetRecipeResponse, error)
 	List(ctx context.Context, req ListRecipesRequest) (ListRecipesResponse, error)
 	Search(ctx context.Context, name SearchRecipesRequest) (SearchRecipesResponse, error)
-	Update(ctx context.Context, user domain.User, req UpdateRecipeRequest) (UpdateRecipeResponse, error)
-	Delete(ctx context.Context, user domain.User, req DeleteRecipeRequest) (DeleteRecipeResponse, error)
+	Update(ctx context.Context, user *domain.User, req UpdateRecipeRequest) (UpdateRecipeResponse, error)
+	Delete(ctx context.Context, user *domain.User, req DeleteRecipeRequest) (DeleteRecipeResponse, error)
 }
 
 type CreateRecipeRequest struct {

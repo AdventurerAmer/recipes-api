@@ -34,6 +34,14 @@ func NewServiceUnavailable(err error) *Error {
 	return Wrap(err, CodeServiceUnavailable, "service unavailable")
 }
 
+func NewNetwork(err error) *Error {
+	return Wrap(err, CodeNetwork, "network failure")
+}
+
+func NewConflict(err error, message string) *Error {
+	return Wrap(err, CodeConflict, message)
+}
+
 func Is(err error, code Code) bool {
 	var e *Error
 	if errors.As(err, &e) && e.Code == code {
@@ -68,4 +76,12 @@ func IsUnsupportedFormat(err error) bool {
 
 func IsServiceUnavailable(err error) bool {
 	return Is(err, CodeServiceUnavailable)
+}
+
+func IsNetwork(err error) bool {
+	return Is(err, CodeNetwork)
+}
+
+func IsConflict(err error) bool {
+	return Is(err, CodeConflict)
 }

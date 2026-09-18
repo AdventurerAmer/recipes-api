@@ -83,7 +83,7 @@ func (repo *mongoRepo) GetById(ctx context.Context, id string) (*domain.User, er
 	filter := bson.M{"_id": oid}
 	result := repo.collection.FindOne(ctx, filter)
 	if err := result.Decode(&user); err != nil {
-		return nil, fmt.Errorf("'collection.FindOne' failed: %w", err)
+		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
 	}
 
 	return &user, nil
@@ -104,7 +104,7 @@ func (repo *mongoRepo) GetByEmail(ctx context.Context, email string) (*domain.Us
 	filter := bson.M{"email": email}
 	result := repo.collection.FindOne(ctx, filter)
 	if err := result.Decode(&user); err != nil {
-		return nil, fmt.Errorf("'collection.FindOne' failed: %w", err)
+		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
 	}
 	return &user, nil
 }
@@ -121,6 +121,7 @@ func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
 		Email        string    `bson:"email"`
 		DisplayName  string    `bson:"displayName"`
 		PasswordHash string    `bson:"passwordHash"`
+		UpdatedAt    time.Time `bson:"updatedAt"`
 		Version      int       `bson:"-"`
 	}
 
@@ -130,8 +131,12 @@ func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
 			{Key: "$set", Value: userUpdateModel(*user)},
 			{Key: "$inc", Value: bson.D{{Key: "version", Value: 1}}},
 		}
-		if _, err := repo.collection.UpdateOne(tctx, filter, update); err != nil {
-			return fmt.Errorf("'collection.UpdateOne' failed: %w", err)
+		result, err := repo.collection.UpdateOne(tctx, filter, update)
+		if err != nil {
+			return fmt.Errorf("'collection.UpdateOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
+		}
+		if result.MatchedCount == 0 {
+			return errs.NewConflict(nil, "user was modified by another request")
 		}
 
 		keys := []string{
@@ -160,9 +165,13 @@ func (repo *mongoRepo) Delete(ctx context.Context, user *domain.User) error {
 	}
 
 	txn := func(tctx context.Context) error {
-		filter := bson.M{"_id": oid}
-		if _, err := repo.collection.DeleteOne(ctx, filter); err != nil {
+		filter := bson.M{"_id": oid, "version": user.Version}
+		result, err := repo.collection.DeleteOne(ctx, filter)
+		if err != nil {
 			return fmt.Errorf("'collection.DeleteOne' failed: %w", err)
+		}
+		if result.DeletedCount == 0 {
+			return errs.NewConflict(nil, "user was modified by another request")
 		}
 
 		keys := []string{

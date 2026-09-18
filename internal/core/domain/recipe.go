@@ -13,5 +13,6 @@ type Recipe struct {
 	Ingredients  []string  `json:"ingredients" bson:"ingredients"`
 	Instructions []string  `json:"instructions" bson:"instructions"`
 	ImageURL     string    `json:"imageURL" bson:"imageURL"`
+	UpdatedAt    time.Time `json:"updatedAt" bson:"updatedAt"`
 	Version      int       `json:"version" bson:"version"`
 }

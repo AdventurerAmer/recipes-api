@@ -79,7 +79,7 @@ func (h *RecipesHandler) NewRecipeHandler(c *gin.Context) {
 		Size:        int(req.ImageHeader.Size),
 		ContentType: req.ImageHeader.Header.Get("Content-Type"),
 	}
-	resp, err := h.RecipesService.Create(c, user, req)
+	resp, err := h.RecipesService.Create(c, &user, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -203,7 +203,7 @@ func (h *RecipesHandler) UpdateRecipeHandler(c *gin.Context) {
 			ContentType: req.ImageHeader.Header.Get("Content-Type"),
 		}
 	}
-	resp, err := h.RecipesService.Update(c, user, req)
+	resp, err := h.RecipesService.Update(c, &user, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -243,7 +243,7 @@ func (h *RecipesHandler) DeleteRecipeHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	resp, err := h.RecipesService.Delete(c, user, req)
+	resp, err := h.RecipesService.Delete(c, &user, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
