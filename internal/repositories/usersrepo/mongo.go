@@ -109,26 +109,49 @@ func (repo *mongoRepo) GetByEmail(ctx context.Context, email string) (*domain.Us
 	return &user, nil
 }
 
+func (repo *mongoRepo) GetByVerificationToken(ctx context.Context, token string) (*domain.User, error) {
+	var user domain.User
+	filter := bson.M{"verification.token": token}
+	result := repo.collection.FindOne(ctx, filter)
+	if err := result.Decode(&user); err != nil {
+		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
+	}
+	return &user, nil
+}
+
+func (repo *mongoRepo) GetByForgotPasswordToken(ctx context.Context, token string) (*domain.User, error) {
+	var user domain.User
+	filter := bson.M{"forgotPassword.token": token}
+	result := repo.collection.FindOne(ctx, filter)
+	if err := result.Decode(&user); err != nil {
+		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
+	}
+	return &user, nil
+}
+
 func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
 	oid, err := primitive.ObjectIDFromHex(user.Id)
 	if err != nil {
 		return fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
 
-	type userUpdateModel struct {
-		Id           string    `bson:"-"`
-		CreatedAt    time.Time `bson:"-"`
-		Email        string    `bson:"email"`
-		DisplayName  string    `bson:"displayName"`
-		PasswordHash string    `bson:"passwordHash"`
-		UpdatedAt    time.Time `bson:"updatedAt"`
-		Version      int       `bson:"-"`
+	type updateModel struct {
+		Id             string                `bson:"-"`
+		CreatedAt      time.Time             `bson:"-"`
+		Email          string                `bson:"email"`
+		DisplayName    string                `bson:"displayName"`
+		PasswordHash   string                `bson:"passwordHash"`
+		IsVerified     bool                  `bson:"isVerified"`
+		Verification   domain.Verification   `bson:"verification"`
+		ForgotPassword domain.ForgotPassword `bson:"forgotPassword"`
+		UpdatedAt      time.Time             `bson:"updatedAt"`
+		Version        int                   `bson:"-"`
 	}
 
 	txn := func(tctx context.Context) error {
 		filter := bson.M{"_id": oid}
 		update := bson.D{
-			{Key: "$set", Value: userUpdateModel(*user)},
+			{Key: "$set", Value: updateModel(*user)},
 			{Key: "$inc", Value: bson.D{{Key: "version", Value: 1}}},
 		}
 		result, err := repo.collection.UpdateOne(tctx, filter, update)

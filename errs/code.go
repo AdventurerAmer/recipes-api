@@ -12,6 +12,8 @@ const (
 	CodeUnsupportedFormat     Code = "UNSUPPORTED_FORMAT"
 	CodeServiceUnavailable    Code = "SERVICE_UNAVAILABLE"
 	CodeConflict              Code = "CONFLICT"
+	CodeAuthentication        Code = "AUTHENTICATION"
+	CodeAuthorization         Code = "AUTHORIZATION"
 )
 
 func IsRetryCode(code Code) bool {

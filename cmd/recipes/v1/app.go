@@ -31,7 +31,9 @@ import (
 	"github.com/AdventurerAmer/recipes-api/config"
 	"github.com/AdventurerAmer/recipes-api/infra"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/cache"
+	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/textsearch"
+	"github.com/AdventurerAmer/recipes-api/internal/core/services/authsrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/userssrv"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
@@ -43,14 +45,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	ginRedis "github.com/gin-contrib/sessions/redis"
 )
-
-type App struct {
-	mainDB            infra.MongoContext
-	mainCache         infra.RedisContext
-	sessionsCache     infra.RedisContext
-	mainObjectStorage infra.MinioContext
-	mainTextSearch    infra.ElasticSearchContext
-}
 
 func Run() int {
 	cfg, err := config.Load()
@@ -64,45 +58,63 @@ func Run() int {
 
 	logger := cfg.NewLogger().With(slog.String("service", serviceCfg.Name))
 
-	app := &App{}
+	var (
+		mainDataBase      infra.MongoContext
+		mainCache         infra.RedisContext
+		mainObjectStorage infra.MinioContext
+		mainTextSearch    infra.ElasticSearchContext
+	)
+
 	infraCtx := infra.New()
-	infraCtx.BindMongo(&cfg.Infra.MainDatabase, &app.mainDB)
-	infraCtx.BindRedis(&cfg.Infra.MainCache, &app.mainCache)
-	infraCtx.BindMinio(&cfg.Infra.MainObjectStorage, &app.mainObjectStorage)
-	infraCtx.BindElasticSearch(&cfg.Infra.MainTextSearch, &app.mainTextSearch)
+	infraCtx.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
+	infraCtx.BindRedis(&cfg.Infra.MainCache, &mainCache)
+	infraCtx.BindMinio(&cfg.Infra.MainObjectStorage, &mainObjectStorage)
+	infraCtx.BindElasticSearch(&cfg.Infra.MainTextSearch, &mainTextSearch)
 	if err := infraCtx.Start(context.Background()); err != nil {
 		logger.Error("failed to connect to infrastructure", "error", err)
 		return 1
 	}
 	defer infraCtx.Shutdown(context.Background())
 
-	redisCache := cache.NewRedis(app.mainCache.Client)
+	redisCache := cache.NewRedis(mainCache.Client)
 
-	textSearch, err := textsearch.NewElasticSearch(app.mainTextSearch.Client)
+	textSearch, err := textsearch.NewElasticSearch(mainTextSearch.Client)
 	if err != nil {
-		logger.Error("failed to create elastic search port", "error", err)
+		logger.Error("failed to create elastic search adaptor", "error", err)
 		return 1
 	}
 
+	// Repos
 	usersRepoCfg := usersrepo.MongoConfig{
-		Database: app.mainDB.Database,
-		Client:   app.mainDB.Client,
+		Database: mainDataBase.Database,
+		Client:   mainDataBase.Client,
 		Cache:    redisCache,
 	}
 	usersRepo := usersrepo.NewMongo(usersRepoCfg)
 
-	usersServiceCfg := userssrv.Config{
-		UsersRepo: usersRepo,
-	}
-	usersService := userssrv.New(usersServiceCfg)
-
 	recipesRepoCfg := recipesrepo.MongoConfig{
-		Database:   app.mainDB.Database,
-		Client:     app.mainDB.Client,
+		Database:   mainDataBase.Database,
+		Client:     mainDataBase.Client,
 		TextSearch: textSearch,
 		Cache:      redisCache,
 	}
 	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
+
+	// Services
+	argon2PasswordMgr := password.NewArgon2()
+
+	authServiceCfg := &authsrv.Config{
+		PasswordVerifier: password.NewArgon2(),
+		UsersRepo:        usersRepo,
+	}
+
+	authService := authsrv.New(authServiceCfg)
+
+	usersServiceCfg := userssrv.Config{
+		PasswordHasher: argon2PasswordMgr,
+		UsersRepo:      usersRepo,
+	}
+	usersService := userssrv.New(usersServiceCfg)
 
 	recipesServiceCfg := recipessrv.Config{
 		RecipesRepo: recipesRepo,
@@ -110,9 +122,10 @@ func Run() int {
 	}
 	recipesService := recipessrv.New(recipesServiceCfg)
 
+	// Handlers
+	authHandler := handlers.NewAuthHandler(authService)
 	usersHandler := handlers.NewUsersHandler(usersService)
 	recipesHandler := handlers.NewRecipesHandler(recipesService)
-	authHandler := handlers.NewAuthHandler(usersService)
 
 	sessionsStore, err := ginRedis.NewStore(cfg.Auth.MaxIdelConns, "tcp", cfg.Infra.SessionsCache.Addr(), cfg.Infra.SessionsCache.Username, cfg.Infra.SessionsCache.Password, []byte(cfg.Auth.Secret))
 	if err != nil {
@@ -135,20 +148,20 @@ func Run() int {
 	v1 := router.Group("/api/v1/")
 	v1.Use(timeout.New(timeout.WithTimeout(cfg.Services.Recipes.DefaultTimeout)))
 	{
-		v1.POST("/signup", usersHandler.SignUpHandler)
-		v1.POST("/signin", authHandler.SignInHandler)
-		v1.POST("/signout", authHandler.SignOutHandler)
+		v1.POST("/users", usersHandler.Register)
+		v1.POST("/sessions", authHandler.Login)
+		v1.POST("/sessions/current", authHandler.Logout)
 
-		v1.GET("/recipes", recipesHandler.ListRecipesHandler)
-		v1.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
-		v1.GET("/recipes/:id", recipesHandler.GetRecipeHandler)
+		v1.GET("/recipes", recipesHandler.List)
+		v1.GET("/recipes/search", recipesHandler.Search)
+		v1.GET("/recipes/:id", recipesHandler.Get)
 
 		authed := v1.Group("/")
 		authed.Use(authHandler.AuthMiddleware())
 		{
-			authed.POST("/recipes", recipesHandler.NewRecipeHandler)
-			authed.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
-			authed.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+			authed.POST("/recipes", recipesHandler.Create)
+			authed.PUT("/recipes/:id", recipesHandler.Update)
+			authed.DELETE("/recipes/:id", recipesHandler.Delete)
 		}
 	}
 
