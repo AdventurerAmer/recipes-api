@@ -17,22 +17,20 @@ import (
 
 type MongoConfig struct {
 	Database   *mongo.Database
-	Client     *mongo.Client
 	Cache      ports.Cache
 	TextSearch ports.TextSearch
+	Transactor ports.Transactor
 }
 
 type mongoRepo struct {
 	MongoConfig
 	collection *mongo.Collection
-	txnMgr     *mongoutils.TxnManager
 }
 
 func NewMongo(cfg MongoConfig) ports.RecipesRepository {
 	return &mongoRepo{
 		MongoConfig: cfg,
 		collection:  cfg.Database.Collection("recipes"),
-		txnMgr:      mongoutils.NewTxnManager(cfg.Client),
 	}
 }
 
@@ -51,7 +49,7 @@ func (repo *mongoRepo) Create(ctx context.Context, recipe *domain.Recipe) error 
 		return nil
 	}
 
-	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
 		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 
@@ -198,7 +196,7 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 		return nil
 	}
 
-	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
 		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 
@@ -231,7 +229,7 @@ func (repo *mongoRepo) Delete(ctx context.Context, recipe *domain.Recipe) error 
 		}
 		return nil
 	}
-	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
 		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 	return nil

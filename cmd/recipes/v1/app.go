@@ -30,6 +30,7 @@ import (
 	"github.com/AdventurerAmer/recipes-api/cmd/recipes/v1/handlers"
 	"github.com/AdventurerAmer/recipes-api/config"
 	"github.com/AdventurerAmer/recipes-api/infra"
+	"github.com/AdventurerAmer/recipes-api/internal/adapters/broker"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/textsearch"
@@ -39,6 +40,7 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
 	"github.com/AdventurerAmer/recipes-api/logging"
+	"github.com/AdventurerAmer/recipes-api/mongoutils"
 	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
 
@@ -61,6 +63,7 @@ func Run() int {
 	var (
 		mainDataBase      infra.MongoContext
 		mainCache         infra.RedisContext
+		mainMessageBroker infra.RabbitMqContext
 		mainObjectStorage infra.MinioContext
 		mainTextSearch    infra.ElasticSearchContext
 	)
@@ -68,6 +71,7 @@ func Run() int {
 	infraCtx := infra.New()
 	infraCtx.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
 	infraCtx.BindRedis(&cfg.Infra.MainCache, &mainCache)
+	infraCtx.BindRabbitMQ(&cfg.Infra.MainMessageBroker, &mainMessageBroker)
 	infraCtx.BindMinio(&cfg.Infra.MainObjectStorage, &mainObjectStorage)
 	infraCtx.BindElasticSearch(&cfg.Infra.MainTextSearch, &mainTextSearch)
 	if err := infraCtx.Start(context.Background()); err != nil {
@@ -76,7 +80,17 @@ func Run() int {
 	}
 	defer infraCtx.Shutdown(context.Background())
 
+	transactor := mongoutils.NewTransactor(mainDataBase.Client)
+
 	redisCache := cache.NewRedis(mainCache.Client)
+
+	// TODO: figure out exchange name...
+	exchange := "user"
+	publisher, err := broker.NewAMPQPublisher(mainMessageBroker.Connection, exchange)
+	if err != nil {
+		logger.Error("failed to create ampq adaptor", "error", err)
+		return 1
+	}
 
 	textSearch, err := textsearch.NewElasticSearch(mainTextSearch.Client)
 	if err != nil {
@@ -86,17 +100,17 @@ func Run() int {
 
 	// Repos
 	usersRepoCfg := usersrepo.MongoConfig{
-		Database: mainDataBase.Database,
-		Client:   mainDataBase.Client,
-		Cache:    redisCache,
+		Database:   mainDataBase.Database,
+		Cache:      redisCache,
+		Transactor: transactor,
 	}
 	usersRepo := usersrepo.NewMongo(usersRepoCfg)
 
 	recipesRepoCfg := recipesrepo.MongoConfig{
 		Database:   mainDataBase.Database,
-		Client:     mainDataBase.Client,
 		TextSearch: textSearch,
 		Cache:      redisCache,
+		Transactor: transactor,
 	}
 	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
 
@@ -113,6 +127,8 @@ func Run() int {
 	usersServiceCfg := userssrv.Config{
 		PasswordHasher: argon2PasswordMgr,
 		UsersRepo:      usersRepo,
+		Transactor:     transactor,
+		EventPublisher: publisher,
 	}
 	usersService := userssrv.New(usersServiceCfg)
 

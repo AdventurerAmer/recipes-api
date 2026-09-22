@@ -17,7 +17,9 @@ type Config struct {
 	ForgotpasswordTokenLength       int
 	ForgotpasswordTokenExpiresAfter time.Duration
 	PasswordHasher                  ports.PasswordHasher
+	Transactor                      ports.Transactor
 	UsersRepo                       ports.UsersRepository
+	EventPublisher                  ports.EventPublisher
 }
 
 type service struct {
@@ -69,11 +71,22 @@ func (srv *service) Register(ctx context.Context, req ports.RegisterRequest) (po
 		},
 		PasswordHash: hash,
 	}
-	if err := srv.UsersRepo.Create(ctx, user); err != nil {
-		return ports.RegisterResponse{}, nil, fmt.Errorf("'UsersRepo.Create' failed: %w", err)
-	}
 
-	// TODO: send email here
+	txn := func(tctx context.Context) error {
+		if err := srv.UsersRepo.Create(tctx, user); err != nil {
+			return fmt.Errorf("'UsersRepo.Create' failed: %w", err)
+		}
+
+		event := domain.NewUserCreated(user.Id, user.Email, user.DisplayName)
+		if err := srv.EventPublisher.Publish(tctx, event); err != nil {
+			return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
+		}
+
+		return nil
+	}
+	if err := srv.Transactor.WithTransaction(ctx, txn); err != nil {
+		return ports.RegisterResponse{}, nil, fmt.Errorf("transaction failed: %w", err)
+	}
 
 	resp := ports.RegisterResponse{
 		User: domain.NewFrontendUser(user),
@@ -111,9 +124,14 @@ func (srv *service) SendVerification(ctx context.Context, req ports.SendVerifica
 	if err := validation.Validate(req); err != nil {
 		return ports.SendVerificationResponse{}, fmt.Errorf("validation failed: %w", err)
 	}
+
 	user, err := srv.UsersRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		return ports.SendVerificationResponse{}, fmt.Errorf("'UsersRepo.GetByEmail' failed: %w", err)
+	}
+
+	if user.IsVerified {
+		return ports.SendVerificationResponse{}, fmt.Errorf("user is already verified")
 	}
 
 	now := time.Now().UTC()
@@ -130,11 +148,21 @@ func (srv *service) SendVerification(ctx context.Context, req ports.SendVerifica
 	user.Verification.ExpiresAt = now.Add(srv.VerificationTokenExpiresAfter)
 	user.UpdatedAt = now
 
-	if err := srv.UsersRepo.Update(ctx, user); err != nil {
-		return ports.SendVerificationResponse{}, fmt.Errorf("'UsersRepo.Update' failed: %w", err)
-	}
+	txn := func(tctx context.Context) error {
+		if err := srv.UsersRepo.Update(tctx, user); err != nil {
+			return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
+		}
 
-	// TODO: send email here
+		event := domain.NewUserVerification(user.Id, user.Email, user.DisplayName)
+		if err := srv.EventPublisher.Publish(tctx, event); err != nil {
+			return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
+		}
+
+		return nil
+	}
+	if err := srv.Transactor.WithTransaction(ctx, txn); err != nil {
+		return ports.SendVerificationResponse{}, fmt.Errorf("transaction failed: %w", err)
+	}
 
 	return ports.SendVerificationResponse{}, nil
 }
@@ -162,11 +190,22 @@ func (srv *service) ForgotPassword(ctx context.Context, req ports.ForgotPassword
 	user.ForgotPassword.Token = token
 	user.ForgotPassword.ExpiresAt = now.Add(srv.ForgotpasswordTokenExpiresAfter)
 	user.UpdatedAt = now
-	if err := srv.UsersRepo.Update(ctx, user); err != nil {
-		return ports.ForgotPasswordResponse{}, fmt.Errorf("'UsersRepo.Update' failed: %w", err)
-	}
 
-	// TODO: send email here
+	txn := func(tctx context.Context) error {
+		if err := srv.UsersRepo.Update(tctx, user); err != nil {
+			return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
+		}
+
+		event := domain.NewUserPasswordReset(user.Id, user.Email)
+		if err := srv.EventPublisher.Publish(tctx, event); err != nil {
+			return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
+		}
+
+		return nil
+	}
+	if err := srv.Transactor.WithTransaction(ctx, txn); err != nil {
+		return ports.ForgotPasswordResponse{}, fmt.Errorf("transaction failed: %w", err)
+	}
 
 	return ports.ForgotPasswordResponse{}, nil
 }
@@ -194,7 +233,6 @@ func (srv *service) ResetPassword(ctx context.Context, req ports.ResetPasswordRe
 	user.PasswordHash = hash
 	user.ForgotPassword = domain.ForgotPassword{}
 	user.UpdatedAt = now
-
 	if err := srv.UsersRepo.Update(ctx, user); err != nil {
 		return ports.ResetPasswordResponse{}, fmt.Errorf("'UsersRepo.Update' failed: %w", err)
 	}

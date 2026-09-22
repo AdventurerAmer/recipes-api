@@ -1222,6 +1222,9 @@ github.com/quic-go/quic-go/qlog
 github.com/quic-go/quic-go/qlogwriter
 github.com/quic-go/quic-go/qlogwriter/jsontext
 github.com/quic-go/quic-go/quicvarint
+# github.com/rabbitmq/amqp091-go v1.15.0
+## explicit; go 1.20
+github.com/rabbitmq/amqp091-go
 # github.com/redis/go-redis/v9 v9.18.0
 ## explicit; go 1.21
 github.com/redis/go-redis/v9

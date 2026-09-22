@@ -120,6 +120,11 @@ func (infra *Infra) BindRedis(cfg *config.Redis, ctx *RedisContext) {
 	infra.Bind(wrapper, ctx)
 }
 
+func (infra *Infra) BindRabbitMQ(cfg *config.RabbitMq, ctx *RabbitMqContext) {
+	wrapper := &RabbitMq{RabbitMq: cfg}
+	infra.Bind(wrapper, ctx)
+}
+
 func (infra *Infra) BindMinio(cfg *config.Minio, ctx *MinioContext) {
 	wrapper := &Minio{Minio: cfg}
 	infra.Bind(wrapper, ctx)

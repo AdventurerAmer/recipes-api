@@ -4,23 +4,26 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-type TxnFunc func(ctx context.Context) error
-
-type TxnManager struct {
+type txnManager struct {
 	client *mongo.Client
 }
 
-func NewTxnManager(client *mongo.Client) *TxnManager {
-	return &TxnManager{client: client}
+func NewTransactor(client *mongo.Client) ports.Transactor {
+	return &txnManager{client: client}
 }
 
-func (tm *TxnManager) WithTransaction(ctx context.Context, fn TxnFunc) error {
+func (tm *txnManager) WithTransaction(ctx context.Context, fn ports.TxnFunc) error {
+	if mongo.SessionFromContext(ctx) != nil {
+		return fn(ctx)
+	}
+
 	session, err := tm.client.StartSession()
 	if err != nil {
 		return fmt.Errorf("'client.StartSession' failed: %w", err)

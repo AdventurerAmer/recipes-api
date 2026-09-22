@@ -16,22 +16,20 @@ import (
 )
 
 type MongoConfig struct {
-	Database *mongo.Database
-	Client   *mongo.Client
-	Cache    ports.Cache
+	Database   *mongo.Database
+	Transactor ports.Transactor
+	Cache      ports.Cache
 }
 
 type mongoRepo struct {
 	MongoConfig
 	collection *mongo.Collection
-	txnMgr     *mongoutils.TxnManager
 }
 
 func NewMongo(cfg MongoConfig) ports.UsersRepository {
 	return &mongoRepo{
 		MongoConfig: cfg,
 		collection:  cfg.Database.Collection("users"),
-		txnMgr:      mongoutils.NewTxnManager(cfg.Client),
 	}
 }
 
@@ -56,7 +54,7 @@ func (repo *mongoRepo) Create(ctx context.Context, user *domain.User) error {
 
 		return nil
 	}
-	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
 		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 
@@ -174,7 +172,7 @@ func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
 
 		return nil
 	}
-	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
 		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 
@@ -207,7 +205,7 @@ func (repo *mongoRepo) Delete(ctx context.Context, user *domain.User) error {
 
 		return nil
 	}
-	if err := repo.txnMgr.WithTransaction(ctx, txn); err != nil {
+	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
 		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
 	}
 
