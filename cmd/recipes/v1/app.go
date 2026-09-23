@@ -84,9 +84,7 @@ func Run() int {
 
 	redisCache := cache.NewRedis(mainCache.Client)
 
-	// TODO: figure out exchange name...
-	exchange := "user"
-	publisher, err := broker.NewAMPQPublisher(mainMessageBroker.Connection, exchange)
+	publisher, err := broker.NewAMPQPublisher(mainMessageBroker.Connection)
 	if err != nil {
 		logger.Error("failed to create ampq adaptor", "error", err)
 		return 1
