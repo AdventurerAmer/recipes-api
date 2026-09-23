@@ -77,7 +77,7 @@ func (srv *service) Register(ctx context.Context, req ports.RegisterRequest) (po
 			return fmt.Errorf("'UsersRepo.Create' failed: %w", err)
 		}
 
-		event := domain.NewUserCreated(user.Id, user.Email, user.DisplayName)
+		event := domain.NewUserCreated(user.Id)
 		if err := srv.EventPublisher.Publish(tctx, event); err != nil {
 			return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
 		}
@@ -153,7 +153,7 @@ func (srv *service) SendVerification(ctx context.Context, req ports.SendVerifica
 			return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
 		}
 
-		event := domain.NewUserVerification(user.Id, user.Email, user.DisplayName)
+		event := domain.NewUserVerification(user.Id)
 		if err := srv.EventPublisher.Publish(tctx, event); err != nil {
 			return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
 		}
@@ -196,7 +196,7 @@ func (srv *service) ForgotPassword(ctx context.Context, req ports.ForgotPassword
 			return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
 		}
 
-		event := domain.NewUserPasswordReset(user.Id, user.Email)
+		event := domain.NewUserPasswordReset(user.Id)
 		if err := srv.EventPublisher.Publish(tctx, event); err != nil {
 			return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
 		}

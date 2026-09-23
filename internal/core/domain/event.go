@@ -14,20 +14,32 @@ const (
 	EventNameUserPasswordReset = "user.passwordReset"
 )
 
+func (e EventName) String() string {
+	return string(e)
+}
+
 type Event interface {
-	Id() string
+	Key() string
 	Name() EventName
 	OccurredAt() time.Time
 }
 
 type BaseEvent struct {
-	id         string
+	key        string
 	name       EventName
 	occurredAt time.Time
 }
 
-func (e BaseEvent) Id() string {
-	return e.id
+func NewBaseEvent(name EventName) BaseEvent {
+	return BaseEvent{
+		key:        uuid.NewString(),
+		name:       name,
+		occurredAt: time.Now().UTC(),
+	}
+}
+
+func (e BaseEvent) Key() string {
+	return e.key
 }
 
 func (e BaseEvent) Name() EventName {
@@ -40,58 +52,36 @@ func (e BaseEvent) OccurredAt() time.Time {
 
 type UserCreatedEvent struct {
 	BaseEvent
-	UserId      string
-	Email       string
-	DisplayName string
+	UserId string
 }
 
-func NewUserCreated(userId, email, displayName string) UserCreatedEvent {
+func NewUserCreated(userId string) UserCreatedEvent {
 	return UserCreatedEvent{
-		BaseEvent: BaseEvent{
-			id:         uuid.NewString(),
-			name:       EventNameUserCreated,
-			occurredAt: time.Now().UTC(),
-		},
-		UserId:      userId,
-		Email:       email,
-		DisplayName: displayName,
+		BaseEvent: NewBaseEvent(EventNameUserCreated),
+		UserId:    userId,
 	}
 }
 
 type UserVerificationEvent struct {
 	BaseEvent
-	UserId      string
-	Email       string
-	DisplayName string
+	UserId string
 }
 
-func NewUserVerification(userId, email, displayName string) UserVerificationEvent {
+func NewUserVerification(userId string) UserVerificationEvent {
 	return UserVerificationEvent{
-		BaseEvent: BaseEvent{
-			id:         uuid.NewString(),
-			name:       EventNameUserVerification,
-			occurredAt: time.Now().UTC(),
-		},
-		UserId:      userId,
-		Email:       email,
-		DisplayName: displayName,
+		BaseEvent: NewBaseEvent(EventNameUserVerification),
+		UserId:    userId,
 	}
 }
 
 type UserPasswordResetEvent struct {
 	BaseEvent
 	UserId string
-	Email  string
 }
 
-func NewUserPasswordReset(userId, email string) UserPasswordResetEvent {
+func NewUserPasswordReset(userId string) UserPasswordResetEvent {
 	return UserPasswordResetEvent{
-		BaseEvent: BaseEvent{
-			id:         uuid.NewString(),
-			name:       EventNameUserPasswordReset,
-			occurredAt: time.Now().UTC(),
-		},
-		UserId: userId,
-		Email:  email,
+		BaseEvent: NewBaseEvent(EventNameUserPasswordReset),
+		UserId:    userId,
 	}
 }

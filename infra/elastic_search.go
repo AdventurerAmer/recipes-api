@@ -13,6 +13,7 @@ type ElasticSearch struct {
 }
 
 func (cfg *ElasticSearch) Connect(ctx context.Context) (Disconnecter, error) {
+	connStr := fmt.Sprintf("http://%s", cfg.Addr())
 	type result struct {
 		client *elasticsearch.Client
 		err    error
@@ -20,7 +21,7 @@ func (cfg *ElasticSearch) Connect(ctx context.Context) (Disconnecter, error) {
 	resCh := make(chan result)
 	go func() {
 		client, err := elasticsearch.New(
-			elasticsearch.WithAddresses(fmt.Sprintf("http://%s", cfg.Addr())),
+			elasticsearch.WithAddresses(connStr),
 		)
 		if err != nil {
 			err = fmt.Errorf("'elasticsearch.NewTyped' failed: %w", err)

@@ -15,7 +15,7 @@ type Infra struct {
 }
 
 type Mongo struct {
-	Host     string `koanf:"host" validate:"required,host"`
+	Host     string `koanf:"host" validate:"required,hostname"`
 	Port     int    `koanf:"port" validate:"required,min=1024,max=65535"`
 	Username string `koanf:"username" validate:"required,max=32"`
 	Password string `koanf:"password" validate:"required,max=32"`
@@ -27,11 +27,11 @@ func (m Mongo) Addr() string {
 }
 
 type Redis struct {
-	Host     string `koanf:"host" validate:"required,host"`
+	Host     string `koanf:"host" validate:"required,hostname"`
 	Port     int    `koanf:"port" validate:"required,min=1024,max=65535"`
 	Username string `koanf:"username" validate:"required,max=32"`
 	Password string `koanf:"password" validate:"required,max=32"`
-	Database int    `koanf:"database" validate:"required,min=0"`
+	Database *int   `koanf:"database" validate:"required,min=0"`
 }
 
 func (r Redis) Addr() string {
@@ -39,7 +39,7 @@ func (r Redis) Addr() string {
 }
 
 type RabbitMq struct {
-	Host     string `koanf:"host" validate:"required,host"`
+	Host     string `koanf:"host" validate:"required,hostname"`
 	Port     int    `koanf:"port" validate:"required,min=1024,max=65535"`
 	Username string `koanf:"username" validate:"required,max=32"`
 	Password string `koanf:"password" validate:"required,max=32"`
@@ -50,7 +50,7 @@ func (r RabbitMq) Addr() string {
 }
 
 type Minio struct {
-	Host     string `koanf:"host" validate:"required,host"`
+	Host     string `koanf:"host" validate:"required,hostname"`
 	Port     int    `koanf:"port" validate:"required,min=1024,max=65535"`
 	Username string `koanf:"username" validate:"required,max=32"`
 	Passward string `koanf:"password" validate:"required,max=32"`
@@ -63,7 +63,7 @@ func (m Minio) Addr() string {
 
 type ElasticSearch struct {
 	Host string `koanf:"host" validate:"required,max=32"`
-	Port int    `koanf:"port" validate:"required,max=32"`
+	Port int    `koanf:"port" validate:"required,min=1024,max=65535"`
 }
 
 func (es ElasticSearch) Addr() string {

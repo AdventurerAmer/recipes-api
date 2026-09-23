@@ -119,3 +119,4 @@ volumes:
   redis-insight-data:
   minio-data:
   elastic-search-data:
+  rabbitmq-data:

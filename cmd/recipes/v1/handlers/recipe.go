@@ -10,12 +10,12 @@ import (
 )
 
 type Recipes struct {
-	Service ports.RecipesService
+	service ports.RecipesService
 }
 
-func NewRecipesHandler(service ports.RecipesService) *Recipes {
+func NewRecipes(service ports.RecipesService) *Recipes {
 	return &Recipes{
-		Service: service,
+		service: service,
 	}
 }
 
@@ -41,7 +41,7 @@ func (h *Recipes) Create(c *gin.Context) {
 		Size:        int(req.ImageHeader.Size),
 		ContentType: req.ImageHeader.Header.Get("Content-Type"),
 	}
-	resp, err := h.Service.Create(c, &user, req)
+	resp, err := h.service.Create(c, &user, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -56,7 +56,7 @@ func (h *Recipes) List(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.Service.List(c, req)
+	resp, err := h.service.List(c, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -71,7 +71,7 @@ func (h *Recipes) Search(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.Service.Search(c, req)
+	resp, err := h.service.Search(c, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -86,7 +86,7 @@ func (h *Recipes) Get(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.Service.Get(c, req)
+	resp, err := h.service.Get(c, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -118,7 +118,7 @@ func (h *Recipes) Update(c *gin.Context) {
 			ContentType: req.ImageHeader.Header.Get("Content-Type"),
 		}
 	}
-	resp, err := h.Service.Update(c, &user, req)
+	resp, err := h.service.Update(c, &user, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -138,7 +138,7 @@ func (h *Recipes) Delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	resp, err := h.Service.Delete(c, &user, req)
+	resp, err := h.service.Delete(c, &user, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

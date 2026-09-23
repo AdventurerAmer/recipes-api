@@ -9,17 +9,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type AuthHandler struct {
+type Auth struct {
 	service ports.AuthService
 }
 
-func NewAuthHandler(service ports.AuthService) *AuthHandler {
-	return &AuthHandler{
+func NewAuth(service ports.AuthService) *Auth {
+	return &Auth{
 		service: service,
 	}
 }
 
-func (h *AuthHandler) Login(c *gin.Context) {
+func (h *Auth) Login(c *gin.Context) {
 	var req ports.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -45,7 +45,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User signed in"})
 }
 
-func (handler *AuthHandler) Logout(c *gin.Context) {
+func (handler *Auth) Logout(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Clear()
 	session.Options(sessions.Options{MaxAge: -1})
@@ -56,7 +56,7 @@ func (handler *AuthHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Signed out..."})
 }
 
-func (handler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
+func (handler *Auth) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		sessionToken := session.Get("token")

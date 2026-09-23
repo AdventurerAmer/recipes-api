@@ -68,17 +68,17 @@ func Run() int {
 		mainTextSearch    infra.ElasticSearchContext
 	)
 
-	infraCtx := infra.New()
-	infraCtx.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
-	infraCtx.BindRedis(&cfg.Infra.MainCache, &mainCache)
-	infraCtx.BindRabbitMQ(&cfg.Infra.MainMessageBroker, &mainMessageBroker)
-	infraCtx.BindMinio(&cfg.Infra.MainObjectStorage, &mainObjectStorage)
-	infraCtx.BindElasticSearch(&cfg.Infra.MainTextSearch, &mainTextSearch)
-	if err := infraCtx.Start(context.Background()); err != nil {
+	inf := infra.New()
+	inf.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
+	inf.BindRedis(&cfg.Infra.MainCache, &mainCache)
+	inf.BindRabbitMQ(&cfg.Infra.MainMessageBroker, &mainMessageBroker)
+	inf.BindMinio(&cfg.Infra.MainObjectStorage, &mainObjectStorage)
+	inf.BindElasticSearch(&cfg.Infra.MainTextSearch, &mainTextSearch)
+	if err := inf.Start(context.Background()); err != nil {
 		logger.Error("failed to connect to infrastructure", "error", err)
 		return 1
 	}
-	defer infraCtx.Shutdown(context.Background())
+	defer inf.Shutdown(context.Background())
 
 	transactor := mongoutils.NewTransactor(mainDataBase.Client)
 
@@ -139,9 +139,9 @@ func Run() int {
 	recipesService := recipessrv.New(recipesServiceCfg)
 
 	// Handlers
-	authHandler := handlers.NewAuthHandler(authService)
-	usersHandler := handlers.NewUsersHandler(usersService)
-	recipesHandler := handlers.NewRecipesHandler(recipesService)
+	authHandler := handlers.NewAuth(authService)
+	usersHandler := handlers.NewUsers(usersService)
+	recipesHandler := handlers.NewRecipes(recipesService)
 
 	sessionsStore, err := ginRedis.NewStore(cfg.Auth.MaxIdelConns, "tcp", cfg.Infra.SessionsCache.Addr(), cfg.Infra.SessionsCache.Username, cfg.Infra.SessionsCache.Password, []byte(cfg.Auth.Secret))
 	if err != nil {
@@ -163,6 +163,7 @@ func Run() int {
 
 	v1 := router.Group("/api/v1/")
 	v1.Use(timeout.New(timeout.WithTimeout(cfg.Services.Recipes.DefaultTimeout)))
+
 	{
 		v1.POST("/users", usersHandler.Register)
 		v1.POST("/sessions", authHandler.Login)

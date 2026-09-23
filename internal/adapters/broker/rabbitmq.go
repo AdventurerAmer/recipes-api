@@ -11,6 +11,7 @@ import (
 )
 
 type ampqPublisher struct {
+	conn     *amqp.Connection
 	ch       *amqp.Channel
 	exchange string
 }
@@ -27,6 +28,7 @@ func NewAMPQPublisher(conn *amqp.Connection, exchange string) (ports.EventPublis
 	}
 
 	return &ampqPublisher{
+		conn:     conn,
 		ch:       ch,
 		exchange: exchange,
 	}, nil
@@ -49,7 +51,7 @@ func (p *ampqPublisher) Publish(ctx context.Context, event domain.Event) error {
 			ContentType:  "application/json",
 			DeliveryMode: amqp.Persistent,
 			Timestamp:    event.OccurredAt(),
-			MessageId:    event.Id(),
+			MessageId:    event.Key(),
 			Type:         string(event.Name()),
 			Body:         body,
 		},
