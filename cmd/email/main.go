@@ -7,10 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/AdventurerAmer/recipes-api/cmd/email/handlers"
 	"github.com/AdventurerAmer/recipes-api/config"
 	"github.com/AdventurerAmer/recipes-api/infra"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/broker"
-	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
+	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/AdventurerAmer/recipes-api/logging"
 )
 
@@ -39,23 +40,24 @@ func Run() int {
 	}
 	defer inf.Shutdown(context.Background())
 
+	registry := ports.NewEventRegistry()
+	registry.Register(handlers.NewUserCreated())
+
 	subCfg := &broker.AMQPSubscriberConfig{
-		Name: "email",
-		Conn: mainMessageBroker.Connection,
-		Handler: func(ctx context.Context, event domain.Event) error {
-			return nil
-		},
+		Name:     "email",
+		Conn:     mainMessageBroker.Connection,
+		Registry: registry,
 	}
-	sub, err := broker.NewAMPQSubscriber(subCfg, domain.EventNameUserCreated, domain.EventNameUserPasswordReset, domain.EventNameUserVerification)
+	sub, err := broker.NewAMPQSubscriber(subCfg)
 	if err != nil {
-		logger.Error("failed to create ampq adptor", "error", err)
+		logger.Error("failed to create ampq adaptor", "error", err)
 		return 1
 	}
 
-	sigCtx, sigCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer sigCancel()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
-	if err := sub.Subscribe(sigCtx); err != nil {
+	if err := sub.Start(ctx); err != nil {
 		logger.Error("failed to create subscribe to events", "error", err)
 		return 1
 	}

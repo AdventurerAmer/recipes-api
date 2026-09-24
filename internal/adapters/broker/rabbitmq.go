@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	"maps"
+	"slices"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
@@ -62,24 +63,25 @@ func (p *ampqPublisher) Publish(ctx context.Context, event domain.Event) error {
 }
 
 type AMQPSubscriberConfig struct {
-	Name    string
-	Conn    *amqp.Connection
-	Handler ports.EventHandler
+	Name     string
+	Conn     *amqp.Connection
+	Registry ports.EventRegistry
 }
 
 type ampqSubscriber struct {
-	name    string
-	conn    *amqp.Connection
-	handler ports.EventHandler
-
-	channel *amqp.Channel
+	name     string
+	conn     *amqp.Connection
+	channel  *amqp.Channel
+	registry ports.EventRegistry
 }
 
-func NewAMPQSubscriber(cfg *AMQPSubscriberConfig, eventNames ...domain.EventName) (ports.EventSubscriber, error) {
+func NewAMPQSubscriber(cfg *AMQPSubscriberConfig) (ports.EventSubscriber, error) {
 	ch, err := cfg.Conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("'Conn.Channel' failed: %w", err)
 	}
+
+	eventNames := slices.Collect(maps.Keys(cfg.Registry))
 
 	if err := ensureTopology(ch, eventNames); err != nil {
 		return nil, fmt.Errorf("'ensureTopology' failed: %w", err)
@@ -109,14 +111,19 @@ func NewAMPQSubscriber(cfg *AMQPSubscriberConfig, eventNames ...domain.EventName
 		}
 	}
 
+	if err := ch.Qos(1, 0, false); err != nil {
+		return nil, fmt.Errorf("'ch.Qos' failed: %w", err)
+	}
+
 	return &ampqSubscriber{
-		conn:    cfg.Conn,
-		handler: cfg.Handler,
-		channel: ch,
+		name:     cfg.Name,
+		registry: cfg.Registry,
+		conn:     cfg.Conn,
+		channel:  ch,
 	}, nil
 }
 
-func (s *ampqSubscriber) Subscribe(ctx context.Context) error {
+func (s *ampqSubscriber) Start(ctx context.Context) error {
 	msgs, err := s.channel.Consume(
 		s.name, // queue
 		"",     // consumer
@@ -130,7 +137,20 @@ func (s *ampqSubscriber) Subscribe(ctx context.Context) error {
 		return fmt.Errorf("'channel.Consume' failed: %w", err)
 	}
 	for d := range msgs {
-		slog.Info("event recived", "body", string(d.Body))
+		// key := d.MessageId
+		eventName := domain.EventName(d.Type)
+		// occurredAt := d.Timestamp
+		handler := s.registry[eventName]
+		event, err := handler.Unmarshal(d.Body)
+		if err != nil {
+			// TODO: log here
+			continue
+		}
+		if err := handler.Handle(ctx, event); err != nil {
+			// handle error here...
+			_ = d.Nack(false, true)
+		}
+		_ = d.Ack(false)
 	}
 	return nil
 }

@@ -10,8 +10,26 @@ type EventPublisher interface {
 	Publish(ctx context.Context, event domain.Event) error
 }
 
-type EventHandler func(ctx context.Context, event domain.Event) error
-
 type EventSubscriber interface {
-	Subscribe(ctx context.Context) error
+	Start(ctx context.Context) error
+}
+
+type EventHandler interface {
+	Name() domain.EventName
+	Unmarshal(data []byte) (domain.Event, error)
+	Handle(ctx context.Context, event domain.Event) error
+}
+
+type EventRegistry map[domain.EventName]EventHandler
+
+func NewEventRegistry() EventRegistry {
+	return make(map[domain.EventName]EventHandler)
+}
+
+func (r EventRegistry) Register(handler EventHandler) {
+	eventName := handler.Name()
+	if _, ok := r[eventName]; ok {
+		panic("event already registered")
+	}
+	r[eventName] = handler
 }

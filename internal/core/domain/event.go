@@ -55,39 +55,3 @@ func (e BaseEvent) Name() EventName {
 func (e BaseEvent) OccurredAt() time.Time {
 	return e.occurredAt
 }
-
-type UserCreatedEvent struct {
-	BaseEvent
-	UserId string
-}
-
-func NewUserCreated(userId string) UserCreatedEvent {
-	return UserCreatedEvent{
-		BaseEvent: NewBaseEvent(EventNameUserCreated),
-		UserId:    userId,
-	}
-}
-
-type UserVerificationEvent struct {
-	BaseEvent
-	UserId string
-}
-
-func NewUserVerification(userId string) UserVerificationEvent {
-	return UserVerificationEvent{
-		BaseEvent: NewBaseEvent(EventNameUserVerification),
-		UserId:    userId,
-	}
-}
-
-type UserPasswordResetEvent struct {
-	BaseEvent
-	UserId string
-}
-
-func NewUserPasswordReset(userId string) UserPasswordResetEvent {
-	return UserPasswordResetEvent{
-		BaseEvent: NewBaseEvent(EventNameUserPasswordReset),
-		UserId:    userId,
-	}
-}

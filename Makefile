@@ -17,14 +17,6 @@ PHONY: email
 email: build_email
 	@./bin/email -env-file=.env.local
 
-PHONY: build_another
-build_another: 
-	@go build -o ./bin/another ./cmd/another 
-
-PHONY: another
-another: build_another
-	@./bin/another -env-file=.env.local
-
 
 # migrators
 
