@@ -22,7 +22,7 @@ func Run() int {
 		return 1
 	}
 
-	logger := cfg.NewLogger().With(slog.String("worker", "email"))
+	logger := cfg.NewLogger().With(slog.String("worker", "another"))
 	var (
 		mainDataBase      infra.MongoContext
 		mainCache         infra.RedisContext
@@ -40,7 +40,7 @@ func Run() int {
 	defer inf.Shutdown(context.Background())
 
 	subCfg := &broker.AMQPSubscriberConfig{
-		Name: "email",
+		Name: "another",
 		Conn: mainMessageBroker.Connection,
 		Handler: func(ctx context.Context, event domain.Event) error {
 			return nil

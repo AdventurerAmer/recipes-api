@@ -18,6 +18,12 @@ func (e EventName) String() string {
 	return string(e)
 }
 
+var EventNames = []EventName{
+	EventNameUserCreated,
+	EventNameUserVerification,
+	EventNameUserPasswordReset,
+}
+
 type Event interface {
 	Key() string
 	Name() EventName
