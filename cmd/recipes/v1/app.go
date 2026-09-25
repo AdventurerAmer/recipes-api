@@ -30,7 +30,6 @@ import (
 	"github.com/AdventurerAmer/recipes-api/cmd/recipes/v1/handlers"
 	"github.com/AdventurerAmer/recipes-api/config"
 	"github.com/AdventurerAmer/recipes-api/infra"
-	"github.com/AdventurerAmer/recipes-api/internal/adapters/broker"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/textsearch"
@@ -86,12 +85,6 @@ func Run() int {
 
 	redisCache := cache.NewRedis(mainCache.Client)
 
-	publisher, err := broker.NewAMPQPublisher(mainMessageBroker.Connection)
-	if err != nil {
-		logger.Error("failed to create ampq adaptor", "error", err)
-		return 1
-	}
-
 	textSearch, err := textsearch.NewElasticSearch(mainTextSearch.Client)
 	if err != nil {
 		logger.Error("failed to create elastic search adaptor", "error", err)
@@ -128,7 +121,7 @@ func Run() int {
 		PasswordHasher: argon2PasswordMgr,
 		UsersRepo:      usersRepo,
 		Transactor:     transactor,
-		EventPublisher: publisher,
+		EventPublisher: mainMessageBroker.Client,
 	}
 	usersService := userssrv.New(usersServiceCfg)
 
@@ -166,7 +159,7 @@ func Run() int {
 
 	v1.POST("/events/user-created", func(c *gin.Context) {
 		event := domain.NewUserCreated(uuid.NewString())
-		if err := publisher.Publish(c, event); err != nil {
+		if err := mainMessageBroker.Client.Publish(c, event); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}

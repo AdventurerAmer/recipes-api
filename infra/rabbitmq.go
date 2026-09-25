@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/AdventurerAmer/recipes-api/config"
-	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/AdventurerAmer/recipes-api/internal/adapters/broker"
 )
 
 type RabbitMq struct {
@@ -15,19 +15,17 @@ type RabbitMq struct {
 func (cfg *RabbitMq) Connect(ctx context.Context) (Disconnecter, error) {
 	connStr := fmt.Sprintf("amqp://%s:%s@%s", cfg.Username, cfg.Password, cfg.Addr())
 	type result struct {
-		conn *amqp.Connection
-		err  error
+		ctx *RabbitMqContext
+		err error
 	}
 	ch := make(chan result)
 	go func() {
-		conn, err := amqp.Dial(connStr)
+		client, err := broker.NewAMQPClient(connStr)
 		if err != nil {
-			err = fmt.Errorf("'amqp.Dial' failed: %w", err)
+			ch <- result{err: fmt.Errorf("'broker.NewAMQPClient' failed: %w", err)}
+			return
 		}
-		ch <- result{
-			conn: conn,
-			err:  err,
-		}
+		ch <- result{ctx: &RabbitMqContext{Client: client}, err: err}
 	}()
 	select {
 	case <-ctx.Done():
@@ -36,20 +34,17 @@ func (cfg *RabbitMq) Connect(ctx context.Context) (Disconnecter, error) {
 		if res.err != nil {
 			return nil, res.err
 		}
-		return &RabbitMqContext{
-			Connection: res.conn,
-		}, nil
+		return res.ctx, nil
 	}
 }
 
 type RabbitMqContext struct {
-	Connection *amqp.Connection
+	Client *broker.AMQPClient
 }
 
-func (r *RabbitMqContext) Disconnect(ctx context.Context) error {
-	if err := r.Connection.Close(); err != nil {
-		return fmt.Errorf("'Connection.Close' failed: %w", err)
+func (c *RabbitMqContext) Disconnect(ctx context.Context) error {
+	if err := c.Client.Close(); err != nil {
+		return fmt.Errorf("'Channel.Close' failed: %w", err)
 	}
-	r.Connection = nil
 	return nil
 }

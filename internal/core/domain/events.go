@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type UserCreatedEvent struct {
 	BaseEvent
 	UserId string `json:"userId"`
@@ -7,7 +9,7 @@ type UserCreatedEvent struct {
 
 func NewUserCreated(userId string) UserCreatedEvent {
 	return UserCreatedEvent{
-		BaseEvent: NewBaseEvent(EventNameUserCreated),
+		BaseEvent: NewBaseEvent("", EventNameUserCreated, time.Time{}),
 		UserId:    userId,
 	}
 }
@@ -19,7 +21,7 @@ type UserVerificationEvent struct {
 
 func NewUserVerification(userId string) UserVerificationEvent {
 	return UserVerificationEvent{
-		BaseEvent: NewBaseEvent(EventNameUserVerification),
+		BaseEvent: NewBaseEvent("", EventNameUserVerification, time.Time{}),
 		UserId:    userId,
 	}
 }
@@ -31,7 +33,7 @@ type UserPasswordResetEvent struct {
 
 func NewUserPasswordReset(userId string) UserPasswordResetEvent {
 	return UserPasswordResetEvent{
-		BaseEvent: NewBaseEvent(EventNameUserPasswordReset),
+		BaseEvent: NewBaseEvent("", EventNameUserPasswordReset, time.Time{}),
 		UserId:    userId,
 	}
 }

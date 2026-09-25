@@ -42,25 +42,17 @@ func Run() int {
 
 	registry := ports.NewEventRegistry()
 	registry.Register(handlers.NewUserCreated())
-
-	subCfg := &broker.AMQPSubscriberConfig{
-		Name:     "email",
-		Conn:     mainMessageBroker.Connection,
-		Registry: registry,
-	}
-	sub, err := broker.NewAMPQSubscriber(subCfg)
-	if err != nil {
-		logger.Error("failed to create ampq adaptor", "error", err)
-		return 1
-	}
+	consumer := broker.NewAMQPConsumer("email", mainMessageBroker.Client, registry)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	if err := sub.Start(ctx); err != nil {
-		logger.Error("failed to create subscribe to events", "error", err)
-		return 1
-	}
+	consumer.Start()
+
+	<-ctx.Done()
+
+	consumer.Stop()
+
 	return 0
 }
 

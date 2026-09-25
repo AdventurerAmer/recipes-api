@@ -11,7 +11,8 @@ type EventPublisher interface {
 }
 
 type EventSubscriber interface {
-	Start(ctx context.Context) error
+	Start()
+	Stop()
 }
 
 type EventHandler interface {
