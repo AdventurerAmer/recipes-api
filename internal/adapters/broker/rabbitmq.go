@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"log/slog"
-	"maps"
-	"slices"
 	"sync"
 	"time"
 
@@ -257,23 +254,22 @@ func (c *AMQPClient) Close() error {
 }
 
 type AMQPConsumer struct {
-	name     string
-	client   *AMQPClient
-	registry ports.EventRegistry
-	done     chan struct{}
-	wg       sync.WaitGroup
+	name       string
+	client     *AMQPClient
+	dispatcher *ports.EventDispatcher
+	done       chan struct{}
+	wg         sync.WaitGroup
 }
 
-func NewAMQPConsumer(name string, client *AMQPClient, registry ports.EventRegistry) *AMQPConsumer {
+func NewAMQPConsumer(name string, client *AMQPClient, dispatcher *ports.EventDispatcher) *AMQPConsumer {
 	return &AMQPConsumer{
-		name:     name,
-		client:   client,
-		registry: registry,
-		done:     make(chan struct{}),
+		name:       name,
+		client:     client,
+		dispatcher: dispatcher,
+		done:       make(chan struct{}),
 	}
 }
 
-// Start begins consuming messages, automatically recovering from disconnections
 func (c *AMQPConsumer) Start() {
 	c.wg.Add(1)
 	go func() {
@@ -290,7 +286,6 @@ func (c *AMQPConsumer) consumeLoop() {
 		default:
 		}
 
-		// Wait for connection
 		c.client.mu.RLock()
 		connected := c.client.isConnected
 		ch := c.client.consumeCh
@@ -301,7 +296,7 @@ func (c *AMQPConsumer) consumeLoop() {
 			continue
 		}
 
-		eventNames := slices.Collect(maps.Keys(c.registry))
+		eventNames := c.dispatcher.Events()
 
 		durable := true
 		queue, err := ch.QueueDeclare(
@@ -318,7 +313,7 @@ func (c *AMQPConsumer) consumeLoop() {
 		}
 
 		for _, eventName := range eventNames {
-			exchange := eventName.String()
+			exchange := eventName
 			if err := ch.QueueBind(
 				queue.Name,
 				"",
@@ -367,21 +362,11 @@ func (c *AMQPConsumer) processMessages(msgs <-chan amqp.Delivery) {
 			return
 		case msg, ok := <-msgs:
 			if !ok {
-				// Channel closed, need to reconnect
 				return
 			}
-
 			eventName := domain.EventName(msg.Type)
-			slog.Info("got event", "type", eventName)
-			handler := c.registry[eventName]
-			event, err := handler.Unmarshal(msg.Body)
+			err := c.dispatcher.Dispatch(context.Background(), eventName, msg.Body)
 			if err != nil {
-				log.Printf("Error processing message: %v", err)
-				_ = msg.Nack(false, true) // requeue
-				continue
-			}
-
-			if err := handler.Handle(context.Background(), event); err != nil {
 				log.Printf("Error processing message: %v", err)
 				_ = msg.Nack(false, true) // requeue
 				continue
