@@ -4,149 +4,43 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
+	"github.com/AdventurerAmer/recipes-api/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type AMQPClient struct {
-	connStr       string
+	connStr string
+
+	mu            sync.RWMutex
 	conn          *amqp.Connection
+	publishMu     sync.Mutex
 	publishCh     *amqp.Channel
 	consumeCh     *amqp.Channel
 	done          chan struct{}
 	notifyClose   chan *amqp.Error
 	notifyConfirm chan amqp.Confirmation
 	isConnected   bool
-	mu            sync.RWMutex
-	publishMu     sync.Mutex
+
+	logger *logging.Logger
 }
 
-func NewAMQPClient(connStr string) (*AMQPClient, error) {
-	client := &AMQPClient{
+func NewAMQPClient(connStr string, logger *logging.Logger) (*AMQPClient, error) {
+	c := &AMQPClient{
 		connStr: connStr,
 		done:    make(chan struct{}),
 	}
-	if err := client.connect(); err != nil {
+	if err := c.connect(); err != nil {
 		return nil, fmt.Errorf("'client.connect' failed: %w", err)
 	}
 
-	go client.handleReconnect()
+	go c.handleReconnect()
 
-	return client, nil
-}
-
-func (c *AMQPClient) connect() error {
-	cfg := amqp.Config{
-		Heartbeat: 10 * time.Second,
-	}
-	conn, err := amqp.DialConfig(c.connStr, cfg)
-	if err != nil {
-		return fmt.Errorf("'amqp.DialConfig' failed: %w", err)
-	}
-
-	publishCh, err := conn.Channel()
-	if err != nil {
-		_ = conn.Close()
-		return fmt.Errorf("'conn.Channel' failed: %w", err)
-	}
-
-	consumeCh, err := conn.Channel()
-	if err != nil {
-		_ = publishCh.Close()
-		_ = conn.Close()
-		return fmt.Errorf("'conn.Channel' failed: %w", err)
-	}
-
-	// Enable publisher confirms for reliable publishing
-	if err := publishCh.Confirm(false); err != nil {
-		_ = consumeCh.Close()
-		_ = publishCh.Close()
-		_ = conn.Close()
-		return fmt.Errorf("'publishCh.Confirm' failed: %w", err)
-	}
-
-	for _, eventName := range domain.EventNames {
-		exchange := eventName.String()
-		durable := true
-		if err := publishCh.ExchangeDeclare(exchange, "fanout", durable, false, false, false, nil); err != nil {
-			_ = consumeCh.Close()
-			_ = publishCh.Close()
-			_ = conn.Close()
-			return fmt.Errorf("'publishCh.ExchangeDeclare' failed: %w", err)
-		}
-	}
-
-	notifyClose := make(chan *amqp.Error, 1)
-	notifyConfirm := make(chan amqp.Confirmation, 1)
-	conn.NotifyClose(notifyClose)
-	publishCh.NotifyPublish(notifyConfirm)
-
-	c.mu.Lock()
-	c.conn = conn
-	c.publishCh = publishCh
-	c.consumeCh = consumeCh
-	c.notifyClose = notifyClose
-	c.notifyConfirm = notifyConfirm
-	c.isConnected = true
-	c.mu.Unlock()
-
-	return nil
-}
-
-func (c *AMQPClient) handleReconnect() {
-	for {
-		select {
-		case <-c.done:
-			return
-		case err := <-c.notifyClose:
-			if err != nil {
-				// TODO: log here
-			}
-
-			c.mu.Lock()
-			c.isConnected = false
-			c.mu.Unlock()
-
-			// Reconnect with exponential backoff
-			c.reconnectWithBackoff()
-		}
-	}
-}
-
-// reconnectWithBackoff attempts to reconnect with increasing delays
-func (c *AMQPClient) reconnectWithBackoff() {
-	backoff := time.Second
-	maxBackoff := 30 * time.Second
-
-	for {
-		select {
-		case <-c.done:
-			return
-		default:
-		}
-
-		// log.Printf("Attempting to reconnect in %v...", backoff)
-		time.Sleep(backoff)
-
-		if err := c.connect(); err != nil {
-			// log.Printf("Failed to reconnect: %v", err)
-			// Exponential backoff with cap
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-			continue
-		}
-
-		// Successfully reconnected, reset backoff
-		// log.Println("Reconnected successfully")
-		return
-	}
+	return c, nil
 }
 
 func (c *AMQPClient) Publish(ctx context.Context, event domain.Event) error {
@@ -159,7 +53,6 @@ func (c *AMQPClient) Publish(ctx context.Context, event domain.Event) error {
 	defer c.publishMu.Unlock()
 
 	for {
-		// Check if we're connected
 		c.mu.RLock()
 		connected := c.isConnected
 		ch := c.publishCh
@@ -194,34 +87,26 @@ func (c *AMQPClient) Publish(ctx context.Context, event domain.Event) error {
 				Body:         body,
 			},
 		); err != nil {
-			// Connection might have dropped, wait and retry
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(100 * time.Millisecond):
-				continue
-			}
+			c.logger.Error("Publish failed", "error", err)
+			continue
 		}
 
-		// Wait for confirmation
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case confirm, ok := <-confirms:
 			if !ok {
-				// Channel closed before the publish was confirmed
 				continue
 			}
 			if confirm.Ack {
 				return nil
 			}
-			// log.Println("Message was nacked, retrying...")
+			c.logger.Error("Publish Nacked")
 			continue
 		}
 	}
 }
 
-// Close gracefully shuts down the client
 func (c *AMQPClient) Close() error {
 	close(c.done)
 
@@ -230,13 +115,13 @@ func (c *AMQPClient) Close() error {
 
 	if c.publishCh != nil {
 		if err := c.publishCh.Close(); err != nil {
-			// log.Printf("Error closing publish channel: %v", err)
+			c.logger.Error("Close publish channel failed", "error", err)
 		}
 	}
 
 	if c.consumeCh != nil {
 		if err := c.consumeCh.Close(); err != nil {
-			// log.Printf("Error closing consume channel: %v", err)
+			c.logger.Error("Close consume channel failed", "error", err)
 		}
 	}
 
@@ -248,34 +133,169 @@ func (c *AMQPClient) Close() error {
 
 	c.isConnected = false
 
-	// log.Println("Client closed")
+	c.logger.Info("Client cLosed")
 
 	return nil
 }
 
+func (c *AMQPClient) connect() error {
+	cfg := amqp.Config{
+		Heartbeat: 10 * time.Second,
+	}
+	conn, err := amqp.DialConfig(c.connStr, cfg)
+	if err != nil {
+		return fmt.Errorf("'amqp.DialConfig' failed: %w", err)
+	}
+
+	publishCh, err := conn.Channel()
+	if err != nil {
+		_ = conn.Close()
+		return fmt.Errorf("'conn.Channel' failed: %w", err)
+	}
+
+	consumeCh, err := conn.Channel()
+	if err != nil {
+		_ = publishCh.Close()
+		_ = conn.Close()
+		return fmt.Errorf("'conn.Channel' failed: %w", err)
+	}
+
+	if err := publishCh.Confirm(false); err != nil {
+		_ = consumeCh.Close()
+		_ = publishCh.Close()
+		_ = conn.Close()
+		return fmt.Errorf("'publishCh.Confirm' failed: %w", err)
+	}
+
+	for _, eventName := range domain.EventNames {
+		exchange := eventName.String()
+		durable := true
+		if err := publishCh.ExchangeDeclare(
+			exchange,
+			"fanout",
+			durable,
+			false,
+			false,
+			false,
+			nil); err != nil {
+			_ = consumeCh.Close()
+			_ = publishCh.Close()
+			_ = conn.Close()
+			return fmt.Errorf("'publishCh.ExchangeDeclare' failed: %w", err)
+		}
+	}
+
+	notifyClose := make(chan *amqp.Error, 1)
+	notifyConfirm := make(chan amqp.Confirmation, 1)
+	conn.NotifyClose(notifyClose)
+	publishCh.NotifyPublish(notifyConfirm)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.conn = conn
+	c.publishCh = publishCh
+	c.consumeCh = consumeCh
+	c.notifyClose = notifyClose
+	c.notifyConfirm = notifyConfirm
+	c.isConnected = true
+
+	return nil
+}
+
+func (c *AMQPClient) handleReconnect() {
+	for {
+		select {
+		case <-c.done:
+			return
+		case err := <-c.notifyClose:
+			if err != nil {
+				c.logger.Error("Connection was closed", "error", err)
+			}
+
+			c.mu.Lock()
+			c.isConnected = false
+			c.mu.Unlock()
+
+			c.reconnectWithBackoff()
+		}
+	}
+}
+
+func (c *AMQPClient) reconnectWithBackoff() {
+	backoff := time.Second
+	maxBackoff := 30 * time.Second
+
+	for {
+		select {
+		case <-c.done:
+			return
+		default:
+		}
+
+		time.Sleep(backoff)
+
+		if err := c.connect(); err != nil {
+			c.logger.Error("Failed to reconnect", "error", err)
+
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		c.logger.Info("Reconnected successfully")
+		return
+	}
+}
+
+type AMQPConsumerConfig struct {
+	Name        string
+	Dispatcher  *ports.EventDispatcher
+	Timeout     time.Duration
+	AckTimeout  time.Duration
+	WorkerCount int
+}
+
 type AMQPConsumer struct {
-	name       string
+	AMQPConsumerConfig
 	client     *AMQPClient
-	dispatcher *ports.EventDispatcher
+	deliveryCh chan amqp.Delivery
 	done       chan struct{}
 	wg         sync.WaitGroup
 }
 
-func NewAMQPConsumer(name string, client *AMQPClient, dispatcher *ports.EventDispatcher) *AMQPConsumer {
+func NewAMQPConsumer(cfg AMQPConsumerConfig, client *AMQPClient) *AMQPConsumer {
+	if cfg.Timeout == 0 {
+		cfg.Timeout = 5 * time.Second
+	}
+	if cfg.AckTimeout == 0 {
+		cfg.AckTimeout = 2 * time.Second
+	}
 	return &AMQPConsumer{
-		name:       name,
-		client:     client,
-		dispatcher: dispatcher,
-		done:       make(chan struct{}),
+		AMQPConsumerConfig: cfg,
+		client:             client,
+		deliveryCh:         make(chan amqp.Delivery, 1024),
+		done:               make(chan struct{}),
 	}
 }
 
 func (c *AMQPConsumer) Start() {
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		c.consumeLoop()
-	}()
+	c.wg.Go(c.consumeLoop)
+	for range c.WorkerCount {
+		c.wg.Go(func() {
+			for msg := range c.deliveryCh {
+				c.processMessage(msg)
+			}
+		})
+	}
+}
+
+func (c *AMQPConsumer) Stop() {
+	close(c.done)
+	close(c.deliveryCh)
+	c.wg.Wait()
 }
 
 func (c *AMQPConsumer) consumeLoop() {
@@ -296,11 +316,11 @@ func (c *AMQPConsumer) consumeLoop() {
 			continue
 		}
 
-		eventNames := c.dispatcher.Events()
+		eventNames := c.Dispatcher.Events()
 
 		durable := true
 		queue, err := ch.QueueDeclare(
-			c.name,  // name
+			c.Name,  // name
 			durable, // durability
 			false,   // delete when unused
 			false,   // exclusive
@@ -333,7 +353,7 @@ func (c *AMQPConsumer) consumeLoop() {
 		// Start consuming
 		msgs, err := ch.Consume(
 			queue.Name,
-			c.name, // consumer tag (auto-generated)
+			c.Name, // consumer tag (auto-generated)
 			false,  // auto-ack
 			false,  // exclusive
 			false,  // no-local
@@ -341,17 +361,12 @@ func (c *AMQPConsumer) consumeLoop() {
 			nil,    // args
 		)
 		if err != nil {
-			log.Printf("Failed to start consuming: %v", err)
+			c.client.logger.Error("Consume failed", "error", err)
 			time.Sleep(time.Second)
 			continue
 		}
 
-		// log.Printf("Started consuming from %s", c.queue)
-
-		// Process messages until disconnection
 		c.processMessages(msgs)
-
-		// log.Println("Consumer disconnected, will retry...")
 	}
 }
 
@@ -364,21 +379,61 @@ func (c *AMQPConsumer) processMessages(msgs <-chan amqp.Delivery) {
 			if !ok {
 				return
 			}
-			eventName := domain.EventName(msg.Type)
-			err := c.dispatcher.Dispatch(context.Background(), eventName, msg.Body)
-			if err != nil {
-				log.Printf("Error processing message: %v", err)
-				_ = msg.Nack(false, true) // requeue
-				continue
-			}
-
-			_ = msg.Ack(false)
+			c.deliveryCh <- msg
 		}
 	}
 }
 
-// Stop gracefully stops the consumer
-func (c *AMQPConsumer) Stop() {
-	close(c.done)
-	c.wg.Wait()
+func (c *AMQPConsumer) processMessage(msg amqp.Delivery) {
+	defer func() {
+		if r := recover(); r != nil {
+			err := fmt.Errorf("%+v", r)
+			c.client.logger.Error("Recovered from panic", "error", err)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+
+	eventName := domain.EventName(msg.Type)
+	if err := c.Dispatcher.Dispatch(ctx, eventName, msg.Body); err != nil {
+		c.client.logger.Error("Process message failed", "error", err)
+
+		requeue := ports.IsErrRequeueable(err)
+		c.nack(msg, requeue)
+	} else {
+		c.ack(msg)
+	}
+}
+
+func (c *AMQPConsumer) ack(msg amqp.Delivery) {
+	t := time.NewTimer(c.AckTimeout)
+	for {
+		select {
+		case <-t.C:
+			return
+		default:
+		}
+		if err := msg.Ack(false); err != nil {
+			c.client.logger.Error("Ack message failed", "error", err)
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+	}
+}
+
+func (c *AMQPConsumer) nack(msg amqp.Delivery, requeue bool) {
+	t := time.NewTimer(c.AckTimeout)
+	for {
+		select {
+		case <-t.C:
+			return
+		default:
+		}
+		if err := msg.Nack(false, requeue); err != nil {
+			c.client.logger.Error("Nack message failed", "error", err)
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+	}
 }

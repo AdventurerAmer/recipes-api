@@ -1,4 +1,4 @@
-package infra
+package infrastructure
 
 import (
 	"context"
@@ -6,10 +6,12 @@ import (
 
 	"github.com/AdventurerAmer/recipes-api/config"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/broker"
+	"github.com/AdventurerAmer/recipes-api/logging"
 )
 
 type RabbitMq struct {
 	*config.RabbitMq
+	logger *logging.Logger
 }
 
 func (cfg *RabbitMq) Connect(ctx context.Context) (Disconnecter, error) {
@@ -20,7 +22,7 @@ func (cfg *RabbitMq) Connect(ctx context.Context) (Disconnecter, error) {
 	}
 	ch := make(chan result)
 	go func() {
-		client, err := broker.NewAMQPClient(connStr)
+		client, err := broker.NewAMQPClient(connStr, cfg.logger)
 		if err != nil {
 			ch <- result{err: fmt.Errorf("'broker.NewAMQPClient' failed: %w", err)}
 			return

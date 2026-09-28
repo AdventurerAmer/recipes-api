@@ -6,9 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/AdventurerAmer/recipes-api/config"
-	"github.com/AdventurerAmer/recipes-api/infra"
+	"github.com/AdventurerAmer/recipes-api/infrastructure"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/broker"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
@@ -36,27 +37,42 @@ func Run() int {
 	}
 
 	logger := cfg.NewLogger().With(slog.String("worker", "email"))
+
 	var (
-		mainDataBase      infra.MongoContext
-		mainCache         infra.RedisContext
-		mainMessageBroker infra.RabbitMqContext
+		mainDataBase      infrastructure.MongoContext
+		mainCache         infrastructure.RedisContext
+		mainMessageBroker infrastructure.RabbitMqContext
 	)
 
-	inf := infra.New()
-	inf.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
-	inf.BindRedis(&cfg.Infra.MainCache, &mainCache)
-	inf.BindRabbitMQ(&cfg.Infra.MainMessageBroker, &mainMessageBroker)
-	if err := inf.Start(context.Background()); err != nil {
+	infra, err := infrastructure.New(logger)
+	if err != nil {
 		logger.Error("failed to connect to infrastructure", "error", err)
 		return 1
 	}
-	defer inf.Shutdown(context.Background())
+
+	infra.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
+	infra.BindRedis(&cfg.Infra.MainCache, &mainCache)
+	infra.BindRabbitMQ(&cfg.Infra.MainMessageBroker, &mainMessageBroker)
+	if err := infra.Start(context.Background()); err != nil {
+		logger.Error("failed to connect to infrastructure", "error", err)
+		return 1
+	}
+	defer infra.Shutdown(context.Background())
 
 	h := NewHandler()
 	dispatcher := ports.NewEventDispatcher()
 	ports.RegisterEvent(dispatcher, domain.EventNameUserCreated, h.OnUserCreated)
+	// TODO: move to go 1.27 for this to be
+	// dispatcher.Register(domain.EventNameUserCreated, h.OnUserCreated)
 
-	consumer := broker.NewAMQPConsumer("email", mainMessageBroker.Client, dispatcher)
+	consumerCfg := broker.AMQPConsumerConfig{
+		Name:        "email",
+		Dispatcher:  dispatcher,
+		WorkerCount: 128,
+		Timeout:     5 * time.Second,
+		AckTimeout:  2 * time.Second,
+	}
+	consumer := broker.NewAMQPConsumer(consumerCfg, mainMessageBroker.Client)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

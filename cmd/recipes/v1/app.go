@@ -29,7 +29,7 @@ import (
 
 	"github.com/AdventurerAmer/recipes-api/cmd/recipes/v1/handlers"
 	"github.com/AdventurerAmer/recipes-api/config"
-	"github.com/AdventurerAmer/recipes-api/infra"
+	"github.com/AdventurerAmer/recipes-api/infrastructure"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/textsearch"
@@ -62,24 +62,29 @@ func Run() int {
 	logger := cfg.NewLogger().With(slog.String("service", serviceCfg.Name))
 
 	var (
-		mainDataBase      infra.MongoContext
-		mainCache         infra.RedisContext
-		mainMessageBroker infra.RabbitMqContext
-		mainObjectStorage infra.MinioContext
-		mainTextSearch    infra.ElasticSearchContext
+		mainDataBase      infrastructure.MongoContext
+		mainCache         infrastructure.RedisContext
+		mainMessageBroker infrastructure.RabbitMqContext
+		mainObjectStorage infrastructure.MinioContext
+		mainTextSearch    infrastructure.ElasticSearchContext
 	)
 
-	inf := infra.New()
-	inf.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
-	inf.BindRedis(&cfg.Infra.MainCache, &mainCache)
-	inf.BindRabbitMQ(&cfg.Infra.MainMessageBroker, &mainMessageBroker)
-	inf.BindMinio(&cfg.Infra.MainObjectStorage, &mainObjectStorage)
-	inf.BindElasticSearch(&cfg.Infra.MainTextSearch, &mainTextSearch)
-	if err := inf.Start(context.Background()); err != nil {
+	infra, err := infrastructure.New(logger)
+	if err != nil {
 		logger.Error("failed to connect to infrastructure", "error", err)
 		return 1
 	}
-	defer inf.Shutdown(context.Background())
+
+	infra.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
+	infra.BindRedis(&cfg.Infra.MainCache, &mainCache)
+	infra.BindRabbitMQ(&cfg.Infra.MainMessageBroker, &mainMessageBroker)
+	infra.BindMinio(&cfg.Infra.MainObjectStorage, &mainObjectStorage)
+	infra.BindElasticSearch(&cfg.Infra.MainTextSearch, &mainTextSearch)
+	if err := infra.Start(context.Background()); err != nil {
+		logger.Error("failed to connect to infrastructure", "error", err)
+		return 1
+	}
+	defer infra.Shutdown(context.Background())
 
 	transactor := mongoutils.NewTransactor(mainDataBase.Client)
 

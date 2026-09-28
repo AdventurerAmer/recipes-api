@@ -3,10 +3,12 @@ package ports
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
 
+	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 )
 
@@ -55,4 +57,17 @@ func (d *EventDispatcher) Dispatch(ctx context.Context, eventName domain.EventNa
 
 func (d *EventDispatcher) Events() []string {
 	return slices.Collect(maps.Keys(d.handlers))
+}
+
+func IsErrRequeueable(err error) bool {
+	var wrappedErr *errs.Error
+	if errors.As(err, &wrappedErr) {
+		switch wrappedErr.Code {
+		case errs.CodeValidation,
+			errs.CodeUnsupportedFormat,
+			errs.CodeResourceNotFound:
+			return false
+		}
+	}
+	return true
 }

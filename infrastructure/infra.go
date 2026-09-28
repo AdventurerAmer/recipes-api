@@ -1,4 +1,4 @@
-package infra
+package infrastructure
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/config"
+	"github.com/AdventurerAmer/recipes-api/logging"
 )
 
 type Connecter interface {
@@ -19,28 +20,37 @@ type Disconnecter interface {
 }
 
 type Infra struct {
-	StartupTimeout  time.Duration
-	ShutdownTimeout time.Duration
-	Components      map[Connecter]Disconnecter
+	*Config
+	logger     *logging.Logger
+	components map[Connecter]Disconnecter
 }
 
-func New() *Infra {
-	return &Infra{
-		StartupTimeout:  time.Second,
-		ShutdownTimeout: time.Second,
-		Components:      make(map[Connecter]Disconnecter),
+func New(logger *logging.Logger, opts ...Option) (*Infra, error) {
+	cfg := &Config{
+		startupTimeout:  2 * time.Second,
+		shutdownTimeout: 4 * time.Second,
 	}
+	for _, opt := range opts {
+		if err := opt(cfg); err != nil {
+			return nil, err
+		}
+	}
+	return &Infra{
+		Config:     cfg,
+		logger:     logger,
+		components: make(map[Connecter]Disconnecter),
+	}, nil
 }
 
 func (infra *Infra) Bind(connector Connecter, disconnector Disconnecter) {
-	if _, ok := infra.Components[connector]; ok {
+	if _, ok := infra.components[connector]; ok {
 		panic("connector is already bound")
 	}
-	infra.Components[connector] = disconnector
+	infra.components[connector] = disconnector
 }
 
 func (infra *Infra) Start(ctx context.Context) error {
-	dctx, cancel := context.WithTimeout(ctx, infra.StartupTimeout)
+	dctx, cancel := context.WithTimeout(ctx, infra.startupTimeout)
 	defer cancel()
 
 	errCh := make(chan error)
@@ -48,7 +58,7 @@ func (infra *Infra) Start(ctx context.Context) error {
 	wg := sync.WaitGroup{}
 	done := make(chan struct{})
 
-	for conn, dstDisconn := range infra.Components {
+	for conn, dstDisconn := range infra.components {
 		wg.Go(func() {
 			srcDisconn, err := conn.Connect(dctx)
 			if err != nil {
@@ -78,14 +88,14 @@ func (infra *Infra) Start(ctx context.Context) error {
 }
 
 func (infra *Infra) Shutdown(ctx context.Context) {
-	dctx, cancel := context.WithTimeout(ctx, infra.ShutdownTimeout)
+	dctx, cancel := context.WithTimeout(ctx, infra.shutdownTimeout)
 	defer cancel()
 
 	wg := sync.WaitGroup{}
 	done := make(chan struct{})
 	errCh := make(chan error)
 
-	for _, disconn := range infra.Components {
+	for _, disconn := range infra.components {
 		wg.Go(func() {
 			if err := disconn.Disconnect(dctx); err != nil {
 				errCh <- err
@@ -121,7 +131,7 @@ func (infra *Infra) BindRedis(cfg *config.Redis, ctx *RedisContext) {
 }
 
 func (infra *Infra) BindRabbitMQ(cfg *config.RabbitMq, ctx *RabbitMqContext) {
-	wrapper := &RabbitMq{RabbitMq: cfg}
+	wrapper := &RabbitMq{RabbitMq: cfg, logger: infra.logger}
 	infra.Bind(wrapper, ctx)
 }
 
