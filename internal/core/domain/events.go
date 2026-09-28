@@ -16,7 +16,7 @@ func NewUserCreated(userId string) UserCreatedEvent {
 
 type UserVerificationEvent struct {
 	BaseEvent
-	UserId string `json:"userId"`
+	UserId string `json:"userId" validate:"required"`
 }
 
 func NewUserVerification(userId string) UserVerificationEvent {

@@ -61,25 +61,18 @@ func Run() int {
 
 	logger := cfg.NewLogger().With(slog.String("service", serviceCfg.Name))
 
-	var (
-		mainDataBase      infrastructure.MongoContext
-		mainCache         infrastructure.RedisContext
-		mainMessageBroker infrastructure.RabbitMqContext
-		mainObjectStorage infrastructure.MinioContext
-		mainTextSearch    infrastructure.ElasticSearchContext
-	)
-
 	infra, err := infrastructure.New(logger)
 	if err != nil {
 		logger.Error("failed to connect to infrastructure", "error", err)
 		return 1
 	}
 
-	infra.BindMongo(&cfg.Infra.MainDatabase, &mainDataBase)
-	infra.BindRedis(&cfg.Infra.MainCache, &mainCache)
-	infra.BindRabbitMQ(&cfg.Infra.MainMessageBroker, &mainMessageBroker)
-	infra.BindMinio(&cfg.Infra.MainObjectStorage, &mainObjectStorage)
-	infra.BindElasticSearch(&cfg.Infra.MainTextSearch, &mainTextSearch)
+	mainDataBase := infra.Mongo(&cfg.Infra.MainDatabase)
+	mainCache := infra.Redis(&cfg.Infra.MainCache)
+	mainMessageBroker := infra.RabbitMQ(&cfg.Infra.MainMessageBroker)
+	mainObjectStorage := infra.Minio(&cfg.Infra.MainObjectStorage)
+	_ = mainObjectStorage
+	mainTextSearch := infra.ElasticSearch(&cfg.Infra.MainTextSearch)
 	if err := infra.Start(context.Background()); err != nil {
 		logger.Error("failed to connect to infrastructure", "error", err)
 		return 1

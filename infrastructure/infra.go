@@ -120,27 +120,37 @@ func (infra *Infra) Shutdown(ctx context.Context) {
 	}
 }
 
-func (infra *Infra) BindMongo(cfg *config.Mongo, ctx *MongoContext) {
-	wrapper := &Mongo{Mongo: cfg}
-	infra.Bind(wrapper, ctx)
+func (infra *Infra) Mongo(cfg *config.Mongo) *MongoContext {
+	ctx := &MongoContext{}
+	cfgWrapper := &Mongo{Mongo: cfg}
+	infra.Bind(cfgWrapper, ctx)
+	return ctx
 }
 
-func (infra *Infra) BindRedis(cfg *config.Redis, ctx *RedisContext) {
-	wrapper := &Redis{Redis: cfg}
-	infra.Bind(wrapper, ctx)
+func (infra *Infra) Redis(cfg *config.Redis) *RedisContext {
+	ctx := &RedisContext{}
+	cfgWrapper := &Redis{Redis: cfg}
+	infra.Bind(cfgWrapper, ctx)
+	return ctx
 }
 
-func (infra *Infra) BindRabbitMQ(cfg *config.RabbitMq, ctx *RabbitMqContext) {
-	wrapper := &RabbitMq{RabbitMq: cfg, logger: infra.logger}
-	infra.Bind(wrapper, ctx)
+func (infra *Infra) RabbitMQ(cfg *config.RabbitMq) *RabbitMqContext {
+	ctx := &RabbitMqContext{}
+	cfgWrapper := &RabbitMq{RabbitMq: cfg, logger: infra.logger}
+	infra.Bind(cfgWrapper, ctx)
+	return ctx
 }
 
-func (infra *Infra) BindMinio(cfg *config.Minio, ctx *MinioContext) {
-	wrapper := &Minio{Minio: cfg}
-	infra.Bind(wrapper, ctx)
+func (infra *Infra) Minio(cfg *config.Minio) *MinioContext {
+	ctx := &MinioContext{}
+	cfgWrapper := &Minio{Minio: cfg}
+	infra.Bind(cfgWrapper, ctx)
+	return ctx
 }
 
-func (infra *Infra) BindElasticSearch(cfg *config.ElasticSearch, ctx *ElasticSearchContext) {
-	wrapper := &ElasticSearch{ElasticSearch: cfg}
-	infra.Bind(wrapper, ctx)
+func (infra *Infra) ElasticSearch(cfg *config.ElasticSearch) *ElasticSearchContext {
+	ctx := &ElasticSearchContext{}
+	cfgWrapper := &ElasticSearch{ElasticSearch: cfg}
+	infra.Bind(cfgWrapper, ctx)
+	return ctx
 }

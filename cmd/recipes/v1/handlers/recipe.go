@@ -25,6 +25,7 @@ func (h *Recipes) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	session := sessions.Default(c)
 	user := domain.User{
 		Id:          session.Get("id").(string),
@@ -33,9 +34,10 @@ func (h *Recipes) Create(c *gin.Context) {
 	}
 	file, err := req.ImageHeader.Open()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	req.Image = ports.ObjectStorageFile{
 		Reader:      file,
 		Size:        int(req.ImageHeader.Size),
@@ -43,39 +45,42 @@ func (h *Recipes) Create(c *gin.Context) {
 	}
 	resp, err := h.service.Create(c, &user, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusCreated, resp)
 }
 
 func (h *Recipes) List(c *gin.Context) {
 	var req ports.ListRecipesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	resp, err := h.service.List(c, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, resp)
 }
 
 func (h *Recipes) Search(c *gin.Context) {
 	var req ports.SearchRecipesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	resp, err := h.service.Search(c, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -88,18 +93,19 @@ func (h *Recipes) Get(c *gin.Context) {
 
 	resp, err := h.service.Get(c, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, resp)
+	c.AbortWithStatusJSON(http.StatusOK, resp)
 }
 
 func (h *Recipes) Update(c *gin.Context) {
 	var req ports.UpdateRecipeRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	session := sessions.Default(c)
 	user := domain.User{
 		Id:          session.Get("id").(string),
@@ -120,9 +126,10 @@ func (h *Recipes) Update(c *gin.Context) {
 	}
 	resp, err := h.service.Update(c, &user, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -133,15 +140,18 @@ func (h *Recipes) Delete(c *gin.Context) {
 		Email:       session.Get("email").(string),
 		DisplayName: session.Get("displayName").(string),
 	}
+
 	var req ports.DeleteRecipeRequest
 	if err := c.ShouldBindUri(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	resp, err := h.service.Delete(c, &user, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, resp)
 }

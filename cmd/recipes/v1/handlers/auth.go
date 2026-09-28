@@ -6,7 +6,6 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type Auth struct {
@@ -28,42 +27,44 @@ func (h *Auth) Login(c *gin.Context) {
 
 	resp, err := h.service.Login(c, req)
 	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
 	}
 
 	user := resp.User
-	token := uuid.New().String()
 	session := sessions.Default(c)
-	session.Set("id", user.Id)
-	session.Set("email", user.Email)
-	session.Set("displayName", user.DisplayName)
-	session.Set("token", token)
+	session.Set("user_id", user.Id)
 	if err := session.Save(); err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "internal server error"})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User signed in"})
+	c.JSON(http.StatusOK, gin.H{"message": "Signed in"})
 }
 
 func (handler *Auth) Logout(c *gin.Context) {
 	session := sessions.Default(c)
+
 	session.Clear()
 	session.Options(sessions.Options{MaxAge: -1})
 	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Signed out..."})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Signed out"})
 }
 
 func (handler *Auth) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
-		sessionToken := session.Get("token")
-		if sessionToken == nil {
-			c.JSON(http.StatusForbidden, gin.H{"message": "Not loggedin"})
-			c.Abort()
+		userId, ok := session.Get("user_id").(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			return
 		}
+
+		c.Set("user_id", userId)
 		c.Next()
 	}
 }
