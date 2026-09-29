@@ -4,6 +4,7 @@ type Code string
 
 const (
 	CodeInternal              Code = "INTERNAL"
+	CodeFailedPrecondition    Code = "FAILED_PRECONDITION"
 	CodeValidation            Code = "VALIDATION"
 	CodeResourceNotFound      Code = "RESOURCE_NOT_FOUND"
 	CodeResourceAlreadyExists Code = "RESOURCE_ALREADY_EXISTS"

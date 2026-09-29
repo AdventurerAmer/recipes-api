@@ -16,13 +16,13 @@ type User struct {
 }
 
 type Verification struct {
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	Token     string    `json:"token" bson:"token"`
+	ExpiresAt time.Time `json:"expiresAt" bson:"expiresAt"`
 }
 
 type ForgotPassword struct {
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	Token     string    `json:"token" bson:"token"`
+	ExpiresAt time.Time `json:"expiresAt" bson:"expiresAt"`
 }
 
 type FrontendUser struct {

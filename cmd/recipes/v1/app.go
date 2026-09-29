@@ -21,6 +21,7 @@ package v1
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os/signal"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/AdventurerAmer/recipes-api/cmd/recipes/v1/handlers"
 	"github.com/AdventurerAmer/recipes-api/config"
+	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/infrastructure"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
@@ -152,6 +154,7 @@ func Run() int {
 
 	v1 := router.Group("/api/v1/")
 	v1.Use(timeout.New(timeout.WithTimeout(cfg.Services.Recipes.DefaultTimeout)))
+	v1.Use(ErrorMiddleware())
 
 	{
 		v1.POST("/users", usersHandler.Register)
@@ -210,4 +213,26 @@ func Run() int {
 	logger.Info("Gracefully shutdown was successful")
 
 	return 0
+}
+
+func ErrorMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		// Check if any errors were added to the context
+		if len(c.Errors) > 0 {
+			err := c.Errors.Last().Err
+
+			var wrappedErr *errs.Error
+			if !errors.As(err, &wrappedErr) {
+				wrappedErr = errs.NewInternal(err)
+			}
+
+			status := errs.HTTPStatus(wrappedErr.Code)
+			traceId := "" // TODO: add traceId here
+			resp := errs.NewUserError(traceId, wrappedErr)
+
+			c.JSON(status, resp)
+		}
+	}
 }

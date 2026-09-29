@@ -70,11 +70,10 @@ func Run(templates *template.Template) int {
 	ports.RegisterEvent(dispatcher, domain.EventNameUserPasswordReset, h.OnUserPasswordReset)
 
 	consumerCfg := broker.AMQPConsumerConfig{
-		Name:        "email",
-		Dispatcher:  dispatcher,
-		WorkerCount: 128,
-		Timeout:     5 * time.Second,
-		AckTimeout:  2 * time.Second,
+		Name:       "email",
+		Dispatcher: dispatcher,
+		Timeout:    5 * time.Second,
+		AckTimeout: 2 * time.Second,
 	}
 	consumer := broker.NewAMQPConsumer(consumerCfg, mainMessageBroker.Client)
 

@@ -3,12 +3,11 @@ package ports
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
+	"time"
 
-	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 )
 
@@ -23,13 +22,15 @@ type EventSubscriber interface {
 
 type EventHandler[E domain.Event] func(ctx context.Context, e E) error
 
+type DispatcherFunc func(ctx context.Context, id string, occurredAt time.Time, payload json.RawMessage) error
+
 type EventDispatcher struct {
-	handlers map[string]func(context.Context, json.RawMessage) error
+	handlers map[domain.EventName]DispatcherFunc
 }
 
 func NewEventDispatcher() *EventDispatcher {
 	return &EventDispatcher{
-		handlers: make(map[string]func(context.Context, json.RawMessage) error),
+		handlers: make(map[domain.EventName]DispatcherFunc),
 	}
 }
 
@@ -37,37 +38,28 @@ func NewEventDispatcher() *EventDispatcher {
 func RegisterEvent[E domain.Event](d *EventDispatcher, eventName domain.EventName, handler EventHandler[E]) {
 
 	// Create a non-generic wrapper that hides the type casting internally
-	d.handlers[eventName.String()] = func(ctx context.Context, raw json.RawMessage) error {
-		var payload E
-		if err := json.Unmarshal(raw, &payload); err != nil {
+	d.handlers[eventName] = func(ctx context.Context, id string, occurredAt time.Time, payload json.RawMessage) error {
+		var event E
+		if err := json.Unmarshal(payload, &event); err != nil {
 			return fmt.Errorf("failed to unmarshal payload for event %s: %w", eventName, err)
 		}
-		return handler(ctx, payload)
+		event.SetId(id)
+		event.SetOccurredAt(occurredAt)
+		event.SetName(eventName)
+
+		return handler(ctx, event)
 	}
 }
 
-func (d *EventDispatcher) Dispatch(ctx context.Context, eventName domain.EventName, raw json.RawMessage) error {
-	handler, exists := d.handlers[eventName.String()]
+func (d *EventDispatcher) Dispatch(ctx context.Context, eventName domain.EventName, id string, occurredAt time.Time, payload json.RawMessage) error {
+	handler, exists := d.handlers[eventName]
 	if !exists {
 		return fmt.Errorf("no handler registered for event: %s", eventName)
 	}
 
-	return handler(ctx, raw)
+	return handler(ctx, id, occurredAt, payload)
 }
 
-func (d *EventDispatcher) Events() []string {
+func (d *EventDispatcher) Events() []domain.EventName {
 	return slices.Collect(maps.Keys(d.handlers))
-}
-
-func IsErrRequeueable(err error) bool {
-	var wrappedErr *errs.Error
-	if errors.As(err, &wrappedErr) {
-		switch wrappedErr.Code {
-		case errs.CodeValidation,
-			errs.CodeUnsupportedFormat,
-			errs.CodeResourceNotFound:
-			return false
-		}
-	}
-	return true
 }

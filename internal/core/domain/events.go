@@ -4,11 +4,11 @@ import "time"
 
 type UserCreatedEvent struct {
 	BaseEvent
-	UserId string `json:"userId"`
+	UserId string `json:"userId" validate:"required"`
 }
 
-func NewUserCreated(userId string) UserCreatedEvent {
-	return UserCreatedEvent{
+func NewUserCreated(userId string) *UserCreatedEvent {
+	return &UserCreatedEvent{
 		BaseEvent: NewBaseEvent("", EventNameUserCreated, time.Time{}),
 		UserId:    userId,
 	}
@@ -19,8 +19,8 @@ type UserVerificationEvent struct {
 	UserId string `json:"userId" validate:"required"`
 }
 
-func NewUserVerification(userId string) UserVerificationEvent {
-	return UserVerificationEvent{
+func NewUserVerification(userId string) *UserVerificationEvent {
+	return &UserVerificationEvent{
 		BaseEvent: NewBaseEvent("", EventNameUserVerification, time.Time{}),
 		UserId:    userId,
 	}
@@ -28,11 +28,11 @@ func NewUserVerification(userId string) UserVerificationEvent {
 
 type UserPasswordResetEvent struct {
 	BaseEvent
-	UserId string `json:"userId"`
+	UserId string `json:"userId" validate:"required"`
 }
 
-func NewUserPasswordReset(userId string) UserPasswordResetEvent {
-	return UserPasswordResetEvent{
+func NewUserPasswordReset(userId string) *UserPasswordResetEvent {
+	return &UserPasswordResetEvent{
 		BaseEvent: NewBaseEvent("", EventNameUserPasswordReset, time.Time{}),
 		UserId:    userId,
 	}

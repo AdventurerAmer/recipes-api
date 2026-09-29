@@ -21,13 +21,13 @@ func NewAuth(service ports.AuthService) *Auth {
 func (h *Auth) Login(c *gin.Context) {
 	var req ports.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Error(err)
 		return
 	}
 
 	resp, err := h.service.Login(c, req)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		c.Error(err)
 		return
 	}
 
@@ -35,7 +35,7 @@ func (h *Auth) Login(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Set("user_id", user.Id)
 	if err := session.Save(); err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "internal server error"})
+		c.Error(err)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (handler *Auth) Logout(c *gin.Context) {
 	session.Clear()
 	session.Options(sessions.Options{MaxAge: -1})
 	if err := session.Save(); err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Error(err)
 		return
 	}
 

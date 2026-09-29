@@ -9,7 +9,8 @@ import (
 
 func StrongPasswordValidator(fl validator.FieldLevel) bool {
 	password := fl.Field().String()
-	if utf8.RuneCountInString(password) < 8 {
+	length := utf8.RuneCountInString(password)
+	if length < 12 || length > 32 {
 		return false
 	}
 

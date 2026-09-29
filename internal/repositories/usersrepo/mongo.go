@@ -55,7 +55,7 @@ func (repo *mongoRepo) Create(ctx context.Context, user *domain.User) error {
 		return nil
 	}
 	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
-		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
+		return fmt.Errorf("'Transactor.WithTransaction' failed: %w", err)
 	}
 
 	return nil
@@ -69,14 +69,15 @@ func (repo *mongoRepo) GetById(ctx context.Context, id string) (*domain.User, er
 
 	var user domain.User
 
-	key := composeUserByIdCacheKey(id)
-	if err := repo.Cache.Get(ctx, key, &user); err == nil {
-		return &user, nil
-	} else if errs.IsNotFound(err) {
-		defer func() {
-			_ = repo.Cache.Put(ctx, key, user, 10*time.Second)
-		}()
-	}
+	// TODO: bug when creating caching layer
+	// key := composeUserByIdCacheKey(id)
+	// if err := repo.Cache.Get(ctx, key, &user); err == nil {
+	// 	return &user, nil
+	// } else if errs.IsNotFound(err) {
+	// 	defer func() {
+	// 		_ = repo.Cache.Put(ctx, key, user, 10*time.Second)
+	// 	}()
+	// }
 
 	filter := bson.M{"_id": oid}
 	result := repo.collection.FindOne(ctx, filter)

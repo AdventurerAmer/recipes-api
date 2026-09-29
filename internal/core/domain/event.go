@@ -25,15 +25,18 @@ var EventNames = []EventName{
 }
 
 type Event interface {
-	Id() string
-	Name() EventName
-	OccurredAt() time.Time
+	GetId() string
+	SetId(id string)
+	GetName() EventName
+	SetName(name EventName)
+	GetOccurredAt() time.Time
+	SetOccurredAt(occurredAt time.Time)
 }
 
 type BaseEvent struct {
-	id         string
-	name       EventName
-	occurredAt time.Time
+	Id         string
+	Name       EventName
+	OccurredAt time.Time
 }
 
 func NewBaseEvent(id string, name EventName, occurredAt time.Time) BaseEvent {
@@ -44,20 +47,32 @@ func NewBaseEvent(id string, name EventName, occurredAt time.Time) BaseEvent {
 		occurredAt = time.Now().UTC()
 	}
 	return BaseEvent{
-		id:         id,
-		name:       name,
-		occurredAt: occurredAt,
+		Id:         id,
+		Name:       name,
+		OccurredAt: occurredAt,
 	}
 }
 
-func (e BaseEvent) Id() string {
-	return e.id
+func (e BaseEvent) GetId() string {
+	return e.Id
 }
 
-func (e BaseEvent) Name() EventName {
-	return e.name
+func (e *BaseEvent) SetId(id string) {
+	e.Id = id
 }
 
-func (e BaseEvent) OccurredAt() time.Time {
-	return e.occurredAt
+func (e BaseEvent) GetName() EventName {
+	return e.Name
+}
+
+func (e *BaseEvent) SetName(name EventName) {
+	e.Name = name
+}
+
+func (e BaseEvent) GetOccurredAt() time.Time {
+	return e.OccurredAt
+}
+
+func (e *BaseEvent) SetOccurredAt(occurredAt time.Time) {
+	e.OccurredAt = occurredAt
 }

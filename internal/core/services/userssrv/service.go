@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/AdventurerAmer/recipes-api/tokens"
@@ -122,7 +123,7 @@ func (srv *service) Verify(ctx context.Context, req ports.VerifyUserRequest) (po
 
 	now := time.Now().UTC()
 	if now.After(user.Verification.ExpiresAt) {
-		return ports.VerifyResponse{}, fmt.Errorf("invalid or expired token")
+		return ports.VerifyResponse{}, errs.NewFailedPrecondition("invalid or expired token")
 	}
 
 	user.IsVerified = true
@@ -147,12 +148,12 @@ func (srv *service) SendVerification(ctx context.Context, req ports.SendVerifica
 	}
 
 	if user.IsVerified {
-		return ports.SendVerificationResponse{}, fmt.Errorf("user is already verified")
+		return ports.SendVerificationResponse{}, errs.NewFailedPrecondition("user is already verified")
 	}
 
 	now := time.Now().UTC()
 	if user.Verification.ExpiresAt.After(now) {
-		return ports.SendVerificationResponse{}, fmt.Errorf("email already sent")
+		return ports.SendVerificationResponse{}, errs.NewFailedPrecondition("email was already sent")
 	}
 
 	token, err := tokens.CryptoBase64(srv.VerificationTokenLength)
@@ -195,7 +196,7 @@ func (srv *service) ForgotPassword(ctx context.Context, req ports.ForgotPassword
 
 	now := time.Now().UTC()
 	if user.Verification.ExpiresAt.After(now) {
-		return ports.ForgotPasswordResponse{}, fmt.Errorf("email already sent")
+		return ports.ForgotPasswordResponse{}, errs.NewFailedPrecondition("email was already sent")
 	}
 
 	token, err := tokens.CryptoBase64(srv.ForgotpasswordTokenLength)
@@ -238,7 +239,7 @@ func (srv *service) ResetPassword(ctx context.Context, req ports.ResetPasswordRe
 
 	now := time.Now().UTC()
 	if now.After(user.ForgotPassword.ExpiresAt) {
-		return ports.ResetPasswordResponse{}, fmt.Errorf("invalid or expired token")
+		return ports.ResetPasswordResponse{}, errs.NewFailedPrecondition("invalid or expired token")
 	}
 
 	hash, err := srv.PasswordHasher.Hash(req.Password)

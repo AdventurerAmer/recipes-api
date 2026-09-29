@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"time"
 
+	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/AdventurerAmer/recipes-api/mailer"
@@ -27,23 +29,24 @@ func newEventHandler(usersRepo ports.UsersRepository, templates *template.Templa
 	}
 }
 
-func (h *eventHandler) OnUserCreated(ctx context.Context, e domain.UserCreatedEvent) error {
+func (h *eventHandler) OnUserCreated(ctx context.Context, e *domain.UserCreatedEvent) error {
+	slog.Info("OnUserCreated")
 	if err := validation.Validate(e); err != nil {
-		return err
+		return fmt.Errorf("validation failed: %w", err)
 	}
 	return h.verifyUser(ctx, e.UserId)
 }
 
-func (h *eventHandler) OnUserVerification(ctx context.Context, e domain.UserVerificationEvent) error {
+func (h *eventHandler) OnUserVerification(ctx context.Context, e *domain.UserVerificationEvent) error {
 	if err := validation.Validate(e); err != nil {
-		return err
+		return fmt.Errorf("validation failed: %w", err)
 	}
 	return h.verifyUser(ctx, e.UserId)
 }
 
-func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e domain.UserPasswordResetEvent) error {
+func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e *domain.UserPasswordResetEvent) error {
 	if err := validation.Validate(e); err != nil {
-		return err
+		return fmt.Errorf("validation failed: %w", err)
 	}
 
 	user, err := h.usersRepo.GetById(ctx, e.UserId)
@@ -67,7 +70,7 @@ func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e domain.UserPas
 		ExpiresIn time.Duration
 	}{
 		Name:      user.DisplayName,
-		ResetURL:  fmt.Sprintf("http://localhost:3000/api/users/reset-password?token=%s", user.ForgotPassword.Token),
+		ResetURL:  fmt.Sprintf("http://localhost:3000/api/v1/users/reset-password?token=%s", user.ForgotPassword.Token),
 		ExpiresIn: expiresAt.Sub(now),
 	}
 
@@ -90,18 +93,34 @@ func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e domain.UserPas
 }
 
 func (h *eventHandler) verifyUser(ctx context.Context, userId string) error {
-	user, err := h.usersRepo.GetById(ctx, userId)
-	if err != nil {
-		return fmt.Errorf("'usersRepo.GetById' failed: %w", err)
+	var user *domain.User
+
+	for range 4 {
+		var err error
+		user, err = h.usersRepo.GetById(ctx, userId)
+		if err != nil {
+			if errs.IsNotFound(err) {
+				// we are sleeping here because we are still waiting the database to commit the user
+				time.Sleep(500 * time.Millisecond)
+				continue
+			} else {
+				return fmt.Errorf("'usersRepo.GetById' failed: %w", err)
+			}
+		} else {
+			break
+		}
 	}
+
+	slog.Info("get user", "user", user)
 
 	if user.IsVerified {
 		return nil
 	}
 
-	expiresAt := user.Verification.ExpiresAt
 	now := time.Now().UTC()
+	expiresAt := user.Verification.ExpiresAt
 	if now.After(expiresAt) {
+		slog.Info("now.After(expiresAt)", "expiresAt", expiresAt, "elapsed", now.Sub(expiresAt))
 		return nil
 	}
 
@@ -111,7 +130,7 @@ func (h *eventHandler) verifyUser(ctx context.Context, userId string) error {
 		ExpiresIn time.Duration
 	}{
 		Name:      user.DisplayName,
-		VerifyURL: fmt.Sprintf("http://localhost:3000/api/users/verify?token=%s", user.Verification.Token),
+		VerifyURL: fmt.Sprintf("http://localhost:3000/api/v1/users/verify?token=%s", user.Verification.Token),
 		ExpiresIn: expiresAt.Sub(now),
 	}
 

@@ -6,6 +6,10 @@ func NewInternal(err error) *Error {
 	return Wrap(err, CodeInternal, "internal server error")
 }
 
+func NewFailedPrecondition(message string) *Error {
+	return Wrap(nil, CodeFailedPrecondition, message)
+}
+
 type Fields = map[string]string
 
 func NewValidation(fields Fields) *Error {
@@ -42,6 +46,14 @@ func NewConflict(err error, message string) *Error {
 	return Wrap(err, CodeConflict, message)
 }
 
+func NewAuthentication(message string) *Error {
+	return Wrap(nil, CodeAuthentication, message)
+}
+
+func NewAuthorization(message string) *Error {
+	return Wrap(nil, CodeAuthorization, message)
+}
+
 func Is(err error, code Code) bool {
 	var e *Error
 	if errors.As(err, &e) && e.Code == code {
@@ -52,6 +64,10 @@ func Is(err error, code Code) bool {
 
 func IsInternal(err error) bool {
 	return Is(err, CodeInternal)
+}
+
+func IsFailedPrecondition(err error) bool {
+	return Is(err, CodeFailedPrecondition)
 }
 
 func IsNotFound(err error) bool {
@@ -84,4 +100,12 @@ func IsNetwork(err error) bool {
 
 func IsConflict(err error) bool {
 	return Is(err, CodeConflict)
+}
+
+func IsAuthentication(err error) bool {
+	return Is(err, CodeAuthentication)
+}
+
+func IsAuthorization(err error) bool {
+	return Is(err, CodeAuthorization)
 }
