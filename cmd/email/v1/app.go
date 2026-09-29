@@ -60,7 +60,7 @@ func Run(templates *template.Template) int {
 	}
 	usersRepo := usersrepo.NewMongo(usersRepoCfg)
 
-	mailer := mailer.New(&config.Mailer{})
+	mailer := mailer.New(&cfg.Mailer)
 	h := newEventHandler(usersRepo, templates, mailer)
 	// TODO: move to go 1.27 for this to be
 	// dispatcher.Register(domain.EventNameUserCreated, h.OnUserCreated)

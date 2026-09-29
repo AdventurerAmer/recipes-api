@@ -19,8 +19,9 @@ type UsersRepository interface {
 
 type UsersService interface {
 	Register(ctx context.Context, req RegisterRequest) (RegisterResponse, *domain.User, error)
-	Verify(ctx context.Context, req VerifyRequest) (VerifyResponse, error)
+	Get(ctx context.Context, req GetUserRequest) (GetUserResponse, error)
 	SendVerification(ctx context.Context, req SendVerificationRequest) (SendVerificationResponse, error)
+	Verify(ctx context.Context, req VerifyUserRequest) (VerifyResponse, error)
 	ForgotPassword(ctx context.Context, req ForgotPasswordRequest) (ForgotPasswordResponse, error)
 	ResetPassword(ctx context.Context, req ResetPasswordRequest) (ResetPasswordResponse, error)
 }
@@ -35,8 +36,16 @@ type RegisterResponse struct {
 	User domain.FrontendUser `json:"user"`
 }
 
-type VerifyRequest struct {
-	Token string `json:"token" validate:"required,len=26"`
+type GetUserRequest struct {
+	Id string `json:"id"`
+}
+
+type GetUserResponse struct {
+	User *domain.FrontendUser `json:"user"`
+}
+
+type VerifyUserRequest struct {
+	Token string `json:"token" form:"token" validate:"required,len=26"`
 }
 
 type VerifyResponse struct {

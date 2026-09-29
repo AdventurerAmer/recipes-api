@@ -24,6 +24,7 @@ type Config struct {
 	App           App            `koanf:"app"`
 	Infra         Infra          `koanf:"infra"`
 	Auth          Authentication `koanf:"auth"`
+	Mailer        Mailer         `koanf:"mailer"`
 	Observability Observability  `koanf:"observability"`
 	Services      Services       `koanf:"services"`
 	Constants     Constants      `koanf:"constants"`

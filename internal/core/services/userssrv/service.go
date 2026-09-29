@@ -94,7 +94,23 @@ func (srv *service) Register(ctx context.Context, req ports.RegisterRequest) (po
 	return resp, user, nil
 }
 
-func (srv *service) Verify(ctx context.Context, req ports.VerifyRequest) (ports.VerifyResponse, error) {
+func (srv *service) Get(ctx context.Context, req ports.GetUserRequest) (ports.GetUserResponse, error) {
+	if err := validation.Validate(req); err != nil {
+		return ports.GetUserResponse{}, fmt.Errorf("validation failed: %w", err)
+	}
+
+	user, err := srv.UsersRepo.GetById(ctx, req.Id)
+	if err != nil {
+		return ports.GetUserResponse{}, fmt.Errorf("'UsersRepo.GetById' failed: %w", err)
+	}
+
+	frontendUser := domain.NewFrontendUser(user)
+	return ports.GetUserResponse{
+		User: &frontendUser,
+	}, nil
+}
+
+func (srv *service) Verify(ctx context.Context, req ports.VerifyUserRequest) (ports.VerifyResponse, error) {
 	if err := validation.Validate(req); err != nil {
 		return ports.VerifyResponse{}, fmt.Errorf("validation failed: %w", err)
 	}

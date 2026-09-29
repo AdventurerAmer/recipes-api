@@ -69,6 +69,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    environment:
+      MP_SMTP_AUTH: "superuser:secretpass"
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpit-data:/data
 
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
@@ -120,3 +133,4 @@ volumes:
   minio-data:
   elastic-search-data:
   rabbitmq-data:
+  mailpit-data:

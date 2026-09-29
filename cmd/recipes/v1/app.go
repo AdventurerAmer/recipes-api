@@ -33,7 +33,6 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/textsearch"
-	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/authsrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/userssrv"
@@ -43,7 +42,6 @@ import (
 	"github.com/AdventurerAmer/recipes-api/mongoutils"
 	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/gin-contrib/sessions"
 	ginRedis "github.com/gin-contrib/sessions/redis"
@@ -155,19 +153,18 @@ func Run() int {
 	v1 := router.Group("/api/v1/")
 	v1.Use(timeout.New(timeout.WithTimeout(cfg.Services.Recipes.DefaultTimeout)))
 
-	v1.POST("/events/user-created", func(c *gin.Context) {
-		event := domain.NewUserCreated(uuid.NewString())
-		if err := mainMessageBroker.Client.Publish(c, event); err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		slog.Info("published an event", "name", event.Name(), "userId", event.UserId)
-	})
-
 	{
 		v1.POST("/users", usersHandler.Register)
-		v1.POST("/sessions", authHandler.Login)
-		v1.POST("/sessions/current", authHandler.Logout)
+		v1.GET("/users/me", authHandler.AuthMiddleware(), usersHandler.Get)
+
+		v1.POST("/users/verify", usersHandler.SendVerification)
+		v1.GET("/users/verify", usersHandler.Verify)
+
+		v1.POST("/users/forgot-password", usersHandler.ForgotPassword)
+		v1.GET("/users/reset-password", usersHandler.ResetPassword)
+
+		v1.POST("/auth/login", authHandler.Login)
+		v1.POST("/auth/logout", authHandler.AuthMiddleware(), authHandler.Logout)
 
 		v1.GET("/recipes", recipesHandler.List)
 		v1.GET("/recipes/search", recipesHandler.Search)
