@@ -21,6 +21,7 @@ type UsersService interface {
 	Verify(ctx context.Context, req VerifyUserRequest) (VerifyResponse, error)
 	ForgotPassword(ctx context.Context, req ForgotPasswordRequest) (ForgotPasswordResponse, error)
 	ResetPassword(ctx context.Context, req ResetPasswordRequest) (ResetPasswordResponse, error)
+	ChangePassword(ctx context.Context, req ChangePasswordRequest) (ChangePasswordResponse, error)
 }
 
 type RegisterRequest struct {
@@ -67,10 +68,20 @@ type ForgotPasswordResponse struct {
 }
 
 type ResetPasswordRequest struct {
-	Token    string `json:"token" validate:"required,len=26"`
+	Token    string `json:"token" validate:"required,len=43"`
 	Password string `json:"password" validate:"required,strong_password"`
 }
 
 type ResetPasswordResponse struct {
+	Message string `json:"message"`
+}
+
+type ChangePasswordRequest struct {
+	UserId          string `json:"userId" validate:"required"`
+	CurrentPassword string `json:"currentPassword" validate:"required"`
+	NewPassword     string `json:"newPassword" validate:"strong_password"`
+}
+
+type ChangePasswordResponse struct {
 	Message string `json:"message"`
 }

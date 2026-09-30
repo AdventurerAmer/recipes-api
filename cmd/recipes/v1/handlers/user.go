@@ -112,3 +112,21 @@ func (h *Users) ResetPassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *Users) ChangePassword(c *gin.Context) {
+	var req ports.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	req.UserId = c.GetString("user_id")
+
+	resp, err := h.service.ChangePassword(c, req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

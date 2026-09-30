@@ -15,12 +15,11 @@ import (
 type Config struct {
 	VerificationTokenExpiresAfter   time.Duration
 	ForgotpasswordTokenExpiresAfter time.Duration
-
-	PasswordHasher ports.PasswordHasher
-	Transactor     ports.Transactor
-	UsersRepo      ports.UsersRepository
-	TokensRepo     ports.TokensRepository
-	EventPublisher ports.EventPublisher
+	PasswordManager                 ports.PasswordManager
+	Transactor                      ports.Transactor
+	UsersRepo                       ports.UsersRepository
+	TokensRepo                      ports.TokensRepository
+	EventPublisher                  ports.EventPublisher
 }
 
 type service struct {
@@ -45,7 +44,7 @@ func (srv *service) Register(ctx context.Context, req ports.RegisterRequest) (po
 		return ports.RegisterResponse{}, nil, fmt.Errorf("validation failed: %w", err)
 	}
 
-	passwordHash, err := srv.PasswordHasher.Hash(req.Password)
+	passwordHash, err := srv.PasswordManager.Hash(req.Password)
 	if err != nil {
 		return ports.RegisterResponse{}, nil, fmt.Errorf("'hashPassward' failed: %w", err)
 	}
@@ -298,7 +297,7 @@ func (srv *service) ResetPassword(ctx context.Context, req ports.ResetPasswordRe
 		return ports.ResetPasswordResponse{}, errs.NewFailedPrecondition("invalid or expired token")
 	}
 
-	passwordHash, err := srv.PasswordHasher.Hash(req.Password)
+	passwordHash, err := srv.PasswordManager.Hash(req.Password)
 	if err != nil {
 		return ports.ResetPasswordResponse{}, fmt.Errorf("'PasswordHasher.Hash' failed: %w", err)
 	}
@@ -328,4 +327,38 @@ func (srv *service) ResetPassword(ctx context.Context, req ports.ResetPasswordRe
 	}
 
 	return ports.ResetPasswordResponse{}, nil
+}
+
+func (srv *service) ChangePassword(ctx context.Context, req ports.ChangePasswordRequest) (ports.ChangePasswordResponse, error) {
+	if err := validation.Validate(req); err != nil {
+		return ports.ChangePasswordResponse{}, fmt.Errorf("validation failed: %w", err)
+	}
+
+	user, err := srv.UsersRepo.GetById(ctx, req.UserId)
+	if err != nil {
+		return ports.ChangePasswordResponse{}, fmt.Errorf("'UsersRepo.GetById' failed: %w", err)
+	}
+
+	ok, err := srv.PasswordManager.Verify(req.CurrentPassword, user.PasswordHash)
+	if err != nil {
+		return ports.ChangePasswordResponse{}, fmt.Errorf("'PasswordManager.Verify' failed: %w", err)
+	}
+	if !ok {
+		return ports.ChangePasswordResponse{}, errs.NewFailedPrecondition("current password isn't correct")
+	}
+
+	hash, err := srv.PasswordManager.Hash(req.NewPassword)
+	if err != nil {
+		return ports.ChangePasswordResponse{}, fmt.Errorf("'PasswordManager.Hash' failed: %w", err)
+	}
+
+	user.PasswordHash = hash
+	user.UpdatedAt = time.Now().UTC()
+	if err := srv.UsersRepo.Update(ctx, user); err != nil {
+		return ports.ChangePasswordResponse{}, fmt.Errorf("'UsersRepo.Update' failed: %w", err)
+	}
+
+	return ports.ChangePasswordResponse{
+		Message: "Password was changed successfully",
+	}, nil
 }

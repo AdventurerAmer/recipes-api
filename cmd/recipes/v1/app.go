@@ -124,11 +124,11 @@ func Run() int {
 	authService := authsrv.New(authServiceCfg)
 
 	usersServiceCfg := userssrv.Config{
-		PasswordHasher: argon2PasswordMgr,
-		UsersRepo:      usersRepo,
-		TokensRepo:     tokensRepo,
-		Transactor:     transactor,
-		EventPublisher: mainMessageBroker.Client,
+		PasswordManager: argon2PasswordMgr,
+		UsersRepo:       usersRepo,
+		TokensRepo:      tokensRepo,
+		Transactor:      transactor,
+		EventPublisher:  mainMessageBroker.Client,
 	}
 	usersService := userssrv.New(usersServiceCfg)
 
@@ -174,6 +174,7 @@ func Run() int {
 
 		v1.POST("/users/forgot-password", usersHandler.ForgotPassword)
 		v1.GET("/users/reset-password", usersHandler.ResetPassword)
+		v1.GET("/users/change-password", authHandler.AuthMiddleware(), usersHandler.ChangePassword)
 
 		v1.POST("/auth/login", authHandler.Login)
 		v1.POST("/auth/logout", authHandler.AuthMiddleware(), authHandler.Logout)
