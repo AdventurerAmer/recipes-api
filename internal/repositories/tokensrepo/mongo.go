@@ -62,6 +62,19 @@ func (repo *mongoRepo) Get(ctx context.Context, tokenType domain.TokenType, hash
 	return &token, nil
 }
 
+func (repo *mongoRepo) GetLast(ctx context.Context, userId string, tokenType domain.TokenType) (*domain.Token, error) {
+	filter := bson.M{"userId": userId, "type": tokenType, "usedAt": nil}
+	opts := options.FindOne().SetSort(bson.M{"createdAt": -1})
+	result := repo.collection.FindOne(ctx, filter, opts)
+
+	var token domain.Token
+	if err := result.Decode(&token); err != nil {
+		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "token"))
+	}
+
+	return &token, nil
+}
+
 func (repo *mongoRepo) Update(ctx context.Context, token *domain.Token) error {
 	oid, err := primitive.ObjectIDFromHex(token.Id)
 	if err != nil {
@@ -82,7 +95,6 @@ func (repo *mongoRepo) Update(ctx context.Context, token *domain.Token) error {
 		filter := bson.M{"_id": oid}
 		update := bson.D{
 			{Key: "$set", Value: updateModel(*token)},
-			{Key: "$inc", Value: bson.D{{Key: "version", Value: 1}}},
 		}
 		result, err := repo.collection.UpdateOne(tctx, filter, update)
 		if err != nil {

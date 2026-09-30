@@ -41,9 +41,11 @@ type UserPasswordResetEvent struct {
 	ExpiresAt time.Time `json:"expiresAt" validate:"required"`
 }
 
-func NewUserPasswordReset(userId string) *UserPasswordResetEvent {
+func NewUserPasswordReset(userId, token string, expiresAt time.Time) *UserPasswordResetEvent {
 	return &UserPasswordResetEvent{
 		BaseEvent: NewBaseEvent("", EventNameUserPasswordReset, time.Time{}),
 		UserId:    userId,
+		Token:     token,
+		ExpiresAt: expiresAt,
 	}
 }

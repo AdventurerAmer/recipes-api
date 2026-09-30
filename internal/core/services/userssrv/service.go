@@ -135,14 +135,14 @@ func (srv *service) Verify(ctx context.Context, req ports.VerifyUserRequest) (po
 	}
 
 	txn := func(tctx context.Context) error {
-		user, err := srv.UsersRepo.GetById(ctx, token.UserId)
+		user, err := srv.UsersRepo.GetById(tctx, token.UserId)
 		if err != nil {
 			return fmt.Errorf("'UsersRepo.GetById' failed: %w", err)
 		}
 
 		user.IsVerified = true
 		user.UpdatedAt = now
-		if err := srv.UsersRepo.Update(ctx, user); err != nil {
+		if err := srv.UsersRepo.Update(tctx, user); err != nil {
 			return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
 		}
 
@@ -167,44 +167,57 @@ func (srv *service) SendVerification(ctx context.Context, req ports.SendVerifica
 		return ports.SendVerificationResponse{}, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// user, err := srv.UsersRepo.GetByEmail(ctx, req.Email)
-	// if err != nil {
-	// 	return ports.SendVerificationResponse{}, fmt.Errorf("'UsersRepo.GetByEmail' failed: %w", err)
-	// }
+	user, err := srv.UsersRepo.GetByEmail(ctx, req.Email)
+	if err != nil {
+		return ports.SendVerificationResponse{}, fmt.Errorf("'UsersRepo.GetByEmail' failed: %w", err)
+	}
 
-	// if user.IsVerified {
-	// 	return ports.SendVerificationResponse{}, errs.NewFailedPrecondition("user is already verified")
-	// }
+	if user.IsVerified {
+		return ports.SendVerificationResponse{}, errs.NewFailedPrecondition("user is already verified")
+	}
 
-	// now := time.Now().UTC()
-	// if user.Verification.ExpiresAt.After(now) {
-	// 	return ports.SendVerificationResponse{}, errs.NewFailedPrecondition("email was already sent")
-	// }
+	lastToken, err := srv.TokensRepo.GetLast(ctx, user.Id, domain.TokenTypeVerification)
+	if err != nil {
+		if !errs.IsNotFound(err) {
+			return ports.SendVerificationResponse{}, fmt.Errorf("'TokensRepo.GetLast' failed: %w", err)
+		}
+	}
 
-	// token, _, err := tokens.Generate()
-	// if err != nil {
-	// 	return ports.SendVerificationResponse{}, fmt.Errorf("'tokens.Generate' failed: %w", err)
-	// }
+	now := time.Now().UTC()
+	if lastToken != nil && lastToken.ExpiresAt.After(now) {
+		return ports.SendVerificationResponse{}, errs.NewFailedPrecondition("email was already sent")
+	}
 
-	// user.Verification.Token = token
-	// user.Verification.ExpiresAt = now.Add(srv.VerificationTokenExpiresAfter)
-	// user.UpdatedAt = now
+	tokenStr, hash, err := tokens.Generate()
+	if err != nil {
+		return ports.SendVerificationResponse{}, fmt.Errorf("'tokens.Generate' failed: %w", err)
+	}
 
-	// txn := func(tctx context.Context) error {
-	// 	if err := srv.UsersRepo.Update(tctx, user); err != nil {
-	// 		return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
-	// 	}
+	expiresAt := now.Add(srv.VerificationTokenExpiresAfter)
 
-	// 	event := domain.NewUserVerification(user.Id)
-	// 	if err := srv.EventPublisher.Publish(tctx, event); err != nil {
-	// 		return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
-	// 	}
+	txn := func(tctx context.Context) error {
+		token := domain.Token{
+			CreatedAt: now,
+			Type:      domain.TokenTypeVerification,
+			Hash:      hash,
+			ExpiresAt: expiresAt,
+			UserId:    user.Id,
+		}
 
-	// 	return nil
-	// }
-	// if err := srv.Transactor.WithTransaction(ctx, txn); err != nil {
-	// 	return ports.SendVerificationResponse{}, fmt.Errorf("transaction failed: %w", err)
-	// }
+		if err := srv.TokensRepo.Create(tctx, &token); err != nil {
+			return fmt.Errorf("'TokensRepo.Create' failed: %w", err)
+		}
+
+		event := domain.NewUserVerification(user.Id, tokenStr, expiresAt)
+		if err := srv.EventPublisher.Publish(tctx, event); err != nil {
+			return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
+		}
+
+		return nil
+	}
+	if err := srv.Transactor.WithTransaction(ctx, txn); err != nil {
+		return ports.SendVerificationResponse{}, fmt.Errorf("transaction failed: %w", err)
+	}
 
 	return ports.SendVerificationResponse{
 		Message: "Email was sent successfully",
@@ -216,40 +229,53 @@ func (srv *service) ForgotPassword(ctx context.Context, req ports.ForgotPassword
 		return ports.ForgotPasswordResponse{}, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// user, err := srv.UsersRepo.GetByEmail(ctx, req.Email)
-	// if err != nil {
-	// 	return ports.ForgotPasswordResponse{}, fmt.Errorf("'UsersRepo.GetByEmail' failed: %w", err)
-	// }
+	user, err := srv.UsersRepo.GetByEmail(ctx, req.Email)
+	if err != nil {
+		return ports.ForgotPasswordResponse{}, fmt.Errorf("'UsersRepo.GetByEmail' failed: %w", err)
+	}
 
-	// now := time.Now().UTC()
-	// if user.Verification.ExpiresAt.After(now) {
-	// 	return ports.ForgotPasswordResponse{}, errs.NewFailedPrecondition("email was already sent")
-	// }
+	lastToken, err := srv.TokensRepo.GetLast(ctx, user.Id, domain.TokenTypePasswordReset)
+	if err != nil {
+		if !errs.IsNotFound(err) {
+			return ports.ForgotPasswordResponse{}, fmt.Errorf("'TokensRepo.GetLast' failed: %w", err)
+		}
+	}
 
-	// token, _, err := tokens.Generate()
-	// if err != nil {
-	// 	return ports.ForgotPasswordResponse{}, fmt.Errorf("'tokens.Generate' failed: %w", err)
-	// }
+	now := time.Now().UTC()
+	if lastToken != nil && lastToken.ExpiresAt.After(now) {
+		return ports.ForgotPasswordResponse{}, errs.NewFailedPrecondition("email was already sent")
+	}
 
-	// user.ForgotPassword.Token = token
-	// user.ForgotPassword.ExpiresAt = now.Add(srv.ForgotpasswordTokenExpiresAfter)
-	// user.UpdatedAt = now
+	tokenStr, hash, err := tokens.Generate()
+	if err != nil {
+		return ports.ForgotPasswordResponse{}, fmt.Errorf("'tokens.Generate' failed: %w", err)
+	}
 
-	// txn := func(tctx context.Context) error {
-	// 	if err := srv.UsersRepo.Update(tctx, user); err != nil {
-	// 		return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
-	// 	}
+	expiresAt := now.Add(srv.ForgotpasswordTokenExpiresAfter)
 
-	// 	event := domain.NewUserPasswordReset(user.Id)
-	// 	if err := srv.EventPublisher.Publish(tctx, event); err != nil {
-	// 		return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
-	// 	}
+	txn := func(tctx context.Context) error {
+		token := domain.Token{
+			CreatedAt: now,
+			Type:      domain.TokenTypeVerification,
+			Hash:      hash,
+			ExpiresAt: expiresAt,
+			UserId:    user.Id,
+		}
 
-	// 	return nil
-	// }
-	// if err := srv.Transactor.WithTransaction(ctx, txn); err != nil {
-	// 	return ports.ForgotPasswordResponse{}, fmt.Errorf("transaction failed: %w", err)
-	// }
+		if err := srv.TokensRepo.Create(tctx, &token); err != nil {
+			return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
+		}
+
+		event := domain.NewUserPasswordReset(user.Id, tokenStr, expiresAt)
+		if err := srv.EventPublisher.Publish(tctx, event); err != nil {
+			return fmt.Errorf("'EventPublisher.Publish' failed: %w", err)
+		}
+
+		return nil
+	}
+	if err := srv.Transactor.WithTransaction(ctx, txn); err != nil {
+		return ports.ForgotPasswordResponse{}, fmt.Errorf("transaction failed: %w", err)
+	}
 
 	return ports.ForgotPasswordResponse{
 		Message: "email was send successfully",
@@ -261,27 +287,45 @@ func (srv *service) ResetPassword(ctx context.Context, req ports.ResetPasswordRe
 		return ports.ResetPasswordResponse{}, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// user, err := srv.UsersRepo.GetByForgotPasswordToken(ctx, req.Token)
-	// if err != nil {
-	// 	return ports.ResetPasswordResponse{}, fmt.Errorf("'UsersRepo.GetByVerificationToken' failed: %w", err)
-	// }
+	tokenHash := tokens.Hash(req.Token)
+	token, err := srv.TokensRepo.Get(ctx, domain.TokenTypePasswordReset, tokenHash)
+	if err != nil {
+		return ports.ResetPasswordResponse{}, fmt.Errorf("'TokensRepo.Get: %w", err)
+	}
 
-	// now := time.Now().UTC()
-	// if now.After(user.ForgotPassword.ExpiresAt) {
-	// 	return ports.ResetPasswordResponse{}, errs.NewFailedPrecondition("invalid or expired token")
-	// }
+	now := time.Now().UTC()
+	if now.After(token.ExpiresAt) {
+		return ports.ResetPasswordResponse{}, errs.NewFailedPrecondition("invalid or expired token")
+	}
 
-	// hash, err := srv.PasswordHasher.Hash(req.Password)
-	// if err != nil {
-	// 	return ports.ResetPasswordResponse{}, fmt.Errorf("'PasswordHasher.Hash' failed: %w", err)
-	// }
+	passwordHash, err := srv.PasswordHasher.Hash(req.Password)
+	if err != nil {
+		return ports.ResetPasswordResponse{}, fmt.Errorf("'PasswordHasher.Hash' failed: %w", err)
+	}
 
-	// user.PasswordHash = hash
-	// user.ForgotPassword = domain.ForgotPassword{}
-	// user.UpdatedAt = now
-	// if err := srv.UsersRepo.Update(ctx, user); err != nil {
-	// 	return ports.ResetPasswordResponse{}, fmt.Errorf("'UsersRepo.Update' failed: %w", err)
-	// }
+	txn := func(tctx context.Context) error {
+		user, err := srv.UsersRepo.GetById(tctx, token.UserId)
+		if err != nil {
+			return fmt.Errorf("'UsersRepo.GetById' failed: %w", err)
+		}
+
+		user.PasswordHash = passwordHash
+		user.UpdatedAt = now
+		if err := srv.UsersRepo.Update(tctx, user); err != nil {
+			return fmt.Errorf("'UsersRepo.Update' failed: %w", err)
+		}
+
+		token.UsedAt = &now
+		if err := srv.TokensRepo.Update(tctx, token); err != nil {
+			return fmt.Errorf("'TokensRepo.Update' failed: %w", err)
+		}
+
+		return nil
+	}
+
+	if err := srv.Transactor.WithTransaction(ctx, txn); err != nil {
+		return ports.ResetPasswordResponse{}, fmt.Errorf("transaction failed: %w", err)
+	}
 
 	return ports.ResetPasswordResponse{}, nil
 }

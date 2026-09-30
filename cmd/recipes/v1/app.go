@@ -39,6 +39,7 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/userssrv"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/recipesrepo"
+	"github.com/AdventurerAmer/recipes-api/internal/repositories/tokensrepo"
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
 	"github.com/AdventurerAmer/recipes-api/logging"
 	"github.com/AdventurerAmer/recipes-api/mongoutils"
@@ -90,6 +91,13 @@ func Run() int {
 	}
 
 	// Repos
+	tokensRepoCfg := tokensrepo.MongoConfig{
+		Database:   mainDataBase.Database,
+		Cache:      redisCache,
+		Transactor: transactor,
+	}
+	tokensRepo := tokensrepo.NewMongo(tokensRepoCfg)
+
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database:   mainDataBase.Database,
 		Cache:      redisCache,
@@ -118,6 +126,7 @@ func Run() int {
 	usersServiceCfg := userssrv.Config{
 		PasswordHasher: argon2PasswordMgr,
 		UsersRepo:      usersRepo,
+		TokensRepo:     tokensRepo,
 		Transactor:     transactor,
 		EventPublisher: mainMessageBroker.Client,
 	}

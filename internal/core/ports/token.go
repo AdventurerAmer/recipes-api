@@ -9,6 +9,7 @@ import (
 type TokensRepository interface {
 	Create(ctx context.Context, token *domain.Token) error
 	Get(ctx context.Context, tokenType domain.TokenType, hash string) (*domain.Token, error)
+	GetLast(ctx context.Context, userId string, tokenType domain.TokenType) (*domain.Token, error)
 	Update(ctx context.Context, token *domain.Token) error
 	Delete(ctx context.Context, token *domain.Token) error
 }

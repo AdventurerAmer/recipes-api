@@ -43,7 +43,7 @@ type GetUserResponse struct {
 }
 
 type VerifyUserRequest struct {
-	Token string `json:"token" form:"token" validate:"required,len=26"`
+	Token string `json:"token" form:"token" validate:"required,len=43"`
 }
 
 type VerifyResponse struct {
