@@ -32,7 +32,7 @@ func (rc *redisCache) Get(ctx context.Context, key string, v any) error {
 	if err := json.Unmarshal([]byte(data), v); err != nil {
 		return fmt.Errorf("'json.Unmarshal' failed: %w", err)
 	}
-	return err
+	return nil
 }
 
 func (rc *redisCache) Put(ctx context.Context, key string, v any, TTL time.Duration) error {

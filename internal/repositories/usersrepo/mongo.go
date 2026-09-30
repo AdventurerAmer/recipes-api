@@ -69,21 +69,18 @@ func (repo *mongoRepo) GetById(ctx context.Context, id string) (*domain.User, er
 
 	var user domain.User
 
-	// TODO: bug when creating caching layer
-	// key := composeUserByIdCacheKey(id)
-	// if err := repo.Cache.Get(ctx, key, &user); err == nil {
-	// 	return &user, nil
-	// } else if errs.IsNotFound(err) {
-	// 	defer func() {
-	// 		_ = repo.Cache.Put(ctx, key, user, 10*time.Second)
-	// 	}()
-	// }
+	key := composeUserByIdCacheKey(id)
+	if err := repo.Cache.Get(ctx, key, &user); err == nil {
+		return &user, nil
+	}
 
 	filter := bson.M{"_id": oid}
 	result := repo.collection.FindOne(ctx, filter)
 	if err := result.Decode(&user); err != nil {
 		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
 	}
+
+	_ = repo.Cache.Put(ctx, key, user, 10*time.Minute)
 
 	return &user, nil
 }
@@ -94,10 +91,6 @@ func (repo *mongoRepo) GetByEmail(ctx context.Context, email string) (*domain.Us
 	key := composeUserByEmailCacheKey(email)
 	if err := repo.Cache.Get(ctx, key, &user); err == nil {
 		return &user, nil
-	} else if errs.IsNotFound(err) {
-		defer func() {
-			_ = repo.Cache.Put(ctx, key, user, 10*time.Second)
-		}()
 	}
 
 	filter := bson.M{"email": email}
@@ -105,26 +98,9 @@ func (repo *mongoRepo) GetByEmail(ctx context.Context, email string) (*domain.Us
 	if err := result.Decode(&user); err != nil {
 		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
 	}
-	return &user, nil
-}
 
-func (repo *mongoRepo) GetByVerificationToken(ctx context.Context, token string) (*domain.User, error) {
-	var user domain.User
-	filter := bson.M{"verification.token": token}
-	result := repo.collection.FindOne(ctx, filter)
-	if err := result.Decode(&user); err != nil {
-		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
-	}
-	return &user, nil
-}
+	_ = repo.Cache.Put(ctx, key, user, 10*time.Minute)
 
-func (repo *mongoRepo) GetByForgotPasswordToken(ctx context.Context, token string) (*domain.User, error) {
-	var user domain.User
-	filter := bson.M{"forgotPassword.token": token}
-	result := repo.collection.FindOne(ctx, filter)
-	if err := result.Decode(&user); err != nil {
-		return nil, fmt.Errorf("'collection.FindOne' failed: %w", mongoutils.ToDomainErr(err, "user"))
-	}
 	return &user, nil
 }
 
@@ -135,16 +111,14 @@ func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
 	}
 
 	type updateModel struct {
-		Id             string                `bson:"-"`
-		CreatedAt      time.Time             `bson:"-"`
-		Email          string                `bson:"email"`
-		DisplayName    string                `bson:"displayName"`
-		PasswordHash   string                `bson:"passwordHash"`
-		IsVerified     bool                  `bson:"isVerified"`
-		Verification   domain.Verification   `bson:"verification"`
-		ForgotPassword domain.ForgotPassword `bson:"forgotPassword"`
-		UpdatedAt      time.Time             `bson:"updatedAt"`
-		Version        int                   `bson:"-"`
+		Id           string    `bson:"-"`
+		CreatedAt    time.Time `bson:"-"`
+		Email        string    `bson:"email"`
+		DisplayName  string    `bson:"displayName"`
+		PasswordHash string    `bson:"passwordHash"`
+		IsVerified   bool      `bson:"isVerified"`
+		UpdatedAt    time.Time `bson:"updatedAt"`
+		Version      int       `bson:"-"`
 	}
 
 	txn := func(tctx context.Context) error {

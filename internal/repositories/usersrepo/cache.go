@@ -2,7 +2,7 @@ package usersrepo
 
 import "fmt"
 
-const userKeyPrefix = "user:"
+const userKeyPrefix = "user"
 
 func composeUserByIdCacheKey(id string) string {
 	return fmt.Sprintf("%s:id:%s", userKeyPrefix, id)

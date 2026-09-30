@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"log/slog"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/errs"
@@ -30,18 +29,17 @@ func newEventHandler(usersRepo ports.UsersRepository, templates *template.Templa
 }
 
 func (h *eventHandler) OnUserCreated(ctx context.Context, e *domain.UserCreatedEvent) error {
-	slog.Info("OnUserCreated")
 	if err := validation.Validate(e); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
-	return h.verifyUser(ctx, e.UserId)
+	return h.verifyUser(ctx, e.UserId, e.VerificationToken, e.VerificationTokenExpiresAt)
 }
 
 func (h *eventHandler) OnUserVerification(ctx context.Context, e *domain.UserVerificationEvent) error {
 	if err := validation.Validate(e); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
-	return h.verifyUser(ctx, e.UserId)
+	return h.verifyUser(ctx, e.UserId, e.Token, e.ExpiresAt)
 }
 
 func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e *domain.UserPasswordResetEvent) error {
@@ -58,9 +56,8 @@ func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e *domain.UserPa
 		return nil
 	}
 
-	expiresAt := user.ForgotPassword.ExpiresAt
 	now := time.Now().UTC()
-	if now.After(expiresAt) {
+	if now.After(e.ExpiresAt) {
 		return nil
 	}
 
@@ -70,8 +67,8 @@ func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e *domain.UserPa
 		ExpiresIn time.Duration
 	}{
 		Name:      user.DisplayName,
-		ResetURL:  fmt.Sprintf("http://localhost:3000/api/v1/users/reset-password?token=%s", user.ForgotPassword.Token),
-		ExpiresIn: expiresAt.Sub(now),
+		ResetURL:  fmt.Sprintf("http://localhost:3000/api/v1/users/reset-password?token=%s", e.Token),
+		ExpiresIn: e.ExpiresAt.Sub(now),
 	}
 
 	// TODO: have a buffer bool here...
@@ -92,7 +89,7 @@ func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e *domain.UserPa
 	return nil
 }
 
-func (h *eventHandler) verifyUser(ctx context.Context, userId string) error {
+func (h *eventHandler) verifyUser(ctx context.Context, userId, token string, expiresAt time.Time) error {
 	var user *domain.User
 
 	for range 4 {
@@ -100,7 +97,7 @@ func (h *eventHandler) verifyUser(ctx context.Context, userId string) error {
 		user, err = h.usersRepo.GetById(ctx, userId)
 		if err != nil {
 			if errs.IsNotFound(err) {
-				// we are sleeping here because we are still waiting the database to commit the user
+				// we are sleeping here because we are still waiting on the database to commit the user
 				time.Sleep(500 * time.Millisecond)
 				continue
 			} else {
@@ -111,16 +108,12 @@ func (h *eventHandler) verifyUser(ctx context.Context, userId string) error {
 		}
 	}
 
-	slog.Info("get user", "user", user)
-
 	if user.IsVerified {
 		return nil
 	}
 
 	now := time.Now().UTC()
-	expiresAt := user.Verification.ExpiresAt
 	if now.After(expiresAt) {
-		slog.Info("now.After(expiresAt)", "expiresAt", expiresAt, "elapsed", now.Sub(expiresAt))
 		return nil
 	}
 
@@ -130,7 +123,7 @@ func (h *eventHandler) verifyUser(ctx context.Context, userId string) error {
 		ExpiresIn time.Duration
 	}{
 		Name:      user.DisplayName,
-		VerifyURL: fmt.Sprintf("http://localhost:3000/api/v1/users/verify?token=%s", user.Verification.Token),
+		VerifyURL: fmt.Sprintf("http://localhost:3000/api/v1/users/verify?token=%s", token),
 		ExpiresIn: expiresAt.Sub(now),
 	}
 

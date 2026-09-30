@@ -2,7 +2,6 @@ package ports
 
 import (
 	"context"
-	"time"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 )
@@ -11,8 +10,6 @@ type UsersRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	GetById(ctx context.Context, id string) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
-	GetByVerificationToken(ctx context.Context, token string) (*domain.User, error)
-	GetByForgotPasswordToken(ctx context.Context, token string) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) error
 	Delete(ctx context.Context, user *domain.User) error
 }
@@ -33,7 +30,8 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	User domain.FrontendUser `json:"user"`
+	User    domain.FrontendUser `json:"user"`
+	Message string              `json:"message"`
 }
 
 type GetUserRequest struct {
@@ -49,6 +47,7 @@ type VerifyUserRequest struct {
 }
 
 type VerifyResponse struct {
+	Message string `json:"message"`
 }
 
 type SendVerificationRequest struct {
@@ -56,6 +55,7 @@ type SendVerificationRequest struct {
 }
 
 type SendVerificationResponse struct {
+	Message string `json:"message"`
 }
 
 type ForgotPasswordRequest struct {
@@ -63,8 +63,7 @@ type ForgotPasswordRequest struct {
 }
 
 type ForgotPasswordResponse struct {
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	Message string `json:"message"`
 }
 
 type ResetPasswordRequest struct {
@@ -73,4 +72,5 @@ type ResetPasswordRequest struct {
 }
 
 type ResetPasswordResponse struct {
+	Message string `json:"message"`
 }
