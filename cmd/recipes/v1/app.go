@@ -101,8 +101,6 @@ func Run() int {
 	}
 	tokensRepo := tokensrepo.NewMongo(tokensRepoCfg)
 
-	tokener := tokens.NewHMAC("secretpassword")
-
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database:   mainDataBase.Database,
 		Cache:      redisCache,
@@ -118,9 +116,6 @@ func Run() int {
 	}
 	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
 
-	// Services
-	argon2PasswordMgr := password.NewArgon2()
-
 	authServiceCfg := &authsrv.Config{
 		PasswordVerifier: password.NewArgon2(),
 		UsersRepo:        usersRepo,
@@ -129,12 +124,22 @@ func Run() int {
 	authService := authsrv.New(authServiceCfg)
 
 	usersServiceCfg := userssrv.Config{
-		PasswordManager:           argon2PasswordMgr,
-		VerificationTokenManager:  ports.NewTokenManager(tokener, tokensRepo, domain.TokenTypeVerification, 10*time.Minute),
-		PasswordResetTokenManager: ports.NewTokenManager(tokener, tokensRepo, domain.TokenTypePasswordReset, 10*time.Minute),
-		UsersRepo:                 usersRepo,
-		Transactor:                transactor,
-		EventPublisher:            mainMessageBroker.Client,
+		PasswordManager: password.NewArgon2(),
+		VerificationTokenManager: ports.NewTokenManager(
+			tokens.NewHMAC(cfg.Tokens.Verification.Secret),
+			tokensRepo,
+			domain.TokenTypeVerification,
+			cfg.Tokens.Verification.ExpiresAfter,
+		),
+		PasswordResetTokenManager: ports.NewTokenManager(
+			tokens.NewHMAC(cfg.Tokens.PasswordReset.Secret),
+			tokensRepo,
+			domain.TokenTypePasswordReset,
+			cfg.Tokens.PasswordReset.ExpiresAfter,
+		),
+		UsersRepo:      usersRepo,
+		Transactor:     transactor,
+		EventPublisher: mainMessageBroker.Client,
 	}
 	usersService := userssrv.New(usersServiceCfg)
 

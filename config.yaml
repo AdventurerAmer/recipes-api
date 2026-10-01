@@ -8,6 +8,12 @@ auth:
   name: recipes
   maxAge: 24h
 
+tokens:
+  verification:
+    expiresAfter: 10m
+  passwordReset:
+    expiresAfter: 10m
+
 services:
   recipes:
     name: recipes
