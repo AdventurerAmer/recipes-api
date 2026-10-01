@@ -52,10 +52,6 @@ func (h *eventHandler) OnUserPasswordReset(ctx context.Context, e *domain.UserPa
 		return fmt.Errorf("'usersRepo.GetById' failed: %w", err)
 	}
 
-	if user.PasswordHash != "" {
-		return nil
-	}
-
 	now := time.Now().UTC()
 	if now.After(e.ExpiresAt) {
 		return nil

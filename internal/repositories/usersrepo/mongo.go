@@ -113,7 +113,7 @@ func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
 	type updateModel struct {
 		Id           string    `bson:"-"`
 		CreatedAt    time.Time `bson:"-"`
-		Email        string    `bson:"email"`
+		Email        string    `bson:"-"`
 		DisplayName  string    `bson:"displayName"`
 		PasswordHash string    `bson:"passwordHash"`
 		IsVerified   bool      `bson:"isVerified"`
@@ -148,7 +148,7 @@ func (repo *mongoRepo) Update(ctx context.Context, user *domain.User) error {
 		return nil
 	}
 	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
-		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
+		return fmt.Errorf("'Transactor.WithTransaction' failed: %w", err)
 	}
 
 	return nil
@@ -181,7 +181,7 @@ func (repo *mongoRepo) Delete(ctx context.Context, user *domain.User) error {
 		return nil
 	}
 	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
-		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
+		return fmt.Errorf("'Transactor.WithTransaction' failed: %w", err)
 	}
 
 	return nil

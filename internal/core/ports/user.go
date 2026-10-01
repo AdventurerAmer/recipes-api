@@ -17,6 +17,7 @@ type UsersRepository interface {
 type UsersService interface {
 	Register(ctx context.Context, req RegisterRequest) (RegisterResponse, *domain.User, error)
 	Get(ctx context.Context, req GetUserRequest) (GetUserResponse, error)
+	Update(ctx context.Context, req UpdateUserRequest) (UpdateUserResponse, error)
 	SendVerification(ctx context.Context, req SendVerificationRequest) (SendVerificationResponse, error)
 	Verify(ctx context.Context, req VerifyUserRequest) (VerifyResponse, error)
 	ForgotPassword(ctx context.Context, req ForgotPasswordRequest) (ForgotPasswordResponse, error)
@@ -26,7 +27,7 @@ type UsersService interface {
 
 type RegisterRequest struct {
 	Email       string `json:"email" validate:"required,email"`
-	DisplayName string `json:"displayName" validate:"required,min=8,max=32"`
+	DisplayName string `json:"displayName" validate:"required,min=3,max=32"`
 	Password    string `json:"password" validate:"required,strong_password"`
 }
 
@@ -84,4 +85,13 @@ type ChangePasswordRequest struct {
 
 type ChangePasswordResponse struct {
 	Message string `json:"message"`
+}
+
+type UpdateUserRequest struct {
+	UserId      string  `json:"userId" validate:"required"`
+	DisplayName *string `json:"displayName" validate:"omitempty,min=3,max=32"`
+}
+
+type UpdateUserResponse struct {
+	User *domain.FrontendUser `json:"user"`
 }

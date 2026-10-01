@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/AdventurerAmer/recipes-api/errs"
+	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 )
 
@@ -25,17 +27,18 @@ func New(cfg *Config) ports.AuthService {
 func (srv *service) Login(ctx context.Context, req ports.LoginRequest) (ports.LoginResponse, error) {
 	user, err := srv.UsersRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		return ports.LoginResponse{}, fmt.Errorf("'UsersRepo.GetByUsername' failed: %w", err)
+		return ports.LoginResponse{}, fmt.Errorf("'UsersRepo.GetByEmail' failed: %w", err)
 	}
 	ok, err := srv.PasswordVerifier.Verify(req.Password, user.PasswordHash)
 	if err != nil {
 		return ports.LoginResponse{}, fmt.Errorf("'verifyPassword' failed: %w", err)
 	}
 	if !ok {
-		return ports.LoginResponse{}, fmt.Errorf("'verifyPassword' failed: %w", err)
+		return ports.LoginResponse{}, errs.NewAuthentication("invalid credentials")
 	}
+	frontendUser := domain.NewFrontendUser(user)
 	return ports.LoginResponse{
-		User: user,
+		User: &frontendUser,
 	}, nil
 }
 

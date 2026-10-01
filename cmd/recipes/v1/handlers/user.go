@@ -49,6 +49,23 @@ func (h *Users) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (h *Users) Update(c *gin.Context) {
+	var req ports.UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(err)
+		return
+	}
+	req.UserId = c.GetString("user_id")
+
+	resp, err := h.service.Update(c, req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
 func (h *Users) SendVerification(c *gin.Context) {
 	var req ports.SendVerificationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

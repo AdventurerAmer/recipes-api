@@ -17,11 +17,13 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	User *domain.User `json:"user"`
+	User *domain.FrontendUser `json:"user"`
 }
 
 type LogoutRequest struct {
+	Message string `json:"message"`
 }
 
 type LogoutResponse struct {
+	Message string `json:"message"`
 }

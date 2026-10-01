@@ -35,6 +35,8 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/cache"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/textsearch"
+	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
+	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/authsrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/userssrv"
@@ -43,6 +45,7 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/repositories/usersrepo"
 	"github.com/AdventurerAmer/recipes-api/logging"
 	"github.com/AdventurerAmer/recipes-api/mongoutils"
+	"github.com/AdventurerAmer/recipes-api/tokens"
 	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
 
@@ -98,6 +101,8 @@ func Run() int {
 	}
 	tokensRepo := tokensrepo.NewMongo(tokensRepoCfg)
 
+	tokener := tokens.NewHMAC("secretpassword")
+
 	usersRepoCfg := usersrepo.MongoConfig{
 		Database:   mainDataBase.Database,
 		Cache:      redisCache,
@@ -124,11 +129,12 @@ func Run() int {
 	authService := authsrv.New(authServiceCfg)
 
 	usersServiceCfg := userssrv.Config{
-		PasswordManager: argon2PasswordMgr,
-		UsersRepo:       usersRepo,
-		TokensRepo:      tokensRepo,
-		Transactor:      transactor,
-		EventPublisher:  mainMessageBroker.Client,
+		PasswordManager:           argon2PasswordMgr,
+		VerificationTokenManager:  ports.NewTokenManager(tokener, tokensRepo, domain.TokenTypeVerification, 10*time.Minute),
+		PasswordResetTokenManager: ports.NewTokenManager(tokener, tokensRepo, domain.TokenTypePasswordReset, 10*time.Minute),
+		UsersRepo:                 usersRepo,
+		Transactor:                transactor,
+		EventPublisher:            mainMessageBroker.Client,
 	}
 	usersService := userssrv.New(usersServiceCfg)
 
@@ -168,13 +174,14 @@ func Run() int {
 	{
 		v1.POST("/users", usersHandler.Register)
 		v1.GET("/users/me", authHandler.AuthMiddleware(), usersHandler.Get)
+		v1.PUT("/users/me", authHandler.AuthMiddleware(), usersHandler.Update)
 
 		v1.POST("/users/verify", usersHandler.SendVerification)
 		v1.GET("/users/verify", usersHandler.Verify)
 
 		v1.POST("/users/forgot-password", usersHandler.ForgotPassword)
-		v1.GET("/users/reset-password", usersHandler.ResetPassword)
-		v1.GET("/users/change-password", authHandler.AuthMiddleware(), usersHandler.ChangePassword)
+		v1.POST("/users/reset-password", usersHandler.ResetPassword)
+		v1.POST("/users/change-password", authHandler.AuthMiddleware(), usersHandler.ChangePassword)
 
 		v1.POST("/auth/login", authHandler.Login)
 		v1.POST("/auth/logout", authHandler.AuthMiddleware(), authHandler.Logout)
