@@ -58,11 +58,11 @@ func (srv *service) Get(ctx context.Context, req ports.GetRecipeRequest) (ports.
 
 func (srv *service) List(ctx context.Context, req ports.ListRecipesRequest) (ports.ListRecipesResponse, error) {
 	limit := min(req.Limit, srv.MaxLimit)
-	recipes, total, err := srv.RecipesRepo.List(ctx, req.LastId, req.UserId, req.Sort, limit)
+	page, err := srv.RecipesRepo.List(ctx, req.Cursor, req.UserId, int64(limit))
 	if err != nil {
 		return ports.ListRecipesResponse{}, fmt.Errorf("'RecipesRepo.List' failed: %w", err)
 	}
-	return ports.ListRecipesResponse{Recipes: recipes, Total: total}, nil
+	return ports.ListRecipesResponse{Page: *page}, nil
 }
 
 func (srv *service) Search(ctx context.Context, req ports.SearchRecipesRequest) (ports.SearchRecipesResponse, error) {

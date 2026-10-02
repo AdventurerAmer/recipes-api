@@ -66,10 +66,6 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, erro
 	key := composeRecipeCacheKey(id)
 	if err := repo.Cache.Get(ctx, key, &recipe); err == nil {
 		return &recipe, nil
-	} else if errs.IsNotFound(err) {
-		defer func() {
-			_ = repo.Cache.Put(ctx, key, recipe, 10*time.Second)
-		}()
 	}
 
 	filter := bson.M{"_id": oid}
@@ -77,60 +73,24 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, erro
 	if err := result.Decode(&recipe); err != nil {
 		return nil, fmt.Errorf("'result.Decode' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
 	}
+
+	_ = repo.Cache.Put(ctx, key, recipe, 10*time.Minute)
+
 	return &recipe, nil
 }
 
-func (repo *mongoRepo) List(ctx context.Context, userId, lastId, sort string, limit int) ([]domain.Recipe, int, error) {
+func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit int64) (*domain.Page[domain.Recipe], error) {
 	filter := bson.M{}
-	if lastId != "" {
-		oid, err := primitive.ObjectIDFromHex(lastId)
-		if err != nil {
-			return nil, 0, fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
-		}
-		filter["_id"] = bson.M{"$gt": oid}
-	}
 	if userId != "" {
 		filter["userId"] = userId
 	}
-	match := bson.D{{Key: "$match", Value: filter}}
-	pagination := bson.D{
-		{Key: "recipes", Value: bson.A{
-			bson.D{{Key: "$sort", Value: mongoutils.ComposeSortStage(sort)}},
-			bson.D{{Key: "$limit", Value: limit}},
-		}},
-		{Key: "total", Value: bson.A{
-			bson.D{{Key: "$count", Value: "count"}},
-		}},
-	}
-	facet := bson.D{{Key: "$facet", Value: pagination}}
-	pipeline := mongo.Pipeline{match, facet}
-	cursor, err := repo.collection.Aggregate(ctx, pipeline)
+
+	page, err := mongoutils.FindCursorPaginated[domain.Recipe](ctx, repo.collection, cursor, filter, limit)
 	if err != nil {
-		return nil, 0, fmt.Errorf("'collection.Aggregate' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
-	}
-	defer mongoutils.CloseCursor(cursor)
-
-	type Total struct {
-		Count int `bson:"count"`
+		return nil, mongoutils.ToDomainErr(err, "recipe")
 	}
 
-	var results []struct {
-		Recipes []domain.Recipe `bson:"recipes"`
-		Totals  []Total         `bson:"total"`
-	}
-
-	if err := cursor.All(ctx, &results); err != nil {
-		return nil, 0, fmt.Errorf("'cursor.All' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
-	}
-	if len(results) == 0 {
-		return nil, 0, nil
-	}
-	result := results[0]
-	total := 0
-	if len(result.Totals) != 0 {
-		total = result.Totals[0].Count
-	}
-	return result.Recipes, total, nil
+	return page, nil
 }
 
 func (repo *mongoRepo) Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error) {

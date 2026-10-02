@@ -10,17 +10,17 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 )
 
-type HMACTokenManager struct {
+type HMACTokener struct {
 	pepper []byte
 }
 
 func NewHMAC(pepper string) ports.Tokener {
-	return &HMACTokenManager{
+	return &HMACTokener{
 		pepper: []byte(pepper),
 	}
 }
 
-func (tm *HMACTokenManager) Generate() (plain string, hash string, err error) {
+func (tm *HMACTokener) Generate() (plain string, hash string, err error) {
 	b := make([]byte, 32) // 256 bits of entropy
 	if _, err = rand.Read(b); err != nil {
 		return "", "", err
@@ -31,13 +31,13 @@ func (tm *HMACTokenManager) Generate() (plain string, hash string, err error) {
 	return plain, hash, nil
 }
 
-func (tm *HMACTokenManager) Hash(plain string) string {
+func (tm *HMACTokener) Hash(plain string) string {
 	mac := hmac.New(sha256.New, tm.pepper)
 	mac.Write([]byte(plain))
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func (tm *HMACTokenManager) Verify(plain, hash string) bool {
+func (tm *HMACTokener) Verify(plain, hash string) bool {
 	expected, err := hex.DecodeString(hash)
 	if err != nil {
 		return false

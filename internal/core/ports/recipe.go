@@ -10,7 +10,7 @@ import (
 type RecipesRepository interface {
 	Create(ctx context.Context, recipe *domain.Recipe) error
 	Get(ctx context.Context, id string) (*domain.Recipe, error)
-	List(ctx context.Context, userId, lastId, sort string, limit int) ([]domain.Recipe, int, error)
+	List(ctx context.Context, cursor, userId string, limit int64) (*domain.Page[domain.Recipe], error)
 	Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error)
 	Update(ctx context.Context, recipe *domain.Recipe) error
 	Delete(ctx context.Context, recipe *domain.Recipe) error
@@ -49,10 +49,13 @@ type GetRecipeResponse struct {
 }
 
 type ListRecipesRequest struct {
-	LastId string `json:"lastID" form:"lastID"`
-	UserId string `json:"userID" from:"userID"`
-	Sort   string `json:"sortBy" form:"sortBy,default=-createdAt"`
+	Cursor string `json:"cursor" from:"cursor"`
+	UserId string `json:"userId" from:"userId"`
 	Limit  int    `json:"limit" form:"limit,default=20"`
+}
+
+type ListRecipesResponse struct {
+	domain.Page[domain.Recipe] `json:",inline"`
 }
 
 type SearchRecipesRequest struct {
@@ -62,11 +65,6 @@ type SearchRecipesRequest struct {
 }
 
 type SearchRecipesResponse struct {
-	Recipes []domain.Recipe `json:"recipes"`
-	Total   int             `json:"total"`
-}
-
-type ListRecipesResponse struct {
 	Recipes []domain.Recipe `json:"recipes"`
 	Total   int             `json:"total"`
 }

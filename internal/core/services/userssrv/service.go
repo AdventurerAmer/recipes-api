@@ -8,13 +8,14 @@ import (
 	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
+	"github.com/AdventurerAmer/recipes-api/tokens"
 	"github.com/AdventurerAmer/recipes-api/validation"
 )
 
 type Config struct {
 	PasswordManager           ports.PasswordManager
-	VerificationTokenManager  *ports.TokenManager
-	PasswordResetTokenManager *ports.TokenManager
+	VerificationTokenManager  *tokens.Manager
+	PasswordResetTokenManager *tokens.Manager
 	Transactor                ports.Transactor
 	UsersRepo                 ports.UsersRepository
 	EventPublisher            ports.EventPublisher

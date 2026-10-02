@@ -36,7 +36,6 @@ import (
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/textsearch"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
-	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/authsrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/recipessrv"
 	"github.com/AdventurerAmer/recipes-api/internal/core/services/userssrv"
@@ -125,13 +124,13 @@ func Run() int {
 
 	usersServiceCfg := userssrv.Config{
 		PasswordManager: password.NewArgon2(),
-		VerificationTokenManager: ports.NewTokenManager(
+		VerificationTokenManager: tokens.NewManager(
 			tokens.NewHMAC(cfg.Tokens.Verification.Secret),
 			tokensRepo,
 			domain.TokenTypeVerification,
 			cfg.Tokens.Verification.ExpiresAfter,
 		),
-		PasswordResetTokenManager: ports.NewTokenManager(
+		PasswordResetTokenManager: tokens.NewManager(
 			tokens.NewHMAC(cfg.Tokens.PasswordReset.Secret),
 			tokensRepo,
 			domain.TokenTypePasswordReset,

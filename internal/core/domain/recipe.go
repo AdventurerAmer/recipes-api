@@ -16,3 +16,11 @@ type Recipe struct {
 	UpdatedAt    time.Time `json:"updatedAt" bson:"updatedAt"`
 	Version      int       `json:"version" bson:"version"`
 }
+
+func (r Recipe) GetId() string {
+	return r.Id
+}
+
+func (r Recipe) GetCreatedAt() time.Time {
+	return r.CreatedAt
+}
