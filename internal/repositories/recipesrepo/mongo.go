@@ -80,6 +80,12 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, erro
 }
 
 func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit int64) (*domain.Page[domain.Recipe], error) {
+	key := composeRecipesCacheKey(cursor, userId, limit)
+	var cachedPage domain.Page[domain.Recipe]
+	if err := repo.Cache.Get(ctx, key, &cachedPage); err == nil {
+		return &cachedPage, nil
+	}
+
 	filter := bson.M{}
 	if userId != "" {
 		filter["userId"] = userId
@@ -89,6 +95,8 @@ func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit in
 	if err != nil {
 		return nil, mongoutils.ToDomainErr(err, "recipe")
 	}
+
+	_ = repo.Cache.Put(ctx, key, page, 30*time.Second)
 
 	return page, nil
 }
