@@ -21,7 +21,7 @@ type Service struct {
 	WriteTimeout            time.Duration `koanf:"writeTimeout" validate:"required,min=1s"`
 	IdleTimeout             time.Duration `koanf:"idleTimeout" validate:"required,min=1s"`
 	DefaultTimeout          time.Duration `koanf:"defaultTimeout" validate:"required,min=1s"`
-	HealthCheckTimeout      time.Duration `koanf:"defaultTimeout" validate:"required,min=1ms"`
+	HealthCheckTimeout      time.Duration `koanf:"healthCheckTimeout" validate:"required,min=1ms"`
 	GracefulShutdownTimeout time.Duration `koanf:"gracefulShutdownTimeout" validate:"required,min=1s"`
 	allowedOrigins          []string      `koanf:"allowedOrigins" validate:"required"`
 }

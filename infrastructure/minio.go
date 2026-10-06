@@ -37,12 +37,12 @@ func (cfg *Minio) Connect(ctx context.Context) (Disconnecter, error) {
 		if res.err != nil {
 			return nil, res.err
 		}
-		return &MinioContext{client: res.client}, nil
+		return &MinioContext{Client: res.client}, nil
 	}
 }
 
 type MinioContext struct {
-	client *minio.Client
+	Client *minio.Client
 }
 
 func (c *MinioContext) Disconnect(context.Context) error {

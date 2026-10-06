@@ -3,14 +3,13 @@ package recipesrepo
 import "fmt"
 
 const (
-	recipeKeyPrefix  = "recipe:"
-	recipesKeyPrefix = "recipes:"
+	recipesVersionKey = "recipes:version"
 )
 
-func composeRecipeCacheKey(id string) string {
-	return fmt.Sprintf("%s:id:%s", recipeKeyPrefix, id)
+func composeRecipeKey(id string) string {
+	return fmt.Sprintf("recipe:id:%s", id)
 }
 
-func composeRecipesCacheKey(cursor, userId string, limit int64) string {
-	return fmt.Sprintf("%s:cursor:%s:sort:%s:limit:%d", recipesKeyPrefix, cursor, userId, limit)
+func composeRecipesKey(cursor, userId string, limit int64) string {
+	return fmt.Sprintf("recipes:cursor:%s:userId:%s:limit:%d", cursor, userId, limit)
 }

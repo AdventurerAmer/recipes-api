@@ -27,15 +27,15 @@ func New(cfg Config) ports.RecipesService {
 	}
 }
 
-func (srv *service) Create(ctx context.Context, user *domain.User, req ports.CreateRecipeRequest) (ports.CreateRecipeResponse, error) {
-	bucket := ports.RecipeImagesBucketName
+func (srv *service) Create(ctx context.Context, req ports.CreateRecipeRequest) (ports.CreateRecipeResponse, error) {
+	bucket := ports.BucketNameImages
 	objectName := uuid.NewString()
 	if err := srv.ObjectStorage.Upload(ctx, bucket, objectName, req.Image); err != nil {
 		return ports.CreateRecipeResponse{}, fmt.Errorf("'ObjectStorage.Upload' failed: %w", err)
 	}
 	recipe := domain.Recipe{
 		CreatedAt:    time.Now().UTC(),
-		UserId:       user.Id,
+		UserId:       req.UserId,
 		Name:         req.Recipe.Name,
 		Tags:         req.Recipe.Tags,
 		Ingredients:  req.Recipe.Ingredients,
@@ -95,8 +95,8 @@ func (srv *service) Update(ctx context.Context, user *domain.User, req ports.Upd
 	if req.Recipe.Ingredients != nil {
 		recipe.Ingredients = req.Recipe.Ingredients
 	}
+	bucket := ports.BucketNameImages
 	if req.Image != nil {
-		bucket := ports.RecipeImagesBucketName
 		objectName := uuid.NewString()
 		if err := srv.ObjectStorage.Upload(ctx, bucket, objectName, *req.Image); err != nil {
 			return ports.UpdateRecipeResponse{}, fmt.Errorf("'ObjectStorage.Upload' failed: %w", err)

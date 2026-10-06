@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
@@ -20,30 +21,32 @@ func NewRecipes(service ports.RecipesService) *Recipes {
 }
 
 func (h *Recipes) Create(c *gin.Context) {
+	userId := c.GetString("user_id")
+
 	var req ports.CreateRecipeRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	session := sessions.Default(c)
-	user := domain.User{
-		Id:          session.Get("id").(string),
-		Email:       session.Get("email").(string),
-		DisplayName: session.Get("displayName").(string),
+	if err := json.Unmarshal([]byte(req.RecipeStr), &req.Recipe); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid recipe JSON format"})
+		return
 	}
+
 	file, err := req.ImageHeader.Open()
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
+	req.UserId = userId
 	req.Image = ports.ObjectStorageFile{
 		Reader:      file,
 		Size:        int(req.ImageHeader.Size),
 		ContentType: req.ImageHeader.Header.Get("Content-Type"),
 	}
-	resp, err := h.service.Create(c, &user, req)
+	resp, err := h.service.Create(c, req)
 	if err != nil {
 		c.Error(err)
 		return

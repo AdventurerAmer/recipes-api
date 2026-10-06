@@ -18,25 +18,25 @@ func NewMinio(client *minio.Client) ports.ObjectStorage {
 	}
 }
 
-func (mos *minioObjectStorage) GetURL(bucket, objectName string) string {
+func (mos *minioObjectStorage) GetURL(bucket ports.BucketName, name string) string {
 	endpoint := mos.client.EndpointURL()
-	return fmt.Sprintf("http://%s/%s/%s", endpoint, bucket, objectName)
+	return fmt.Sprintf("http://%s/%s/%s", endpoint, bucket, name)
 }
 
-func (mos *minioObjectStorage) Upload(ctx context.Context, bucket, objectName string, file ports.ObjectStorageFile) error {
+func (mos *minioObjectStorage) Upload(ctx context.Context, bucket ports.BucketName, name string, file ports.ObjectStorageFile) error {
 	opts := minio.PutObjectOptions{
 		ContentType: file.ContentType,
 	}
-	_, err := mos.client.PutObject(ctx, bucket, objectName, file.Reader, int64(file.Size), opts)
+	_, err := mos.client.PutObject(ctx, string(bucket), name, file.Reader, int64(file.Size), opts)
 	if err != nil {
 		return fmt.Errorf("'client.PutObject' failed: %w", err)
 	}
 	return nil
 }
 
-func (mos *minioObjectStorage) Delete(ctx context.Context, bucket, objectName string) error {
+func (mos *minioObjectStorage) Delete(ctx context.Context, bucket ports.BucketName, name string) error {
 	opts := minio.RemoveObjectOptions{}
-	err := mos.client.RemoveObject(ctx, bucket, objectName, opts)
+	err := mos.client.RemoveObject(ctx, string(bucket), name, opts)
 	if err != nil {
 		return fmt.Errorf("'client.RemoveObject' failed: %w", err)
 	}

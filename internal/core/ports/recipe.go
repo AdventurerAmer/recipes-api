@@ -17,7 +17,7 @@ type RecipesRepository interface {
 }
 
 type RecipesService interface {
-	Create(ctx context.Context, user *domain.User, req CreateRecipeRequest) (CreateRecipeResponse, error)
+	Create(ctx context.Context, req CreateRecipeRequest) (CreateRecipeResponse, error)
 	Get(ctx context.Context, req GetRecipeRequest) (GetRecipeResponse, error)
 	List(ctx context.Context, req ListRecipesRequest) (ListRecipesResponse, error)
 	Search(ctx context.Context, name SearchRecipesRequest) (SearchRecipesResponse, error)
@@ -26,12 +26,14 @@ type RecipesService interface {
 }
 
 type CreateRecipeRequest struct {
-	Recipe struct {
-		Name         string   `json:"name" validate:"required,min=1"`
-		Tags         []string `json:"tags"`
-		Ingredients  []string `json:"ingredients" validate:"required,min=1"`
-		Instructions []string `json:"instructions" validate:"required,min=1"`
-	} `form:"recipe" validate:"required"`
+	UserId    string `json:"userId" validate:"required"`
+	RecipeStr string `form:"recipe"`
+	Recipe    struct {
+		Name         string   `json:"name" validate:"required,min=1,max=32"`
+		Tags         []string `json:"tags" validate:"omitempty"`
+		Ingredients  []string `json:"ingredients" validate:"required,min=1,max=128"`
+		Instructions []string `json:"instructions" validate:"required,min=1,max=128"`
+	} `json:"recipe" validate:"required"`
 	ImageHeader *multipart.FileHeader `form:"image" validate:"required"`
 	Image       ObjectStorageFile
 }
@@ -49,8 +51,8 @@ type GetRecipeResponse struct {
 }
 
 type ListRecipesRequest struct {
-	Cursor string `json:"cursor" from:"cursor"`
-	UserId string `json:"userId" from:"userId"`
+	Cursor string `json:"cursor" form:"cursor"`
+	UserId string `json:"userId" form:"userId"`
 	Limit  int    `json:"limit" form:"limit,default=20"`
 }
 

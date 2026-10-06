@@ -33,6 +33,7 @@ import (
 	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/infrastructure"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/cache"
+	"github.com/AdventurerAmer/recipes-api/internal/adapters/objectstorage"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/password"
 	"github.com/AdventurerAmer/recipes-api/internal/adapters/textsearch"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
@@ -74,7 +75,6 @@ func Run() int {
 	mainCache := infra.Redis(&cfg.Infra.MainCache)
 	mainMessageBroker := infra.RabbitMQ(&cfg.Infra.MainMessageBroker)
 	mainObjectStorage := infra.Minio(&cfg.Infra.MainObjectStorage)
-	_ = mainObjectStorage
 	mainTextSearch := infra.ElasticSearch(&cfg.Infra.MainTextSearch)
 	if err := infra.Start(context.Background()); err != nil {
 		logger.Error("failed to connect to infrastructure", "error", err)
@@ -143,8 +143,9 @@ func Run() int {
 	usersService := userssrv.New(usersServiceCfg)
 
 	recipesServiceCfg := recipessrv.Config{
-		RecipesRepo: recipesRepo,
-		MaxLimit:    100, // TODO: hardcoding
+		RecipesRepo:   recipesRepo,
+		ObjectStorage: objectstorage.NewMinio(mainObjectStorage.Client),
+		MaxLimit:      100, // TODO: hardcoding
 	}
 	recipesService := recipessrv.New(recipesServiceCfg)
 

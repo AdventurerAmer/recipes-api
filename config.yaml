@@ -18,6 +18,7 @@ services:
   recipes:
     name: recipes
     port: 3000
+    defaultTimeout: 5s
   
 constants:
   

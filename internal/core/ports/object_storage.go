@@ -5,7 +5,11 @@ import (
 	"io"
 )
 
-const RecipeImagesBucketName = "recipes/images"
+type BucketName string
+
+const (
+	BucketNameImages BucketName = "images"
+)
 
 type ObjectStorageFile struct {
 	Reader      io.Reader
@@ -14,7 +18,7 @@ type ObjectStorageFile struct {
 }
 
 type ObjectStorage interface {
-	GetURL(bucket, objectName string) string
-	Upload(ctx context.Context, bucket, objectName string, file ObjectStorageFile) error
-	Delete(ctx context.Context, bucket, objectName string) error
+	GetURL(bucket BucketName, name string) string
+	Upload(ctx context.Context, bucket BucketName, name string, file ObjectStorageFile) error
+	Delete(ctx context.Context, bucket BucketName, name string) error
 }

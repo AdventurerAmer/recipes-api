@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/errs"
@@ -50,7 +51,7 @@ func (repo *mongoRepo) Create(ctx context.Context, recipe *domain.Recipe) error 
 	}
 
 	if err := repo.Transactor.WithTransaction(ctx, txn); err != nil {
-		return fmt.Errorf("'txnMgr.WithTransaction' failed: %w", err)
+		return fmt.Errorf("'Transactor.WithTransaction' failed: %w", err)
 	}
 
 	return nil
@@ -63,7 +64,7 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, erro
 	}
 	var recipe domain.Recipe
 
-	key := composeRecipeCacheKey(id)
+	key := composeRecipeKey(id)
 	if err := repo.Cache.Get(ctx, key, &recipe); err == nil {
 		return &recipe, nil
 	}
@@ -80,9 +81,9 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, erro
 }
 
 func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit int64) (*domain.Page[domain.Recipe], error) {
-	key := composeRecipesCacheKey(cursor, userId, limit)
+	key := composeRecipesKey(cursor, userId, limit)
 	var cachedPage domain.Page[domain.Recipe]
-	if err := repo.Cache.Get(ctx, key, &cachedPage); err == nil {
+	if err := repo.Cache.GetVersioned(ctx, key, recipesVersionKey, &cachedPage); err == nil {
 		return &cachedPage, nil
 	}
 
@@ -96,7 +97,9 @@ func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit in
 		return nil, mongoutils.ToDomainErr(err, "recipe")
 	}
 
-	_ = repo.Cache.Put(ctx, key, page, 30*time.Second)
+	if err := repo.Cache.PutVersioned(ctx, key, recipesVersionKey, page, 30*time.Second); err != nil {
+		slog.Error("'Cache.PutVersioned' failed", "error", err)
+	}
 
 	return page, nil
 }
@@ -152,8 +155,12 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 			return errs.NewConflict(nil, "recipe was modified by another request")
 		}
 
-		if err := repo.Cache.Delete(ctx, composeRecipeCacheKey(recipe.Id)); err != nil {
-			return fmt.Errorf("'Cache.Delet' failed: %w", err)
+		if err := repo.Cache.Delete(ctx, composeRecipeKey(recipe.Id)); err != nil {
+			return fmt.Errorf("'Cache.Delete' failed: %w", err)
+		}
+
+		if _, err := repo.Cache.Inc(ctx, recipesVersionKey); err != nil {
+			return fmt.Errorf("'Cache.Inc' failed: %w", err)
 		}
 
 		if err := repo.TextSearch.Index(tctx, "recipes", recipe.Id, recipe); err != nil {
@@ -188,8 +195,12 @@ func (repo *mongoRepo) Delete(ctx context.Context, recipe *domain.Recipe) error 
 			return errs.NewConflict(nil, "recipe was modified by another request")
 		}
 
-		if err := repo.Cache.Delete(ctx, composeRecipeCacheKey(recipe.Id)); err != nil {
-			return fmt.Errorf("'Cache.Delet' failed: %w", err)
+		if err := repo.Cache.Delete(ctx, composeRecipeKey(recipe.Id)); err != nil {
+			return fmt.Errorf("'Cache.Delete' failed: %w", err)
+		}
+
+		if _, err := repo.Cache.Inc(ctx, recipesVersionKey); err != nil {
+			return fmt.Errorf("'Cache.Inc' failed: %w", err)
 		}
 
 		if err := repo.TextSearch.Delete(tctx, "recipes", recipe.Id); err != nil {
