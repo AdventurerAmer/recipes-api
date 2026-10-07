@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
+	"github.com/AdventurerAmer/recipes-api/logging"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -31,7 +32,7 @@ func FindCursorPaginated[T domain.Pager](ctx context.Context,
 		}
 		query["$or"] = []bson.M{
 			{"createdAt": bson.M{"$lt": cursor.CreatedAt}},
-			{"createdAt": cursor.CreatedAt, "_id": bson.M{"$lt": cursor.CreatedAt}},
+			{"createdAt": cursor.CreatedAt, "_id": bson.M{"$lt": cursor.Id}},
 		}
 	}
 
@@ -39,7 +40,9 @@ func FindCursorPaginated[T domain.Pager](ctx context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("'collection.Find' failed: %w", err)
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		go closeCursor(ctx, cursor)
+	}()
 
 	var items []T
 	if err := cursor.All(ctx, &items); err != nil {
@@ -69,27 +72,15 @@ func FindCursorPaginated[T domain.Pager](ctx context.Context,
 		page.NextCursor = encoded
 	}
 
-	if len(page.Items) > 0 && cursorStr != "" {
-		first := page.Items[0]
-		prevCursor := domain.Cursor{
-			Id:        first.GetId(),
-			CreatedAt: first.GetCreatedAt(),
-		}
-		encoded, err := prevCursor.Encode()
-		if err != nil {
-			return nil, fmt.Errorf("'nextCursor.Encode' failed: %w", err)
-		}
-		page.PrevCursor = encoded
-		page.HasPrev = true
-	}
-
 	return page, nil
 }
 
-func CloseCursor(cursor *mongo.Cursor) {
+func closeCursor(parent context.Context, cursor *mongo.Cursor) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	// TODO: add retries here and make it async.
-	_ = cursor.Close(ctx)
+	if err := cursor.Close(ctx); err != nil {
+		logger := logging.Get(parent)
+		logger.Error("close cursor failed", "error", err)
+	}
 }

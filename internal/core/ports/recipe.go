@@ -21,8 +21,8 @@ type RecipesService interface {
 	Get(ctx context.Context, req GetRecipeRequest) (GetRecipeResponse, error)
 	List(ctx context.Context, req ListRecipesRequest) (ListRecipesResponse, error)
 	Search(ctx context.Context, name SearchRecipesRequest) (SearchRecipesResponse, error)
-	Update(ctx context.Context, user *domain.User, req UpdateRecipeRequest) (UpdateRecipeResponse, error)
-	Delete(ctx context.Context, user *domain.User, req DeleteRecipeRequest) (DeleteRecipeResponse, error)
+	Update(ctx context.Context, req UpdateRecipeRequest) (UpdateRecipeResponse, error)
+	Delete(ctx context.Context, req DeleteRecipeRequest) (DeleteRecipeResponse, error)
 }
 
 type CreateRecipeRequest struct {
@@ -72,13 +72,15 @@ type SearchRecipesResponse struct {
 }
 
 type UpdateRecipeRequest struct {
-	Id     string `json:"id" uri:"id" validate:"required"`
-	Recipe struct {
+	Id        string `json:"id" uri:"id" validate:"required"`
+	UserId    string `json:"userId" validate:"required"`
+	RecipeStr string `form:"recipe"`
+	Recipe    struct {
 		Name         *string  `json:"name" validate:"omitempty,min=1"`
 		Tags         []string `json:"tags" validate:"omitempty,min=1"`
 		Ingredients  []string `json:"ingredients" validate:"omitempty,min=1"`
 		Instructions []string `json:"instructions" validate:"omitempty,min=1"`
-	} `form:"recipe"`
+	} `json:"recipe"`
 	ImageHeader *multipart.FileHeader `form:"image"`
 	Image       *ObjectStorageFile
 }
@@ -88,7 +90,8 @@ type UpdateRecipeResponse struct {
 }
 
 type DeleteRecipeRequest struct {
-	Id string `json:"id" uri:"id" binding:"required"`
+	Id     string `json:"id" uri:"id" validate:"required"`
+	UserId string `json:"userId" validate:"required"`
 }
 
 type DeleteRecipeResponse struct {

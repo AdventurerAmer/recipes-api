@@ -44,7 +44,6 @@ type Pager interface {
 type Page[T Pager] struct {
 	Items      []T    `json:"items"`
 	NextCursor string `json:"nextCursor,omitempty"`
-	PrevCursor string `json:"prevCursor,omitempty"`
 	HasNext    bool   `json:"hasNext"`
 	HasPrev    bool   `json:"hasPrev"`
 }

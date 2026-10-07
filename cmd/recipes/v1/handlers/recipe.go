@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -104,17 +102,16 @@ func (h *Recipes) Get(c *gin.Context) {
 
 func (h *Recipes) Update(c *gin.Context) {
 	var req ports.UpdateRecipeRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	if err := c.ShouldBind(&req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	session := sessions.Default(c)
-	user := domain.User{
-		Id:          session.Get("id").(string),
-		Email:       session.Get("email").(string),
-		DisplayName: session.Get("displayName").(string),
-	}
 	if req.ImageHeader != nil {
 		file, err := req.ImageHeader.Open()
 		if err != nil {
@@ -127,7 +124,9 @@ func (h *Recipes) Update(c *gin.Context) {
 			ContentType: req.ImageHeader.Header.Get("Content-Type"),
 		}
 	}
-	resp, err := h.service.Update(c, &user, req)
+
+	req.UserId = c.GetString("user_id")
+	resp, err := h.service.Update(c, req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -137,20 +136,15 @@ func (h *Recipes) Update(c *gin.Context) {
 }
 
 func (h *Recipes) Delete(c *gin.Context) {
-	session := sessions.Default(c)
-	user := domain.User{
-		Id:          session.Get("id").(string),
-		Email:       session.Get("email").(string),
-		DisplayName: session.Get("displayName").(string),
-	}
-
 	var req ports.DeleteRecipeRequest
 	if err := c.ShouldBindUri(&req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	resp, err := h.service.Delete(c, &user, req)
+	req.UserId = c.GetString("user_id")
+
+	resp, err := h.service.Delete(c, req)
 	if err != nil {
 		c.Error(err)
 		return

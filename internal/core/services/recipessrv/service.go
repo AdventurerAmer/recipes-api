@@ -2,12 +2,13 @@ package recipessrv
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
+	"github.com/AdventurerAmer/recipes-api/validation"
 	"github.com/google/uuid"
 )
 
@@ -28,6 +29,10 @@ func New(cfg Config) ports.RecipesService {
 }
 
 func (srv *service) Create(ctx context.Context, req ports.CreateRecipeRequest) (ports.CreateRecipeResponse, error) {
+	if err := validation.Validate(req); err != nil {
+		return ports.CreateRecipeResponse{}, fmt.Errorf("validation failed: %w", err)
+	}
+
 	bucket := ports.BucketNameImages
 	objectName := uuid.NewString()
 	if err := srv.ObjectStorage.Upload(ctx, bucket, objectName, req.Image); err != nil {
@@ -49,6 +54,10 @@ func (srv *service) Create(ctx context.Context, req ports.CreateRecipeRequest) (
 }
 
 func (srv *service) Get(ctx context.Context, req ports.GetRecipeRequest) (ports.GetRecipeResponse, error) {
+	if err := validation.Validate(req); err != nil {
+		return ports.GetRecipeResponse{}, fmt.Errorf("validation failed: %w", err)
+	}
+
 	recipe, err := srv.RecipesRepo.Get(ctx, req.ID)
 	if err != nil {
 		return ports.GetRecipeResponse{}, fmt.Errorf("'RecipesRepo.Get' failed: %w", err)
@@ -57,6 +66,10 @@ func (srv *service) Get(ctx context.Context, req ports.GetRecipeRequest) (ports.
 }
 
 func (srv *service) List(ctx context.Context, req ports.ListRecipesRequest) (ports.ListRecipesResponse, error) {
+	if err := validation.Validate(req); err != nil {
+		return ports.ListRecipesResponse{}, fmt.Errorf("validation failed: %w", err)
+	}
+
 	limit := min(req.Limit, srv.MaxLimit)
 	page, err := srv.RecipesRepo.List(ctx, req.Cursor, req.UserId, int64(limit))
 	if err != nil {
@@ -66,6 +79,10 @@ func (srv *service) List(ctx context.Context, req ports.ListRecipesRequest) (por
 }
 
 func (srv *service) Search(ctx context.Context, req ports.SearchRecipesRequest) (ports.SearchRecipesResponse, error) {
+	if err := validation.Validate(req); err != nil {
+		return ports.SearchRecipesResponse{}, fmt.Errorf("validation failed: %w", err)
+	}
+
 	pageSize := min(req.PageSize, srv.MaxLimit)
 	recipes, total, err := srv.RecipesRepo.Search(ctx, req.Name, req.Page, pageSize)
 	if err != nil {
@@ -74,14 +91,17 @@ func (srv *service) Search(ctx context.Context, req ports.SearchRecipesRequest) 
 	return ports.SearchRecipesResponse{Recipes: recipes, Total: total}, nil
 }
 
-func (srv *service) Update(ctx context.Context, user *domain.User, req ports.UpdateRecipeRequest) (ports.UpdateRecipeResponse, error) {
+func (srv *service) Update(ctx context.Context, req ports.UpdateRecipeRequest) (ports.UpdateRecipeResponse, error) {
+	if err := validation.Validate(req); err != nil {
+		return ports.UpdateRecipeResponse{}, fmt.Errorf("validation failed: %w", err)
+	}
+
 	recipe, err := srv.RecipesRepo.Get(ctx, req.Id)
 	if err != nil {
 		return ports.UpdateRecipeResponse{}, fmt.Errorf("'RecipesRepo.Get' failed: %w", err)
 	}
-	if recipe.UserId != user.Id {
-		// TODO: auth and author errors
-		return ports.UpdateRecipeResponse{}, errors.New("access denied")
+	if recipe.UserId != req.UserId {
+		return ports.UpdateRecipeResponse{}, errs.NewAuthorization("access denied")
 	}
 	if req.Recipe.Name != nil {
 		recipe.Name = *req.Recipe.Name
@@ -109,14 +129,17 @@ func (srv *service) Update(ctx context.Context, user *domain.User, req ports.Upd
 	return ports.UpdateRecipeResponse{Recipe: recipe}, nil
 }
 
-func (srv *service) Delete(ctx context.Context, user *domain.User, req ports.DeleteRecipeRequest) (ports.DeleteRecipeResponse, error) {
+func (srv *service) Delete(ctx context.Context, req ports.DeleteRecipeRequest) (ports.DeleteRecipeResponse, error) {
+	if err := validation.Validate(req); err != nil {
+		return ports.DeleteRecipeResponse{}, fmt.Errorf("validation failed: %w", err)
+	}
+
 	recipe, err := srv.RecipesRepo.Get(ctx, req.Id)
 	if err != nil {
 		return ports.DeleteRecipeResponse{}, fmt.Errorf("'RecipesRepo.Get' failed: %w", err)
 	}
-	if recipe.UserId != user.Id {
-		// TODO: auth and author errors
-		return ports.DeleteRecipeResponse{}, fmt.Errorf("access denied")
+	if recipe.UserId != req.UserId {
+		return ports.DeleteRecipeResponse{}, errs.NewAuthorization("access denied")
 	}
 	if err := srv.RecipesRepo.Delete(ctx, recipe); err != nil {
 		return ports.DeleteRecipeResponse{}, fmt.Errorf("'RecipesRepo.Delete' failed: %w", err)
