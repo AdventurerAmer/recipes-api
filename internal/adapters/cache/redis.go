@@ -72,7 +72,7 @@ func (rc *redisCache) Put(ctx context.Context, key string, v any, TTL time.Durat
 	return nil
 }
 
-func (rc *redisCache) PutVersioned(ctx context.Context, key, versionKey string, version int64, v any, TTL time.Duration) error {
+func (rc *redisCache) PutVersioned(ctx context.Context, key, versionKey string, v any, TTL time.Duration) error {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return fmt.Errorf("'json.Marshal' failed: %w", err)
@@ -85,14 +85,15 @@ func (rc *redisCache) PutVersioned(ctx context.Context, key, versionKey string, 
 			version = "0"
 		end
 
-		local expected = ARGV[1]
-		if version ~= expected then
+		local lastPart = KEYS[1]:match("[^:]+$")
+		local expectedVersion = lastPart
+		if version ~= expectedVersion then
 			return redis.status_reply("OK")
 		end
 		
-		return redis.call('SET', KEYS[1], ARGV[2], 'EX', tonumber(ARGV[3]))
+		return redis.call('SET', KEYS[1], ARGV[1], 'EX', tonumber(ARGV[2]))
     `
-	if _, err := rc.client.Eval(ctx, script, []string{key, versionKey}, version, string(data), int(TTL.Seconds())).Result(); err != nil {
+	if _, err := rc.client.Eval(ctx, script, []string{key, versionKey}, string(data), int(TTL.Seconds())).Result(); err != nil {
 		return fmt.Errorf("'client.Set' failed: %w", err)
 	}
 	return nil

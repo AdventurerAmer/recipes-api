@@ -11,7 +11,7 @@ type Cache interface {
 	Get(ctx context.Context, key string, v any) error
 	GetVersioned(ctx context.Context, key, versionKey string, v any) (int64, bool, error)
 	Put(ctx context.Context, key string, v any, TTL time.Duration) error
-	PutVersioned(ctx context.Context, key, versionKey string, version int64, v any, TTL time.Duration) error
+	PutVersioned(ctx context.Context, key, versionKey string, v any, TTL time.Duration) error
 	Delete(ctx context.Context, keys ...string) error
 	IncDelPrev(ctx context.Context, keys ...string) error
 }
@@ -30,7 +30,7 @@ func (c *cacheStub) Put(ctx context.Context, key string, v any, TTL time.Duratio
 	return nil
 }
 
-func (c *cacheStub) PutVersioned(ctx context.Context, key, versionKey string, version int64, v any, TTL time.Duration) error {
+func (c *cacheStub) PutVersioned(ctx context.Context, key, versionKey string, v any, TTL time.Duration) error {
 	return nil
 }
 

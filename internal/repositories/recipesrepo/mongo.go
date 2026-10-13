@@ -96,7 +96,7 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, erro
 			defer cancel()
 
 			putKey := composeRecipePutKey(id, cacheVersion)
-			if err := repo.Cache.PutVersioned(cctx, putKey, versionKey, cacheVersion, recipe, repo.TTL); err != nil {
+			if err := repo.Cache.PutVersioned(cctx, putKey, versionKey, recipe, repo.TTL); err != nil {
 				logger := logging.Get(cctx)
 				logger.Error("'Cache.Put' failed", "error", err)
 			}
@@ -107,7 +107,7 @@ func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, erro
 }
 
 func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit int64) (*domain.Page[domain.Recipe], error) {
-	key := composeRecipesKey(cursor, userId, limit)
+	key := composeRecipesGetKey(cursor, userId, limit)
 	var cachedPage domain.Page[domain.Recipe]
 	cacheVersion, inCache, cacheErr := repo.Cache.GetVersioned(ctx, key, recipesVersionKey, &cachedPage)
 	if cacheErr == nil && inCache {
@@ -137,8 +137,8 @@ func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit in
 			cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
 			defer cancel()
 
-			putKey := fmt.Sprintf("%s:version:%d", key, cacheVersion)
-			if err := repo.Cache.Put(cctx, putKey, page, repo.TTL); err != nil {
+			putKey := composeRecipesPutKey(cursor, userId, limit, cacheVersion)
+			if err := repo.Cache.PutVersioned(cctx, putKey, recipesVersionKey, page, repo.TTL); err != nil {
 				logger := logging.Get(cctx)
 				logger.Error("'Cache.PutVersioned' failed", "error", err)
 			}
@@ -200,7 +200,7 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 		}
 
 		if err := repo.Cache.IncDelPrev(ctx, recipesVersionKey, composeRecipeVersionKey(recipe.Id)); err != nil {
-			return fmt.Errorf("'Cache.Inc' failed: %w", err)
+			return fmt.Errorf("'Cache.IncDelPrev' failed: %w", err)
 		}
 
 		if err := repo.TextSearch.Index(tctx, "recipes", recipe.Id, recipe); err != nil {
@@ -236,7 +236,7 @@ func (repo *mongoRepo) Delete(ctx context.Context, recipe *domain.Recipe) error 
 		}
 
 		if err := repo.Cache.IncDelPrev(ctx, recipesVersionKey, composeRecipeVersionKey(recipe.Id)); err != nil {
-			return fmt.Errorf("'Cache.IncDel' failed: %w", err)
+			return fmt.Errorf("'Cache.IncDelPrev' failed: %w", err)
 		}
 
 		if err := repo.TextSearch.Delete(tctx, "recipes", recipe.Id); err != nil {
