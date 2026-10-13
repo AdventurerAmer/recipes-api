@@ -6,8 +6,16 @@ const (
 	recipesVersionKey = "recipes:version"
 )
 
-func composeRecipeKey(id string) string {
+func composeRecipeGetKey(id string) string {
 	return fmt.Sprintf("recipe:id:%s", id)
+}
+
+func composeRecipeVersionKey(id string) string {
+	return fmt.Sprintf("recipe:id:%s:version", id)
+}
+
+func composeRecipePutKey(id string, version int64) string {
+	return fmt.Sprintf("recipe:id:%s:version:%d", id, version)
 }
 
 func composeRecipesKey(cursor, userId string, limit int64) string {

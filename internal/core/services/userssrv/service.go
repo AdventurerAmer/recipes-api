@@ -3,6 +3,7 @@ package userssrv
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/errs"
@@ -45,8 +46,8 @@ func (srv *service) Register(ctx context.Context, req ports.RegisterRequest) (po
 	user := &domain.User{
 		CreatedAt:    now,
 		UpdatedAt:    now,
-		Email:        req.Email,
-		DisplayName:  req.DisplayName,
+		Email:        strings.ToLower(strings.TrimSpace(req.Email)),
+		DisplayName:  strings.TrimSpace(req.DisplayName),
 		PasswordHash: passwordHash,
 	}
 

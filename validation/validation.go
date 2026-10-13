@@ -17,7 +17,6 @@ func Validate(s any) error {
 		}
 		return name
 	})
-	v.RegisterValidation("strong_password", StrongPasswordValidator)
 
 	if err := v.Struct(s); err != nil {
 		fields := formatValidationErrors(err)
@@ -55,8 +54,6 @@ func getErrorMessage(err validator.FieldError) string {
 		return "Must be a valid URL"
 	case "len":
 		return "Must be exactly " + err.Param() + " characters"
-	case "strong_password":
-		return "Must be at least 12 characters and at most 32 characters and it must include letters, numbers and special characters"
 	default:
 		return err.Error()
 	}

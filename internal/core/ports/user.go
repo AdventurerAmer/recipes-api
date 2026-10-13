@@ -28,7 +28,7 @@ type UsersService interface {
 type RegisterRequest struct {
 	Email       string `json:"email" validate:"required,email"`
 	DisplayName string `json:"displayName" validate:"required,min=3,max=32"`
-	Password    string `json:"password" validate:"required,strong_password"`
+	Password    string `json:"password" validate:"required,min=8,max=128"`
 }
 
 type RegisterResponse struct {
@@ -70,7 +70,7 @@ type ForgotPasswordResponse struct {
 
 type ResetPasswordRequest struct {
 	Token    string `json:"token" validate:"required,len=43"`
-	Password string `json:"password" validate:"required,strong_password"`
+	Password string `json:"password" validate:"required,min=8,max=128"`
 }
 
 type ResetPasswordResponse struct {
@@ -80,7 +80,7 @@ type ResetPasswordResponse struct {
 type ChangePasswordRequest struct {
 	UserId          string `json:"userId" validate:"required"`
 	CurrentPassword string `json:"currentPassword" validate:"required"`
-	NewPassword     string `json:"newPassword" validate:"strong_password"`
+	NewPassword     string `json:"newPassword" validate:"required,min=8,max=128"`
 }
 
 type ChangePasswordResponse struct {

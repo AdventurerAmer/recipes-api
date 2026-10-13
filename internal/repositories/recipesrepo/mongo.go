@@ -4,21 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/AdventurerAmer/recipes-api/errs"
 	"github.com/AdventurerAmer/recipes-api/internal/core/domain"
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
+	"github.com/AdventurerAmer/recipes-api/logging"
 	"github.com/AdventurerAmer/recipes-api/mongoutils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/sync/singleflight"
 )
 
 type MongoConfig struct {
 	Database   *mongo.Database
 	Cache      ports.Cache
+	TTL        time.Duration
 	TextSearch ports.TextSearch
 	Transactor ports.Transactor
 }
@@ -57,33 +59,58 @@ func (repo *mongoRepo) Create(ctx context.Context, recipe *domain.Recipe) error 
 	return nil
 }
 
+var sf singleflight.Group
+
 func (repo *mongoRepo) Get(ctx context.Context, id string) (*domain.Recipe, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, fmt.Errorf("'primitive.ObjectIDFromHex' failed: %w", err)
 	}
-	var recipe domain.Recipe
 
-	key := composeRecipeKey(id)
-	if err := repo.Cache.Get(ctx, key, &recipe); err == nil {
-		return &recipe, nil
+	var cachedRecipe domain.Recipe
+	key := composeRecipeGetKey(id)
+	versionKey := composeRecipeVersionKey(id)
+	cacheVersion, inCache, cacheErr := repo.Cache.GetVersioned(ctx, key, versionKey, &cachedRecipe)
+	if cacheErr == nil && inCache {
+		return &cachedRecipe, nil
 	}
 
-	filter := bson.M{"_id": oid}
-	result := repo.collection.FindOne(ctx, filter)
-	if err := result.Decode(&recipe); err != nil {
-		return nil, fmt.Errorf("'result.Decode' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
+	v, err, _ := sf.Do(key, func() (any, error) {
+		filter := bson.M{"_id": oid}
+		result := repo.collection.FindOne(ctx, filter)
+		var r domain.Recipe
+		if err := result.Decode(&r); err != nil {
+			return nil, fmt.Errorf("'result.Decode' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
+		}
+		return &r, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("'sf.Do' failed: %w", err)
 	}
 
-	_ = repo.Cache.Put(ctx, key, recipe, 10*time.Minute)
+	recipe := v.(*domain.Recipe)
 
-	return &recipe, nil
+	if cacheErr == nil && !inCache {
+		go func() {
+			cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+			defer cancel()
+
+			putKey := composeRecipePutKey(id, cacheVersion)
+			if err := repo.Cache.PutVersioned(cctx, putKey, versionKey, cacheVersion, recipe, repo.TTL); err != nil {
+				logger := logging.Get(cctx)
+				logger.Error("'Cache.Put' failed", "error", err)
+			}
+		}()
+	}
+
+	return recipe, nil
 }
 
 func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit int64) (*domain.Page[domain.Recipe], error) {
 	key := composeRecipesKey(cursor, userId, limit)
 	var cachedPage domain.Page[domain.Recipe]
-	if err := repo.Cache.GetVersioned(ctx, key, recipesVersionKey, &cachedPage); err == nil {
+	cacheVersion, inCache, cacheErr := repo.Cache.GetVersioned(ctx, key, recipesVersionKey, &cachedPage)
+	if cacheErr == nil && inCache {
 		return &cachedPage, nil
 	}
 
@@ -92,13 +119,30 @@ func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit in
 		filter["userId"] = userId
 	}
 
-	page, err := mongoutils.FindCursorPaginated[domain.Recipe](ctx, repo.collection, cursor, filter, limit)
+	v, err, _ := sf.Do(key, func() (any, error) {
+		page, err := mongoutils.FindCursorPaginated[domain.Recipe](ctx, repo.collection, cursor, filter, limit)
+		if err != nil {
+			return nil, mongoutils.ToDomainErr(err, "recipe")
+		}
+		return page, nil
+	})
 	if err != nil {
-		return nil, mongoutils.ToDomainErr(err, "recipe")
+		return nil, fmt.Errorf("'sf.Do' failed: %w", err)
 	}
 
-	if err := repo.Cache.PutVersioned(ctx, key, recipesVersionKey, page, 30*time.Second); err != nil {
-		slog.Error("'Cache.PutVersioned' failed", "error", err)
+	page := v.(*domain.Page[domain.Recipe])
+
+	if cacheErr == nil && !inCache {
+		go func() {
+			cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+			defer cancel()
+
+			putKey := fmt.Sprintf("%s:version:%d", key, cacheVersion)
+			if err := repo.Cache.Put(cctx, putKey, page, repo.TTL); err != nil {
+				logger := logging.Get(cctx)
+				logger.Error("'Cache.PutVersioned' failed", "error", err)
+			}
+		}()
 	}
 
 	return page, nil
@@ -155,11 +199,7 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 			return errs.NewConflict(nil, "recipe was modified by another request")
 		}
 
-		if err := repo.Cache.Delete(ctx, composeRecipeKey(recipe.Id)); err != nil {
-			return fmt.Errorf("'Cache.Delete' failed: %w", err)
-		}
-
-		if _, err := repo.Cache.Inc(ctx, recipesVersionKey); err != nil {
+		if err := repo.Cache.IncDelPrev(ctx, recipesVersionKey, composeRecipeVersionKey(recipe.Id)); err != nil {
 			return fmt.Errorf("'Cache.Inc' failed: %w", err)
 		}
 
@@ -195,12 +235,8 @@ func (repo *mongoRepo) Delete(ctx context.Context, recipe *domain.Recipe) error 
 			return errs.NewConflict(nil, "recipe was modified by another request")
 		}
 
-		if err := repo.Cache.Delete(ctx, composeRecipeKey(recipe.Id)); err != nil {
-			return fmt.Errorf("'Cache.Delete' failed: %w", err)
-		}
-
-		if _, err := repo.Cache.Inc(ctx, recipesVersionKey); err != nil {
-			return fmt.Errorf("'Cache.Inc' failed: %w", err)
+		if err := repo.Cache.IncDelPrev(ctx, recipesVersionKey, composeRecipeVersionKey(recipe.Id)); err != nil {
+			return fmt.Errorf("'Cache.IncDel' failed: %w", err)
 		}
 
 		if err := repo.TextSearch.Delete(tctx, "recipes", recipe.Id); err != nil {

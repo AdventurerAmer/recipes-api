@@ -112,6 +112,7 @@ func Run() int {
 		TextSearch: textSearch,
 		Cache:      redisCache,
 		Transactor: transactor,
+		TTL:        10 * time.Minute, // TODO: hardcoding...
 	}
 	recipesRepo := recipesrepo.NewMongo(recipesRepoCfg)
 

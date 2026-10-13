@@ -35,27 +35,30 @@ func (rc *redisCache) Get(ctx context.Context, key string, v any) error {
 	return nil
 }
 
-func (rc *redisCache) GetVersioned(ctx context.Context, key, versionKey string, v any) error {
+func (rc *redisCache) GetVersioned(ctx context.Context, key, versionKey string, v any) (int64, bool, error) {
 	script := `
         local version = redis.call('GET', KEYS[1])
 		
 		if not version then
-			version = 0
+			version = "0"
 		end
 		
 		local versionedKey = KEYS[2] .. ':version:' .. version
-		return redis.call('GET', versionedKey)
+		return { tonumber(version), redis.call('GET', versionedKey) }
     `
-	data, err := rc.client.Eval(ctx, script, []string{versionKey, key}).Result()
-	if err == redis.Nil {
-		return errs.NewNotFound(nil, "key not found")
-	} else if err != nil {
-		return fmt.Errorf("'client.Get' failed: %w", err)
+	results, err := rc.client.Eval(ctx, script, []string{versionKey, key}).Slice()
+	if err != nil {
+		return 0, false, fmt.Errorf("'client.Get' failed: %w", err)
 	}
-	if err := json.Unmarshal([]byte(data.(string)), v); err != nil {
-		return fmt.Errorf("'json.Unmarshal' failed: %w", err)
+	version := results[0].(int64)
+	if results[1] == nil {
+		return version, false, nil
 	}
-	return nil
+	data := results[1].(string)
+	if err := json.Unmarshal([]byte(data), v); err != nil {
+		return 0, false, fmt.Errorf("'json.Unmarshal' failed: %w", err)
+	}
+	return version, true, nil
 }
 
 func (rc *redisCache) Put(ctx context.Context, key string, v any, TTL time.Duration) error {
@@ -69,23 +72,27 @@ func (rc *redisCache) Put(ctx context.Context, key string, v any, TTL time.Durat
 	return nil
 }
 
-func (rc *redisCache) PutVersioned(ctx context.Context, key string, versionKey string, v any, TTL time.Duration) error {
+func (rc *redisCache) PutVersioned(ctx context.Context, key, versionKey string, version int64, v any, TTL time.Duration) error {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return fmt.Errorf("'json.Marshal' failed: %w", err)
 	}
 
 	script := `
-        local version = redis.call('GET', KEYS[1])
+        local version = redis.call('GET', KEYS[2])
 		
 		if not version then
-			version = 0
+			version = "0"
+		end
+
+		local expected = ARGV[1]
+		if version ~= expected then
+			return redis.status_reply("OK")
 		end
 		
-		local versionedKey = KEYS[2] .. ':version:' .. version
-		return redis.call('set', versionedKey, ARGV[1], 'EX', tonumber(ARGV[2]))
+		return redis.call('SET', KEYS[1], ARGV[2], 'EX', tonumber(ARGV[3]))
     `
-	if _, err := rc.client.Eval(ctx, script, []string{versionKey, key}, string(data), int(TTL.Seconds())).Result(); err != nil {
+	if _, err := rc.client.Eval(ctx, script, []string{key, versionKey}, version, string(data), int(TTL.Seconds())).Result(); err != nil {
 		return fmt.Errorf("'client.Set' failed: %w", err)
 	}
 	return nil
@@ -98,10 +105,18 @@ func (rc *redisCache) Delete(ctx context.Context, keys ...string) error {
 	return nil
 }
 
-func (rc *redisCache) Inc(ctx context.Context, key string) (int64, error) {
-	value, err := rc.client.Incr(ctx, key).Result()
-	if err != nil {
-		return 0, fmt.Errorf("'client.Incr' failed: %w", err)
+func (rc *redisCache) IncDelPrev(ctx context.Context, keys ...string) error {
+	script := `
+		for i = 1, #KEYS do
+			local val = tonumber(redis.call("INCR", KEYS[i]))
+			local old = val - 1
+			local key = KEYS[i] .. ":" .. old
+			redis.call("DEL", key)
+		end
+		return redis.status_reply("OK")
+	`
+	if _, err := rc.client.Eval(ctx, script, keys).Result(); err != nil {
+		return fmt.Errorf("'client.Eval' failed: %w", err)
 	}
-	return value, nil
+	return nil
 }
