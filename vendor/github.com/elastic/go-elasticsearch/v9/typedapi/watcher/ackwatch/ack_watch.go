@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Acknowledge a watch.
 //
@@ -113,7 +113,7 @@ func NewAckWatchFunc(tp elastictransport.Interface) NewAckWatch {
 // demonstrate how throttling works in practice and how it can be configured for
 // individual actions within a watch, refer to External documentation.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-watcher-ack-watch
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-watcher-ack-watch
 func New(tp elastictransport.Interface) *AckWatch {
 	r := &AckWatch{
 		transport: tp,

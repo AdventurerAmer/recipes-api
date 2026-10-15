@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Create a service account token.
 //
@@ -25,6 +25,10 @@
 //
 // NOTE: Service account tokens never expire. You must actively delete them if
 // they are no longer needed.
+//
+// IMPORTANT: On Serverless, non-operator users can create tokens for only
+// `elastic/fleet-server` and `elastic/fleet-server-remote`. Creating tokens for
+// any other service account requires operator privileges.
 package createservicetoken
 
 import (
@@ -99,7 +103,11 @@ func NewCreateServiceTokenFunc(tp elastictransport.Interface) NewCreateServiceTo
 // NOTE: Service account tokens never expire. You must actively delete them if
 // they are no longer needed.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-create-service-token
+// IMPORTANT: On Serverless, non-operator users can create tokens for only
+// `elastic/fleet-server` and `elastic/fleet-server-remote`. Creating tokens for
+// any other service account requires operator privileges.
+//
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-create-service-token
 func New(tp elastictransport.Interface) *CreateServiceToken {
 	r := &CreateServiceToken{
 		transport: tp,

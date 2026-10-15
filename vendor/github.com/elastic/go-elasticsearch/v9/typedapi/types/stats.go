@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -33,10 +33,12 @@ import (
 
 // Stats type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/nodes/_types/Stats.ts#L30-L114
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/nodes/_types/Stats.ts#L30-L122
 type Stats struct {
 	// AdaptiveSelection Statistics about adaptive replica selection.
 	AdaptiveSelection map[string]AdaptiveSelection `json:"adaptive_selection,omitempty"`
+	// Allocations Statistics about shard allocations on the node.
+	Allocations *Allocations `json:"allocations,omitempty"`
 	// Attributes Contains a list of attributes for the node.
 	Attributes map[string]string `json:"attributes,omitempty"`
 	// Breakers Statistics about the field data circuit breaker.
@@ -67,6 +69,9 @@ type Stats struct {
 	Os *OperatingSystem `json:"os,omitempty"`
 	// Process Process statistics, memory consumption, cpu usage, open file descriptors.
 	Process *Process `json:"process,omitempty"`
+	// Repositories Statistics about snapshot activity for the node's registered repositories,
+	// keyed by repository name.
+	Repositories map[string]RepositorySnapshotStats `json:"repositories,omitempty"`
 	// Roles Roles assigned to the node.
 	Roles []noderole.NodeRole `json:"roles,omitempty"`
 	// Script Contains script statistics for the node.
@@ -104,6 +109,11 @@ func (s *Stats) UnmarshalJSON(data []byte) error {
 			}
 			if err := dec.Decode(&s.AdaptiveSelection); err != nil {
 				return fmt.Errorf("%s | %w", "AdaptiveSelection", err)
+			}
+
+		case "allocations":
+			if err := dec.Decode(&s.Allocations); err != nil {
+				return fmt.Errorf("%s | %w", "Allocations", err)
 			}
 
 		case "attributes":
@@ -193,6 +203,14 @@ func (s *Stats) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("%s | %w", "Process", err)
 			}
 
+		case "repositories":
+			if s.Repositories == nil {
+				s.Repositories = make(map[string]RepositorySnapshotStats, 0)
+			}
+			if err := dec.Decode(&s.Repositories); err != nil {
+				return fmt.Errorf("%s | %w", "Repositories", err)
+			}
+
 		case "roles":
 			if err := dec.Decode(&s.Roles); err != nil {
 				return fmt.Errorf("%s | %w", "Roles", err)
@@ -271,6 +289,7 @@ func NewStats() *Stats {
 		AdaptiveSelection: make(map[string]AdaptiveSelection),
 		Attributes:        make(map[string]string),
 		Breakers:          make(map[string]Breaker),
+		Repositories:      make(map[string]RepositorySnapshotStats),
 		ScriptCache:       make(map[string][]ScriptCache),
 		ThreadPool:        make(map[string]ThreadCount),
 	}

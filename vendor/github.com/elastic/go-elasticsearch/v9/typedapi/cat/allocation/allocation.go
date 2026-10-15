@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get shard allocation information.
 //
@@ -91,7 +91,7 @@ func NewAllocationFunc(tp elastictransport.Interface) NewAllocation {
 // IMPORTANT: CAT APIs are only intended for human consumption using the command
 // line or Kibana console. They are not intended for use by applications.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-cat-allocation
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-cat-allocation
 func New(tp elastictransport.Interface) *Allocation {
 	r := &Allocation{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Create an JinaAI inference endpoint.
 //
@@ -103,7 +103,7 @@ func NewPutJinaaiFunc(tp elastictransport.Interface) NewPutJinaai {
 // To review the available `embedding` and `text_embedding` models, refer to
 // <https://jina.ai/embeddings/>.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-inference-put-jinaai
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-inference-put-jinaai
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-inference-put-jinaai
 func New(tp elastictransport.Interface) *PutJinaai {

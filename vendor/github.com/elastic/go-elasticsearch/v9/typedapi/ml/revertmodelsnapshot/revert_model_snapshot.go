@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Revert to a snapshot.
 //
@@ -104,7 +104,7 @@ func NewRevertModelSnapshotFunc(tp elastictransport.Interface) NewRevertModelSna
 // before this event. For example, you might consider reverting to a saved
 // snapshot after Black Friday or a critical system failure.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-ml-revert-model-snapshot
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-ml-revert-model-snapshot
 func New(tp elastictransport.Interface) *RevertModelSnapshot {
 	r := &RevertModelSnapshot{
 		transport: tp,

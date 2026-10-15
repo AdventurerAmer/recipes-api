@@ -45,5 +45,4 @@ type Page[T Pager] struct {
 	Items      []T    `json:"items"`
 	NextCursor string `json:"nextCursor,omitempty"`
 	HasNext    bool   `json:"hasNext"`
-	HasPrev    bool   `json:"hasPrev"`
 }

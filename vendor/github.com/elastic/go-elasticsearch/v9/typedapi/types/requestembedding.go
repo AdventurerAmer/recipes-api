@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,10 +31,14 @@ import (
 
 // RequestEmbedding type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/inference/_types/CommonTypes.ts#L527-L589
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/inference/_types/CommonTypes.ts#L527-L610
 type RequestEmbedding struct {
 	// Input Inference input. Either a string, an array of strings, a `content` object, or
-	// an array of `content` objects.
+	// an array of `content` objects. `content` objects may contain a single item or
+	// an array of items. Models that support multiple items per `content` object
+	// will return a single embedding for each `content` object, regardless of how
+	// many items it contains. Support for multiple items in a single `content`
+	// object is available in Elasticsearch 9.5.0 and later.
 	//
 	// string example:
 	//
@@ -70,6 +74,25 @@ type RequestEmbedding struct {
 	//	      "format": "base64",
 	//	      "value": "data:image/jpeg;base64,..."
 	//	    }
+	//	  }
+	//	]
+	//
+	// Multiple items in one `content` object example (available in Elasticsearch
+	// 9.5.0 and later):
+	//
+	//	"input": [
+	//	  {
+	//	    "content": [
+	//	      {
+	//	        "type": "image",
+	//	        "format": "base64",
+	//	        "value": "data:image/jpeg;base64,..."
+	//	      },
+	//	      {
+	//	        "type": "text",
+	//	        "value": "Some text to create an embedding"
+	//	      }
+	//	    ]
 	//	  }
 	//	]
 	Input EmbeddingInput `json:"input"`

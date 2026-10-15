@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get the search shards.
 //
@@ -95,7 +95,7 @@ func NewSearchShardsFunc(tp elastictransport.Interface) NewSearchShards {
 // `view_index_metadata` or `manage` index privilege for the target data stream,
 // index, or alias.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-search-shards
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-search-shards
 func New(tp elastictransport.Interface) *SearchShards {
 	r := &SearchShards{
 		transport: tp,
@@ -387,10 +387,23 @@ func (r *SearchShards) Preference(preference string) *SearchShards {
 	return r
 }
 
-// Routing A custom value used to route operations to a specific shard.
+// Routing A custom value used to route operations to a specific shard. Not allowed when
+// `index.slice.enabled` is `true` for the target index; use `_slice` instead.
 // API name: routing
 func (r *SearchShards) Routing(routings ...string) *SearchShards {
 	r.values.Set("routing", strings.Join(routings, ","))
+
+	return r
+}
+
+// RouteSlice The slice identifier for routing the search to a specific slice. When
+// provided, the request is limited to shards that match the given slice value.
+// Use the special value `_all` to query all slices without restricting to a
+// routing value. Required when `index.slice.enabled` is `true` for the target
+// index; not allowed when `index.slice.enabled` is `false`.
+// API name: _slice
+func (r *SearchShards) RouteSlice(routeslice string) *SearchShards {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

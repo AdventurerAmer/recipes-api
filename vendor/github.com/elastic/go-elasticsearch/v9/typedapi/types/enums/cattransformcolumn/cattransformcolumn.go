@@ -16,14 +16,14 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Package cattransformcolumn
 package cattransformcolumn
 
 import "strings"
 
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/cat/_types/CatBase.ts#L2627-L2831
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/cat/_types/CatBase.ts#L2627-L2837
 type CatTransformColumn struct {
 	Name string
 }
@@ -120,6 +120,10 @@ var (
 
 	// Processingtime The amount of time spent processing results, in milliseconds.
 	Processingtime = CatTransformColumn{"processing_time"}
+
+	// Projectrouting The project routing filter for cross-project search from the source
+	// configuration.
+	Projectrouting = CatTransformColumn{"project_routing"}
 
 	// Reason If a transform has a `failed` state, this property provides details about the
 	// reason for the failure.
@@ -223,6 +227,8 @@ func (c *CatTransformColumn) UnmarshalText(text []byte) error {
 		*c = Processeddocumentsexpavg
 	case "processing_time":
 		*c = Processingtime
+	case "project_routing":
+		*c = Projectrouting
 	case "reason":
 		*c = Reason
 	case "search_failure":

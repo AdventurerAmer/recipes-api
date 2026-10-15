@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package putsynonymrule
 
@@ -27,7 +27,7 @@ import (
 
 // Response holds the response body struct for the package putsynonymrule
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/synonyms/put_synonym_rule/SynonymRulePutResponse.ts#L22-L25
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/synonyms/put_synonym_rule/SynonymRulePutResponse.ts#L22-L25
 type Response struct {
 	// ReloadAnalyzersDetails Updating synonyms in a synonym set can reload the associated analyzers in
 	// case refresh is set to true. This information is the analyzers reloading

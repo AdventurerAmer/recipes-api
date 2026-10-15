@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -36,10 +36,10 @@ import (
 
 // GeoPointProperty type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_types/mapping/geo.ts#L24-L33
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_types/mapping/geo.ts#L24-L33
 type GeoPointProperty struct {
 	CopyTo          []string                       `json:"copy_to,omitempty"`
-	DocValues       *bool                          `json:"doc_values,omitempty"`
+	DocValues       DocValues                      `json:"doc_values,omitempty"`
 	Dynamic         *dynamicmapping.DynamicMapping `json:"dynamic,omitempty"`
 	Fields          map[string]Property            `json:"fields,omitempty"`
 	IgnoreAbove     *int                           `json:"ignore_above,omitempty"`
@@ -90,17 +90,39 @@ func (s *GeoPointProperty) UnmarshalJSON(data []byte) error {
 			}
 
 		case "doc_values":
-			var tmp any
-			dec.Decode(&tmp)
-			switch v := tmp.(type) {
-			case string:
-				value, err := strconv.ParseBool(v)
+			message := json.RawMessage{}
+			if err := dec.Decode(&message); err != nil {
+				return fmt.Errorf("%s | %w", "DocValues", err)
+			}
+			keyDec := json.NewDecoder(bytes.NewReader(message))
+		docvalues_field:
+			for {
+				t, err := keyDec.Token()
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
 					return fmt.Errorf("%s | %w", "DocValues", err)
 				}
-				s.DocValues = &value
-			case bool:
-				s.DocValues = &v
+
+				switch t {
+
+				case "multi_value", "nullability":
+					o := NewDocValuesConfig()
+					localDec := json.NewDecoder(bytes.NewReader(message))
+					if err := localDec.Decode(&o); err != nil {
+						return fmt.Errorf("%s | %w", "DocValues", err)
+					}
+					s.DocValues = o
+					break docvalues_field
+
+				}
+			}
+			if s.DocValues == nil {
+				localDec := json.NewDecoder(bytes.NewReader(message))
+				if err := localDec.Decode(&s.DocValues); err != nil {
+					return fmt.Errorf("%s | %w", "DocValues", err)
+				}
 			}
 
 		case "dynamic":

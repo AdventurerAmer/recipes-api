@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete snapshot repositories.
 //
@@ -86,7 +86,7 @@ func NewDeleteRepositoryFunc(tp elastictransport.Interface) NewDeleteRepository 
 // to the location where the repository is storing the snapshots. The snapshots
 // themselves are left untouched and in place.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-snapshot-delete-repository
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-snapshot-delete-repository
 func New(tp elastictransport.Interface) *DeleteRepository {
 	r := &DeleteRepository{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get the rollup index capabilities.
 //
@@ -98,7 +98,7 @@ func NewGetRollupIndexCapsFunc(tp elastictransport.Interface) NewGetRollupIndexC
 //   - What target indices were rolled up, what fields were used in those
 //     rollups, and what aggregations can be performed on each job?
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-rollup-get-rollup-index-caps
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-rollup-get-rollup-index-caps
 //
 // Deprecated: Since 8.11.0.
 func New(tp elastictransport.Interface) *GetRollupIndexCaps {

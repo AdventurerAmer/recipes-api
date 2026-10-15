@@ -1,163 +1,153 @@
 package textsearch
 
 import (
-	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"strings"
+	"time"
 
 	"github.com/AdventurerAmer/recipes-api/internal/core/ports"
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/elastic/go-elasticsearch/v9/esapi"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	estypes "github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/refresh"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 )
 
 type textSearch struct {
-	client *elasticsearch.Client
+	client *elasticsearch.TypedClient
 }
 
-func NewElasticSearch(client *elasticsearch.Client) (ports.TextSearch, error) {
-	// TODO: move this to a migrator
-	// mapping := `{
-	//     "mappings": {
-	//         "properties": {
-	//             "id": { "type": "keyword" },
-	//             "createdAt": { "type": "date" },
-	// 			"userId": { "type": "keyword" },
-	// 			"name": {
-	//                 "type": "text",
-	//                 "analyzer": "standard",
-	//                 "fields": {
-	//                     "keyword": { "type": "keyword" },
-	//                     "suggest": { "type": "completion" }
-	//                 }
-	//             },
-	//             "tags": { "type": "keyword" },
-	//             "ingredients": { "type": "keyword" },
-	// 			"instructions": { "type": "keyword" },
-	// 			"imageURL": { "type": "keyword" },
-	// 			"version": { "type": "long" }
-	//         }
-	//     }
-	// }`
+func NewElasticSearch(client *elasticsearch.TypedClient) (ports.TextSearch, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
-	// req := esapi.IndicesCreateRequest{
-	// 	Index: "recipes",
-	// 	Body:  strings.NewReader(mapping),
-	// }
+	index := "recipes"
 
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	// defer cancel()
+	exists, err := client.Indices.Exists(index).Do(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("'client.Indices.Exists' failed: %w", err)
+	}
 
-	// res, err := req.Do(ctx, client)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("create index failed: %w", err)
-	// }
-	// defer res.Body.Close()
+	if !exists {
+		mappings := esdsl.NewTypeMapping()
+		mappings.AddProperty("id", esdsl.NewKeywordProperty())
+		mappings.AddProperty("createdAt", esdsl.NewDateProperty())
+		mappings.AddProperty("userId", esdsl.NewKeywordProperty())
+		mappings.AddProperty("name", esdsl.NewTextProperty().
+			Analyzer("standard").
+			Fields(map[string]types.Property{
+				"keyword": esdsl.NewKeywordProperty(),
+				"suggest": esdsl.NewCompletionProperty(),
+			}),
+		)
+		mappings.AddProperty("tags", esdsl.NewKeywordProperty())
+		mappings.AddProperty("ingredients", esdsl.NewKeywordProperty())
+		mappings.AddProperty("instructions", esdsl.NewKeywordProperty())
+		mappings.AddProperty("imageURL", esdsl.NewKeywordProperty())
+		mappings.AddProperty("version", esdsl.NewLongNumberProperty())
 
-	// if res.IsError() {
-	// 	return nil, fmt.Errorf("create index failed: %s", res.String())
-	// }
+		numberOfShards := "1"
+		numberOfReplicas := "1"
+		settings := &estypes.IndexSettings{
+			NumberOfShards:   &numberOfShards,
+			NumberOfReplicas: &numberOfReplicas,
+		}
+		if _, err := client.Indices.Create(index).Mappings(mappings).Settings(settings).Do(ctx); err != nil {
+			return nil, fmt.Errorf("'client.Indices.Create' failed: %w", err)
+		}
+	}
 
 	return &textSearch{client: client}, nil
 }
 
-func (ts *textSearch) Index(ctx context.Context, index string, id string, v any) error {
-	data, err := json.Marshal(v)
+func (ts *textSearch) Index(ctx context.Context, index, id string, document any) error {
+	_, err := ts.client.Index(index).
+		Id(id).
+		Document(document).
+		Refresh(refresh.True).
+		Do(ctx)
 	if err != nil {
-		return fmt.Errorf("'json.Marshal' failed: %w", err)
-	}
-	req := esapi.IndexRequest{
-		Index:      index,
-		DocumentID: id,
-		Body:       bytes.NewReader(data),
-		Refresh:    "true",
-	}
-	res, err := req.Do(ctx, ts.client)
-	if err != nil {
-		return fmt.Errorf("indexing error: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		return fmt.Errorf("indexing error: %w", err)
+		return fmt.Errorf("'client.Index' failed: %w", err)
 	}
 	return nil
 }
 
-func (ts *textSearch) Search(ctx context.Context, index string, field string, value string, page, perPage int) ([][]byte, int, error) {
-	from := (page - 1) * perPage
-	query := fmt.Sprintf(`{
-		"from": %d,
-        "size": %d,
-        "query": {
-            "match": {
-                %q: {
-                    "query": %q,
-                    "fuzziness": "AUTO"
-                }
-            }
-        }
-		"sort": [
-            { "createdAt": { "order": "desc" } }
-        ]
-    }`, from, perPage, field, value)
-	res, err := ts.client.Search(
-		ts.client.Search.WithIndex(index),
-		ts.client.Search.WithBody(strings.NewReader(query)),
-	)
-	if err != nil {
-		return nil, 0, err
+func (ts *textSearch) Search(ctx context.Context, index, cursor string, limit int64) ([]json.RawMessage, string, error) {
+	type elasticCursor struct {
+		PitId string             `json:"pitId"`
+		Next  []types.FieldValue `json:"next"`
 	}
-	defer res.Body.Close()
-
-	var raw map[string]interface{}
-	if err := json.NewDecoder(res.Body).Decode(&raw); err != nil {
-		return nil, 0, err
-	}
-
-	hitsObj := raw["hits"].(map[string]interface{})
-	totalObj := hitsObj["total"].(map[string]interface{})
-	total := int(totalObj["value"].(float64))
-
-	pages := total / perPage
-	if total%perPage != 0 {
-		pages++
-	}
-
-	hits := hitsObj["hits"].([]interface{})
-	results := make([][]byte, 0, len(hits))
-	for _, hit := range hits {
-		source := hit.(map[string]any)["_source"]
-		data, err := json.Marshal(source)
+	keepAlive := "2m"
+	var ec elasticCursor
+	if cursor == "" {
+		pitRes, err := ts.client.OpenPointInTime(index).
+			KeepAlive(keepAlive).
+			Do(ctx)
 		if err != nil {
-			return nil, 0, err
+			return nil, "", fmt.Errorf("open PIT: %w", err)
 		}
-		results = append(results, data)
+		ec.PitId = pitRes.Id
+	} else {
+		data, err := hex.DecodeString(cursor)
+		if err != nil {
+			return nil, "", fmt.Errorf("'hex.DecodeString' failed: %w", err)
+		}
+		if err := json.Unmarshal(data, &ec); err != nil {
+			return nil, "", fmt.Errorf("'json.Unmarshal' failed: %w", err)
+		}
 	}
-	return results, total, nil
+
+	req := ts.client.Search().
+		Size(int(limit+1)).
+		Sort(esdsl.NewSortOptions().AddSortOption("createdAt", esdsl.NewFieldSort(sortorder.Desc)),
+			esdsl.NewSortOptions().AddSortOption("_shard_doc", esdsl.NewFieldSort(sortorder.Asc))).
+		Pit(&types.PointInTimeReference{
+			Id:        ec.PitId,
+			KeepAlive: keepAlive,
+		})
+	if len(ec.Next) > 0 {
+		req = req.SearchAfterValues(ec.Next)
+	}
+	res, err := req.Do(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("'req.Do' failed: %w", err)
+	}
+	// Elasticsearch may return an updated PIT ID – always use the latest one
+	if res.PitId != nil {
+		ec.PitId = *res.PitId
+	}
+
+	hits := res.Hits.Hits
+	if len(hits) == 0 {
+		return nil, "", nil
+	}
+
+	results := make([]json.RawMessage, len(hits))
+
+	for _, hit := range hits {
+		results = append(results, hit.Source_)
+	}
+
+	if len(hits) == int(limit)+1 {
+		lastHit := hits[len(hits)-1]
+		ec.Next = lastHit.Sort
+
+		data, err := json.Marshal(ec)
+		if err != nil {
+			return nil, "", fmt.Errorf("'json.Marshal' failed: %w", err)
+		}
+
+		return results[:limit], hex.EncodeToString(data), nil
+	}
+	return results, "", nil
 }
 
 func (ts *textSearch) Delete(ctx context.Context, index string, id string) error {
-	req := esapi.DeleteRequest{
-		Index:      index,
-		DocumentID: id,
-		Refresh:    "true",
+	if _, err := ts.client.Delete(index, id).Do(ctx); err != nil {
+		return fmt.Errorf("'client.Delete' failed: %w", err)
 	}
-
-	res, err := req.Do(ctx, ts.client)
-	if err != nil {
-		return fmt.Errorf("error deleting recipe: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		if res.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("recipe with ID %s not found", id)
-		}
-		return fmt.Errorf("delete failed [%s]: %s", res.Status(), res.String())
-	}
-
 	return nil
 }

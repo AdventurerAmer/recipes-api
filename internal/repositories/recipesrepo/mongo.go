@@ -148,22 +148,28 @@ func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit in
 	return page, nil
 }
 
-func (repo *mongoRepo) Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error) {
-	results, total, err := repo.TextSearch.Search(ctx, "recipes", "name", name, page, pageSize)
+func (repo *mongoRepo) Search(ctx context.Context, name, cursor string, limit int64) (*domain.Page[domain.Recipe], error) {
+	results, next, err := repo.TextSearch.Search(ctx, "recipes", cursor, limit)
 	if err != nil {
-		return nil, 0, fmt.Errorf("'TextSearch.Search': %w", err)
+		return nil, fmt.Errorf("'TextSearch.Search': %w", err)
 	}
 
-	recipes := make([]domain.Recipe, 0, len(results))
+	items := make([]domain.Recipe, 0, len(results))
 	for _, data := range results {
 		var recipe domain.Recipe
 		if err := json.Unmarshal(data, &recipe); err != nil {
-			return nil, 0, fmt.Errorf("'json.Unmarshal' failed: %w", err)
+			return nil, fmt.Errorf("'json.Unmarshal' failed: %w", err)
 		}
-		recipes = append(recipes, recipe)
+		items = append(items, recipe)
 	}
 
-	return recipes, total, nil
+	page := &domain.Page[domain.Recipe]{
+		Items:      items,
+		NextCursor: next,
+		HasNext:    next != "",
+	}
+
+	return page, nil
 }
 
 func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error {

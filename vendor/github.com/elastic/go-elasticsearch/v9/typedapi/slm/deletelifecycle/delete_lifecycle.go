@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete a policy.
 //
@@ -86,7 +86,7 @@ func NewDeleteLifecycleFunc(tp elastictransport.Interface) NewDeleteLifecycle {
 // future snapshots from being taken but does not cancel in-progress snapshots
 // or remove previously-taken snapshots.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-slm-delete-lifecycle
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-slm-delete-lifecycle
 func New(tp elastictransport.Interface) *DeleteLifecycle {
 	r := &DeleteLifecycle{
 		transport: tp,

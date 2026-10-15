@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Update user profile data.
 //
@@ -132,7 +132,7 @@ func NewUpdateUserProfileDataFunc(tp elastictransport.Interface) NewUpdateUserPr
 // `update_profile_data` global privilege grants privileges for updating only
 // the allowed namespaces.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-update-user-profile-data
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-update-user-profile-data
 func New(tp elastictransport.Interface) *UpdateUserProfileData {
 	r := &UpdateUserProfileData{
 		transport: tp,

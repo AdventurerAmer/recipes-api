@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,7 +31,7 @@ import (
 
 // AttachmentProcessor type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/ingest/_types/Processors.ts#L368-L409
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/ingest/_types/Processors.ts#L368-L419
 type AttachmentProcessor struct {
 	// Description Description of the processor. Useful for describing the purpose of the
 	// processor or its configuration.
@@ -51,6 +51,12 @@ type AttachmentProcessor struct {
 	// IndexedCharsField Field name from which you can overwrite the number of chars being used for
 	// extraction.
 	IndexedCharsField *string `json:"indexed_chars_field,omitempty"`
+	// MaxFieldBytes Maximum allowed size of the attachment `field` value in bytes: length of a
+	// string (if base64 in JSON, checked before base64 decoding) or byte array
+	// length for binary (for example, CBOR). If set to `-1`, there is no
+	// per-processor limit. The node setting `ingest.attachment.max_field_size` also
+	// applies.
+	MaxFieldBytes ByteSize `json:"max_field_bytes,omitempty"`
 	// OnFailure Handle failures for the processor.
 	OnFailure []ProcessorContainer `json:"on_failure,omitempty"`
 	// Properties Array of properties to select to be stored. Can be `content`, `title`,
@@ -152,6 +158,11 @@ func (s *AttachmentProcessor) UnmarshalJSON(data []byte) error {
 		case "indexed_chars_field":
 			if err := dec.Decode(&s.IndexedCharsField); err != nil {
 				return fmt.Errorf("%s | %w", "IndexedCharsField", err)
+			}
+
+		case "max_field_bytes":
+			if err := dec.Decode(&s.MaxFieldBytes); err != nil {
+				return fmt.Errorf("%s | %w", "MaxFieldBytes", err)
 			}
 
 		case "on_failure":

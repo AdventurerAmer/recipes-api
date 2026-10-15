@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,15 +31,16 @@ import (
 
 // ShardQueryCache type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/indices/stats/types.ts#L146-L154
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/indices/stats/types.ts#L147-L156
 type ShardQueryCache struct {
-	CacheCount        int64 `json:"cache_count"`
-	CacheSize         int64 `json:"cache_size"`
-	Evictions         int64 `json:"evictions"`
-	HitCount          int64 `json:"hit_count"`
-	MemorySizeInBytes int64 `json:"memory_size_in_bytes"`
-	MissCount         int64 `json:"miss_count"`
-	TotalCount        int64 `json:"total_count"`
+	CacheCount        int64    `json:"cache_count"`
+	CacheSize         int64    `json:"cache_size"`
+	Evictions         int64    `json:"evictions"`
+	HitCount          int64    `json:"hit_count"`
+	MemorySize        ByteSize `json:"memory_size,omitempty"`
+	MemorySizeInBytes int64    `json:"memory_size_in_bytes"`
+	MissCount         int64    `json:"miss_count"`
+	TotalCount        int64    `json:"total_count"`
 }
 
 func (s *ShardQueryCache) UnmarshalJSON(data []byte) error {
@@ -115,6 +116,11 @@ func (s *ShardQueryCache) UnmarshalJSON(data []byte) error {
 			case float64:
 				f := int64(v)
 				s.HitCount = f
+			}
+
+		case "memory_size":
+			if err := dec.Decode(&s.MemorySize); err != nil {
+				return fmt.Errorf("%s | %w", "MemorySize", err)
 			}
 
 		case "memory_size_in_bytes":

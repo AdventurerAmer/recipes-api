@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Update a document.
 //
@@ -137,7 +137,7 @@ func NewUpdateFunc(tp elastictransport.Interface) NewUpdate {
 // timestamp). For usage examples such as partial updates, upserts, and scripted
 // updates, see the External documentation.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-update
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-update
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-update
 func New(tp elastictransport.Interface) *Update {
@@ -442,10 +442,22 @@ func (r *Update) RetryOnConflict(retryonconflict int) *Update {
 	return r
 }
 
-// Routing A custom value used to route operations to a specific shard.
+// Routing A custom value used to route operations to a specific shard. Not allowed when
+// `index.slice.enabled` is `true` for the target index; use `_slice` instead.
 // API name: routing
 func (r *Update) Routing(routings ...string) *Update {
 	r.values.Set("routing", strings.Join(routings, ","))
+
+	return r
+}
+
+// RouteSlice The slice identifier used to route the operation to a specific slice. Use the
+// special value `_all` to target all slices without restricting to a routing
+// value. Required when `index.slice.enabled` is `true` for the target index;
+// not allowed when `index.slice.enabled` is `false`.
+// API name: _slice
+func (r *Update) RouteSlice(routeslice string) *Update {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

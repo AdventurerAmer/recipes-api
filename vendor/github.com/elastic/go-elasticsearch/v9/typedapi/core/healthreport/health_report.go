@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get the cluster health.
 //
@@ -132,7 +132,7 @@ func NewHealthReportFunc(tp elastictransport.Interface) NewHealthReport {
 // setting up automated polling of the API for health status, set verbose to
 // false to disable the more expensive analysis logic.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-health-report
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-health-report
 func New(tp elastictransport.Interface) *HealthReport {
 	r := &HealthReport{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Promote a data stream.
 //
@@ -112,7 +112,7 @@ func NewPromoteDataStreamFunc(tp elastictransport.Interface) NewPromoteDataStrea
 // template is created. This will affect the lifecycle management of the data
 // stream and interfere with the data stream size and retention.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-promote-data-stream
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-promote-data-stream
 func New(tp elastictransport.Interface) *PromoteDataStream {
 	r := &PromoteDataStream{
 		transport: tp,

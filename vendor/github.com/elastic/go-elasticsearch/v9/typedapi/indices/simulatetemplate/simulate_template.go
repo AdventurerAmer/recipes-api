@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Simulate an index template.
 //
@@ -87,7 +87,7 @@ func NewSimulateTemplateFunc(tp elastictransport.Interface) NewSimulateTemplate 
 // Get the index configuration that would be applied by a particular index
 // template.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-simulate-template
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-simulate-template
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-indices-simulate-template
 func New(tp elastictransport.Interface) *SimulateTemplate {

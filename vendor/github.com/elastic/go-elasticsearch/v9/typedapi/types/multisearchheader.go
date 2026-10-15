@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -35,7 +35,7 @@ import (
 // Contains parameters used to limit or change the subsequent search body
 // request.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_global/msearch/types.ts#L37-L66
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_global/msearch/types.ts#L37-L78
 type MultisearchHeader struct {
 	// AllowNoIndices A setting that does two separate checks on the index expression. If `false`,
 	// the request returns an error (1) if any wildcard expression (including `_all`
@@ -52,13 +52,20 @@ type MultisearchHeader struct {
 	// (non-wildcarded) index, alias, or data stream that is missing, closed, or
 	// otherwise unavailable. If `true`, unavailable concrete targets are silently
 	// ignored.
-	IgnoreUnavailable *bool                  `json:"ignore_unavailable,omitempty"`
-	Index             []string               `json:"index,omitempty"`
-	Preference        *string                `json:"preference,omitempty"`
-	ProjectRouting    *string                `json:"project_routing,omitempty"`
-	RequestCache      *bool                  `json:"request_cache,omitempty"`
-	Routing           []string               `json:"routing,omitempty"`
-	SearchType        *searchtype.SearchType `json:"search_type,omitempty"`
+	IgnoreUnavailable *bool    `json:"ignore_unavailable,omitempty"`
+	Index             []string `json:"index,omitempty"`
+	Preference        *string  `json:"preference,omitempty"`
+	ProjectRouting    *string  `json:"project_routing,omitempty"`
+	RequestCache      *bool    `json:"request_cache,omitempty"`
+	// RouteSlice The slice identifier for routing the search to a specific slice. Use the
+	// special value `_all` to query all slices without restricting to a routing
+	// value. Required when `index.slice.enabled` is `true` for the target index;
+	// not allowed when `index.slice.enabled` is `false`.
+	RouteSlice *string `json:"_slice,omitempty"`
+	// Routing A custom value used to route operations to a specific shard. Not allowed when
+	// `index.slice.enabled` is `true` for the target index; use `_slice` instead.
+	Routing    []string               `json:"routing,omitempty"`
+	SearchType *searchtype.SearchType `json:"search_type,omitempty"`
 }
 
 func (s *MultisearchHeader) UnmarshalJSON(data []byte) error {
@@ -208,6 +215,18 @@ func (s *MultisearchHeader) UnmarshalJSON(data []byte) error {
 			case bool:
 				s.RequestCache = &v
 			}
+
+		case "_slice":
+			var tmp json.RawMessage
+			if err := dec.Decode(&tmp); err != nil {
+				return fmt.Errorf("%s | %w", "RouteSlice", err)
+			}
+			o := string(tmp[:])
+			o, err = strconv.Unquote(o)
+			if err != nil {
+				o = string(tmp[:])
+			}
+			s.RouteSlice = &o
 
 		case "routing":
 			rawMsg := json.RawMessage{}

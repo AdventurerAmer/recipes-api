@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,7 +31,7 @@ import (
 
 // TransformsRecord type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/cat/transforms/types.ts#L22-L197
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/cat/transforms/types.ts#L22-L203
 type TransformsRecord struct {
 	// ChangesLastDetectionTime The timestamp when changes were last detected in the source indices.
 	ChangesLastDetectionTime *string `json:"changes_last_detection_time,omitempty"`
@@ -91,6 +91,9 @@ type TransformsRecord struct {
 	ProcessedDocumentsExpAvg *string `json:"processed_documents_exp_avg,omitempty"`
 	// ProcessingTime The total time spent processing results, in milliseconds.
 	ProcessingTime *string `json:"processing_time,omitempty"`
+	// ProjectRouting The project routing filter for cross-project search from the source
+	// configuration.
+	ProjectRouting *string `json:"project_routing,omitempty"`
 	// Reason If a transform has a `failed` state, these details describe the reason for
 	// failure.
 	Reason *string `json:"reason,omitempty"`
@@ -415,6 +418,18 @@ func (s *TransformsRecord) UnmarshalJSON(data []byte) error {
 				o = string(tmp[:])
 			}
 			s.ProcessingTime = &o
+
+		case "project_routing", "pr", "projectRouting":
+			var tmp json.RawMessage
+			if err := dec.Decode(&tmp); err != nil {
+				return fmt.Errorf("%s | %w", "ProjectRouting", err)
+			}
+			o := string(tmp[:])
+			o, err = strconv.Unquote(o)
+			if err != nil {
+				o = string(tmp[:])
+			}
+			s.ProjectRouting = &o
 
 		case "reason", "r":
 			var tmp json.RawMessage

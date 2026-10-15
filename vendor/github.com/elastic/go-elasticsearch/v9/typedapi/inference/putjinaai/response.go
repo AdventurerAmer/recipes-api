@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package putjinaai
 
@@ -29,7 +29,7 @@ import (
 
 // Response holds the response body struct for the package putjinaai
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/inference/put_jinaai/PutJinaAiResponse.ts#L22-L25
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/inference/put_jinaai/PutJinaAiResponse.ts#L22-L25
 type Response struct {
 	// ChunkingSettings The chunking configuration object. Applies only to the `embedding`,
 	// `sparse_embedding` and `text_embedding` task types. Not applicable to the

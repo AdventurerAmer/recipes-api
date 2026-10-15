@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get the autoscaling capacity.
 //
@@ -112,7 +112,7 @@ func NewGetAutoscalingCapacityFunc(tp elastictransport.Interface) NewGetAutoscal
 // information is provided for diagnosis only. Do not use this information to
 // make autoscaling decisions.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-autoscaling-get-autoscaling-capacity
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-autoscaling-get-autoscaling-capacity
 func New(tp elastictransport.Interface) *GetAutoscalingCapacity {
 	r := &GetAutoscalingCapacity{
 		transport: tp,

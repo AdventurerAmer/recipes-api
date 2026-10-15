@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,7 +31,7 @@ import (
 
 // The source of the data for the transform.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/transform/_types/Transform.ts#L98-L166
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/transform/_types/Transform.ts#L129-L196
 type Settings struct {
 	// AlignCheckpoints Specifies whether the transform checkpoint ranges should be optimized for
 	// performance. Such optimization can align checkpoint ranges with the date
@@ -53,7 +53,8 @@ type Settings struct {
 	// MaxPageSearchSize Defines the initial page size to use for the composite aggregation for each
 	// checkpoint. If circuit breaker exceptions occur, the page size is dynamically
 	// adjusted to a lower value. The minimum value is `10` and the maximum is
-	// `65,536`.
+	// `65,536`. The default value is `500` for `pivot` transforms and `5000` for
+	// `latest` transforms.
 	MaxPageSearchSize *int `json:"max_page_search_size,omitempty"`
 	// NumFailureRetries Defines the number of retries on a recoverable failure before the transform
 	// task is marked as `failed`. The minimum value is `0` and the maximum is

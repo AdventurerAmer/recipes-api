@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Update the connector features.
 //
@@ -113,7 +113,7 @@ func NewUpdateFeaturesFunc(tp elastictransport.Interface) NewUpdateFeatures {
 // connector service on your own infrastructure. This service runs automatically
 // on Elastic Cloud for Elastic managed connectors.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-connector-update-features
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-connector-update-features
 func New(tp elastictransport.Interface) *UpdateFeatures {
 	r := &UpdateFeatures{
 		transport: tp,

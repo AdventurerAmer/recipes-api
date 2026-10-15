@@ -11,7 +11,7 @@ type RecipesRepository interface {
 	Create(ctx context.Context, recipe *domain.Recipe) error
 	Get(ctx context.Context, id string) (*domain.Recipe, error)
 	List(ctx context.Context, cursor, userId string, limit int64) (*domain.Page[domain.Recipe], error)
-	Search(ctx context.Context, name string, page, pageSize int) ([]domain.Recipe, int, error)
+	Search(ctx context.Context, name, cursor string, limit int64) (*domain.Page[domain.Recipe], error)
 	Update(ctx context.Context, recipe *domain.Recipe) error
 	Delete(ctx context.Context, recipe *domain.Recipe) error
 }
@@ -61,14 +61,14 @@ type ListRecipesResponse struct {
 }
 
 type SearchRecipesRequest struct {
-	Name     string `json:"name" form:"name"`
-	Page     int    `json:"page" form:"page" binding:"omitempty,min=1"`
-	PageSize int    `json:"pageSize" form:"pageSize" binding:"omitempty,min=1"`
+	Name   string `json:"name" form:"name"`
+	Cursor string `json:"cursor" form:"cursor" validate:"omitempty,min=1"`
+	Limit  int    `json:"limit" form:"limit" validate:"omitempty,min=1"`
 }
 
 type SearchRecipesResponse struct {
-	Recipes []domain.Recipe `json:"recipes"`
-	Total   int             `json:"total"`
+	Recipes    []domain.Recipe `json:"recipes"`
+	NextCursor string          `json:"nextCursor"`
 }
 
 type UpdateRecipeRequest struct {

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Throttle an update by query operation.
 //
@@ -88,7 +88,7 @@ func NewUpdateByQueryRethrottleFunc(tp elastictransport.Interface) NewUpdateByQu
 // rethrotting that slows down the query takes effect after completing the
 // current batch to prevent scroll timeouts.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-update-by-query-rethrottle
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-update-by-query-rethrottle
 func New(tp elastictransport.Interface) *UpdateByQueryRethrottle {
 	r := &UpdateByQueryRethrottle{
 		transport: tp,
@@ -309,8 +309,10 @@ func (r *UpdateByQueryRethrottle) _taskid(taskid string) *UpdateByQueryRethrottl
 	return r
 }
 
-// RequestsPerSecond The throttle for this request in sub-requests per second. To turn off
-// throttling, set it to `-1`.
+// RequestsPerSecond The maximum number of documents to update per second, across the entire
+// update_by_query operation (including slices). It can be either `-1` to turn
+// off throttling or any decimal number like `1.7` or `12` to throttle to that
+// level.
 // API name: requests_per_second
 func (r *UpdateByQueryRethrottle) RequestsPerSecond(requestspersecond string) *UpdateByQueryRethrottle {
 	r.values.Set("requests_per_second", requestspersecond)

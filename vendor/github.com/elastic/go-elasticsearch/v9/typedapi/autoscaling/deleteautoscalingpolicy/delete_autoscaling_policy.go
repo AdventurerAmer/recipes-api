@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete an autoscaling policy.
 //
@@ -86,7 +86,7 @@ func NewDeleteAutoscalingPolicyFunc(tp elastictransport.Interface) NewDeleteAuto
 // Elastic Cloud Enterprise, and Elastic Cloud on Kubernetes. Direct use is not
 // supported.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-autoscaling-delete-autoscaling-policy
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-autoscaling-delete-autoscaling-policy
 func New(tp elastictransport.Interface) *DeleteAutoscalingPolicy {
 	r := &DeleteAutoscalingPolicy{
 		transport: tp,

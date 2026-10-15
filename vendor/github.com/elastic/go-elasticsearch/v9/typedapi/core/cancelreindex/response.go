@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package cancelreindex
 
@@ -26,7 +26,7 @@ import (
 
 // Response holds the response body struct for the package cancelreindex
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_global/cancel_reindex/CancelReindexResponse.ts#L31-L87
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_global/cancel_reindex/CancelReindexResponse.ts#L31-L87
 type Response struct {
 	// Acknowledged Present and `true` when `wait_for_completion=false`.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
@@ -39,8 +39,9 @@ type Response struct {
 	Description *string `json:"description,omitempty"`
 	// Error The error that caused the reindex task to fail, if any.
 	Error *types.ErrorCause `json:"error,omitempty"`
-	// Id The ID of the reindex task, in `nodeId:taskNum` format. Present when
-	// `wait_for_completion=true`.
+	// Id The ID of the reindex task. The value is the ID assigned when the task was
+	// first created and remains stable across node-shutdown relocations. Present
+	// when `wait_for_completion=true`.
 	Id *string `json:"id,omitempty"`
 	// Response The final result of the reindex operation, if it completed before being
 	// cancelled.

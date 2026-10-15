@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Resolve the cluster.
 //
@@ -227,7 +227,7 @@ func NewResolveClusterFunc(tp elastictransport.Interface) NewResolveCluster {
 // whether it was successful. If a connection was (re-)established, this will
 // also cause the `remote/info` endpoint to now indicate a connected status.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-resolve-cluster
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-resolve-cluster
 func New(tp elastictransport.Interface) *ResolveCluster {
 	r := &ResolveCluster{
 		transport: tp,

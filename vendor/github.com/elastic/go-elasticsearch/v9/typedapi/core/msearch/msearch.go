@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Run multiple searches.
 //
@@ -115,7 +115,7 @@ func NewMsearchFunc(tp elastictransport.Interface) NewMsearch {
 // sending requests to this endpoint the `Content-Type` header should be set to
 // `application/x-ndjson`.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-msearch
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-msearch
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-msearch
 func New(tp elastictransport.Interface) *Msearch {
@@ -477,7 +477,9 @@ func (r *Msearch) RestTotalHitsAsInt(resttotalhitsasint bool) *Msearch {
 	return r
 }
 
-// Routing Custom routing value used to route search operations to a specific shard.
+// Routing Custom routing value used to route search operations to a specific shard. Not
+// allowed when `index.slice.enabled` is `true` for the target index; use
+// `_slice` instead.
 // API name: routing
 func (r *Msearch) Routing(routings ...string) *Msearch {
 	r.values.Set("routing", strings.Join(routings, ","))
@@ -490,6 +492,20 @@ func (r *Msearch) Routing(routings ...string) *Msearch {
 // API name: search_type
 func (r *Msearch) SearchType(searchtype searchtype.SearchType) *Msearch {
 	r.values.Set("search_type", searchtype.String())
+
+	return r
+}
+
+// RouteSlice The slice identifier for routing the search to a specific slice. When
+// provided at the top level, all sub-searches are routed to shards matching the
+// given slice value. Use the special value `_all` to query all slices without
+// restricting to a routing value. Required when `index.slice.enabled` is `true`
+// for the target index; not allowed when `index.slice.enabled` is `false`.
+// Individual sub-search headers can also specify `_slice` to override the
+// top-level setting.
+// API name: _slice
+func (r *Msearch) RouteSlice(routeslice string) *Msearch {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

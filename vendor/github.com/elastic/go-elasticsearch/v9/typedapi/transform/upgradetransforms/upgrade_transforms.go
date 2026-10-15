@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Upgrade all transforms.
 //
@@ -108,7 +108,7 @@ func NewUpgradeTransformsFunc(tp elastictransport.Interface) NewUpgradeTransform
 // upgrade transforms before upgrading the cluster. You may want to perform a
 // recent cluster backup prior to the upgrade.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-transform-upgrade-transforms
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-transform-upgrade-transforms
 func New(tp elastictransport.Interface) *UpgradeTransforms {
 	r := &UpgradeTransforms{
 		transport: tp,

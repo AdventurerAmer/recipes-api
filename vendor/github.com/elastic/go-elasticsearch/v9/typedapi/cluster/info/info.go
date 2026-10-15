@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get cluster info.
 //
@@ -82,7 +82,7 @@ func NewInfoFunc(tp elastictransport.Interface) NewInfo {
 //
 // Returns basic information about the cluster.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-cluster-info
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-cluster-info
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-cluster-info
 func New(tp elastictransport.Interface) *Info {

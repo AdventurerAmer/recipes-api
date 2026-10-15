@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete the license.
 //
@@ -80,7 +80,7 @@ func NewDeleteFunc(tp elastictransport.Interface) NewDelete {
 // If the operator privileges feature is enabled, only operator users can use
 // this API.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-license-delete
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-license-delete
 func New(tp elastictransport.Interface) *Delete {
 	r := &Delete{
 		transport: tp,

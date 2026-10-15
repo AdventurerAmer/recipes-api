@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Authenticate SAML.
 //
@@ -119,7 +119,7 @@ func NewSamlAuthenticateFunc(tp elastictransport.Interface) NewSamlAuthenticate 
 // indicate successful authentication in the IdP for Elasticsearch access and
 // refresh tokens, which can be used for authentication against Elasticsearch.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-saml-authenticate
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-saml-authenticate
 func New(tp elastictransport.Interface) *SamlAuthenticate {
 	r := &SamlAuthenticate{
 		transport: tp,

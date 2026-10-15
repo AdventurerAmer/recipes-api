@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete roles.
 //
@@ -87,7 +87,7 @@ func NewDeleteRoleFunc(tp elastictransport.Interface) NewDeleteRole {
 // preferred way to manage roles, rather than using file-based role management.
 // The delete roles API cannot remove roles that are defined in roles files.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-delete-role
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-delete-role
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-security-delete-role
 func New(tp elastictransport.Interface) *DeleteRole {

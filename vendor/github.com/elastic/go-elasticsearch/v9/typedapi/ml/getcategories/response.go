@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package getcategories
 
@@ -26,7 +26,7 @@ import (
 
 // Response holds the response body struct for the package getcategories
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/ml/get_categories/MlGetCategoriesResponse.ts#L23-L28
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/ml/get_categories/MlGetCategoriesResponse.ts#L23-L28
 type Response struct {
 	Categories []types.Category `json:"categories"`
 	Count      int64            `json:"count"`

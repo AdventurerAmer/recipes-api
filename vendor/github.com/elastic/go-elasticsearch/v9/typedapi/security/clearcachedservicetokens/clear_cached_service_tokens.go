@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Clear service account token caches.
 //
@@ -108,7 +108,7 @@ func NewClearCachedServiceTokensFunc(tp elastictransport.Interface) NewClearCach
 // tokens backed by the `service_tokens` file is cleared automatically on file
 // changes.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-clear-cached-service-tokens
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-clear-cached-service-tokens
 func New(tp elastictransport.Interface) *ClearCachedServiceTokens {
 	r := &ClearCachedServiceTokens{
 		transport: tp,

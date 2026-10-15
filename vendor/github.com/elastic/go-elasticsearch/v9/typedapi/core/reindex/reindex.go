@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Reindex documents.
 //
@@ -47,9 +47,11 @@
 // If reindexing from a remote cluster into a cluster using Elastic Stack, you
 // must explicitly allow the remote host using the `reindex.remote.whitelist`
 // node setting on the destination cluster. If reindexing from a remote cluster
-// into an Elastic Cloud Serverless project, only remote hosts from Elastic
-// Cloud Hosted are allowed. Automatic data stream creation requires a matching
-// index template with data stream enabled.
+// into an Elastic Cloud Serverless project, only remote hosts from [Elastic
+// Cloud Hosted and Elastic Cloud
+// Serverless](https://cloud.elastic.co/registration?page=docs&placement=docs-body)
+// are allowed. Automatic data stream creation requires a matching index
+// template with data stream enabled.
 //
 // The `dest` element can be configured like the index API to control optimistic
 // concurrency control. Omitting `version_type` or setting it to `internal`
@@ -177,9 +179,11 @@ func NewReindexFunc(tp elastictransport.Interface) NewReindex {
 // If reindexing from a remote cluster into a cluster using Elastic Stack, you
 // must explicitly allow the remote host using the `reindex.remote.whitelist`
 // node setting on the destination cluster. If reindexing from a remote cluster
-// into an Elastic Cloud Serverless project, only remote hosts from Elastic
-// Cloud Hosted are allowed. Automatic data stream creation requires a matching
-// index template with data stream enabled.
+// into an Elastic Cloud Serverless project, only remote hosts from [Elastic
+// Cloud Hosted and Elastic Cloud
+// Serverless](https://cloud.elastic.co/registration?page=docs&placement=docs-body)
+// are allowed. Automatic data stream creation requires a matching index
+// template with data stream enabled.
 //
 // The `dest` element can be configured like the index API to control optimistic
 // concurrency control. Omitting `version_type` or setting it to `internal`
@@ -224,7 +228,7 @@ func NewReindexFunc(tp elastictransport.Interface) NewReindex {
 //
 // Refer to the linked documentation for examples of how to reindex documents.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-reindex
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-reindex
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-reindex
 func New(tp elastictransport.Interface) *Reindex {
@@ -448,8 +452,10 @@ func (r *Reindex) Refresh(refresh bool) *Reindex {
 	return r
 }
 
-// RequestsPerSecond The throttle for this request in sub-requests per second. By default, there
-// is no throttle.
+// RequestsPerSecond The maximum number of documents to index per second, across the entire
+// reindex operation (including slices). It can be either `-1` to turn off
+// throttling or any decimal number like `1.7` or `12` to throttle to that
+// level.
 // API name: requests_per_second
 func (r *Reindex) RequestsPerSecond(requestspersecond string) *Reindex {
 	r.values.Set("requests_per_second", requestspersecond)
@@ -458,7 +464,11 @@ func (r *Reindex) RequestsPerSecond(requestspersecond string) *Reindex {
 }
 
 // Scroll The period of time that a consistent view of the index should be maintained
-// for scrolled search.
+// for scrolled search. In serverless, and stack versions >= v9.5.0, we use PIT
+// rather than scroll for pagination. We only use scroll for reindexing from
+// remote clusters that are older than v7.10.0. Therefore, this parameter is
+// ignored unless you are reindexing from a remote cluster that is older than
+// v7.10.0.
 // API name: scroll
 func (r *Reindex) Scroll(duration string) *Reindex {
 	r.values.Set("scroll", duration)
@@ -509,7 +519,12 @@ func (r *Reindex) WaitForActiveShards(waitforactiveshards string) *Reindex {
 	return r
 }
 
-// WaitForCompletion If `true`, the request blocks until the operation is complete.
+// WaitForCompletion If `true`, the request blocks until the operation is complete. If your
+// requested reindex operation is complex or time-consuming, it might timeout
+// due to transport-layer limitations. While the reindex will continue to be
+// processed by the cluster, your client will not receive updates on status
+// automatically after timeout. Set this option `true` if you anticipate a
+// long-running reindex.
 // API name: wait_for_completion
 func (r *Reindex) WaitForCompletion(waitforcompletion bool) *Reindex {
 	r.values.Set("wait_for_completion", strconv.FormatBool(waitforcompletion))

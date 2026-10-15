@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package info
 
@@ -26,7 +26,7 @@ import (
 
 // Response holds the response body struct for the package info
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_global/info/RootNodeInfoResponse.ts#L23-L40
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_global/info/RootNodeInfoResponse.ts#L23-L40
 type Response struct {
 	// ClusterName The responding cluster's name.
 	ClusterName string `json:"cluster_name"`
@@ -34,7 +34,12 @@ type Response struct {
 	// Name The responding node's name.
 	Name    string `json:"name"`
 	Tagline string `json:"tagline"`
-	// Version The running version of Elasticsearch.
+	// Version Version information for the Elasticsearch cluster. In Serverless,
+	// `version.number` always reports the next target Elasticsearch release version
+	// at the time of the request, not an actual deployed version. The version
+	// number is provided to maintain client compatibility but is not meaningful for
+	// assessing feature availability. Use `build_flavor: serverless` to detect a
+	// Serverless environment.
 	Version types.ElasticsearchVersionInfo `json:"version"`
 }
 

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get security index settings.
 //
@@ -84,7 +84,7 @@ func NewGetSettingsFunc(tp elastictransport.Interface) NewGetSettings {
 //   - `index.auto_expand_replicas`
 //   - `index.number_of_replicas`
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-get-settings
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-get-settings
 func New(tp elastictransport.Interface) *GetSettings {
 	r := &GetSettings{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Create an inference endpoint.
 //
@@ -38,7 +38,7 @@
 //   - Amazon Bedrock (`chat_completion`, `completion`, `text_embedding`)
 //   - Amazon SageMaker (`chat_completion`, `completion`, `rerank`,
 //     `sparse_embedding`, `text_embedding`)
-//   - Anthropic (`completion`)
+//   - Anthropic (`chat_completion`, `completion`)
 //   - Azure AI Studio (`completion`, `rerank`, `text_embedding`)
 //   - Azure OpenAI (`chat_completion`, `completion`, `text_embedding`)
 //   - Cohere (`completion`, `rerank`, `text_embedding`)
@@ -147,7 +147,7 @@ func NewPutFunc(tp elastictransport.Interface) NewPut {
 //   - Amazon Bedrock (`chat_completion`, `completion`, `text_embedding`)
 //   - Amazon SageMaker (`chat_completion`, `completion`, `rerank`,
 //     `sparse_embedding`, `text_embedding`)
-//   - Anthropic (`completion`)
+//   - Anthropic (`chat_completion`, `completion`)
 //   - Azure AI Studio (`completion`, `rerank`, `text_embedding`)
 //   - Azure OpenAI (`chat_completion`, `completion`, `text_embedding`)
 //   - Cohere (`completion`, `rerank`, `text_embedding`)
@@ -172,7 +172,7 @@ func NewPutFunc(tp elastictransport.Interface) NewPut {
 //   - VoyageAI (`rerank`, `text_embedding`)
 //   - Watsonx (`chat_completion`, `completion`, `rerank`, `text_embedding`)
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-inference-put
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-inference-put
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-inference-put
 func New(tp elastictransport.Interface) *Put {
@@ -430,7 +430,8 @@ func (r *Put) _inferenceid(inferenceid string) *Put {
 }
 
 // Timeout Specifies the amount of time to wait for the inference endpoint to be
-// created.
+// created. The default depends on the task type: 120s for `completion` and
+// `chat_completion`, and 30s for all other task types.
 // API name: timeout
 func (r *Put) Timeout(duration string) *Put {
 	r.values.Set("timeout", duration)

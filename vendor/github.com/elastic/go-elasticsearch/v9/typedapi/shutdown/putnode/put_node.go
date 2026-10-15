@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Prepare a node to be shut down.
 //
@@ -128,7 +128,7 @@ func NewPutNodeFunc(tp elastictransport.Interface) NewPutNode {
 // IMPORTANT: This API does NOT terminate the Elasticsearch process. Monitor the
 // node shutdown status to determine when it is safe to stop Elasticsearch.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-shutdown-put-node
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-shutdown-put-node
 func New(tp elastictransport.Interface) *PutNode {
 	r := &PutNode{
 		transport: tp,
@@ -423,9 +423,10 @@ func (r *PutNode) Pretty(pretty bool) *PutNode {
 // Only valid if type is restart. Controls how long Elasticsearch will wait for
 // the node to restart and join the cluster before reassigning its shards to
 // other nodes. This works the same as delaying allocation with the
-// index.unassigned.node_left.delayed_timeout setting. If you specify both a
-// restart allocation delay and an index-level allocation delay, the longer of
-// the two is used.
+// index.unassigned.node_left.delayed_timeout setting. If you don't specify a
+// restart allocation delay, a default value of 5 minutes will be used. If both
+// a restart allocation delay and an index-level allocation delay are
+// configured, the longer of the two is used.
 // API name: allocation_delay
 func (r *PutNode) AllocationDelay(allocationdelay string) *PutNode {
 	// Initialize the request if it is not already initialized

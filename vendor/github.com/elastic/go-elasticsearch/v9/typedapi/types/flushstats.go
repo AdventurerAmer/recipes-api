@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,12 +31,14 @@ import (
 
 // FlushStats type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_types/Stats.ts#L148-L153
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_types/Stats.ts#L148-L155
 type FlushStats struct {
-	Periodic          int64    `json:"periodic"`
-	Total             int64    `json:"total"`
-	TotalTime         Duration `json:"total_time,omitempty"`
-	TotalTimeInMillis int64    `json:"total_time_in_millis"`
+	Periodic                                int64    `json:"periodic"`
+	Total                                   int64    `json:"total"`
+	TotalTime                               Duration `json:"total_time,omitempty"`
+	TotalTimeExcludingWaiting               Duration `json:"total_time_excluding_waiting,omitempty"`
+	TotalTimeExcludingWaitingOnLockInMillis int64    `json:"total_time_excluding_waiting_on_lock_in_millis"`
+	TotalTimeInMillis                       int64    `json:"total_time_in_millis"`
 }
 
 func (s *FlushStats) UnmarshalJSON(data []byte) error {
@@ -87,6 +89,16 @@ func (s *FlushStats) UnmarshalJSON(data []byte) error {
 		case "total_time":
 			if err := dec.Decode(&s.TotalTime); err != nil {
 				return fmt.Errorf("%s | %w", "TotalTime", err)
+			}
+
+		case "total_time_excluding_waiting":
+			if err := dec.Decode(&s.TotalTimeExcludingWaiting); err != nil {
+				return fmt.Errorf("%s | %w", "TotalTimeExcludingWaiting", err)
+			}
+
+		case "total_time_excluding_waiting_on_lock_in_millis":
+			if err := dec.Decode(&s.TotalTimeExcludingWaitingOnLockInMillis); err != nil {
+				return fmt.Errorf("%s | %w", "TotalTimeExcludingWaitingOnLockInMillis", err)
 			}
 
 		case "total_time_in_millis":

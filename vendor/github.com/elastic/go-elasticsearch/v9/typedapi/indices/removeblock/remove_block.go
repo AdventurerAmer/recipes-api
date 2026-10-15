@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Remove an index block.
 //
@@ -90,7 +90,7 @@ func NewRemoveBlockFunc(tp elastictransport.Interface) NewRemoveBlock {
 // Remove an index block from an index. Index blocks limit the operations
 // allowed on an index by blocking specific operation types.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-remove-block
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-remove-block
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-indices-remove-block
 func New(tp elastictransport.Interface) *RemoveBlock {

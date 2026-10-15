@@ -16,11 +16,13 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Create or update a synonym set.
 //
-// Synonyms sets are limited to a maximum of 10,000 synonym rules per set.
+// Synonym sets are limited to a maximum of 100,000 synonym rules per set by
+// default. This limit is configurable using the `synonyms.max_synonym_rules`
+// cluster setting.
 //
 // When an existing synonyms set is updated, the search analyzers that use the
 // synonyms set are reloaded automatically for all indices. This is equivalent
@@ -93,7 +95,9 @@ func NewPutSynonymFunc(tp elastictransport.Interface) NewPutSynonym {
 
 // Create or update a synonym set.
 //
-// Synonyms sets are limited to a maximum of 10,000 synonym rules per set.
+// Synonym sets are limited to a maximum of 100,000 synonym rules per set by
+// default. This limit is configurable using the `synonyms.max_synonym_rules`
+// cluster setting.
 //
 // When an existing synonyms set is updated, the search analyzers that use the
 // synonyms set are reloaded automatically for all indices. This is equivalent
@@ -103,7 +107,7 @@ func NewPutSynonymFunc(tp elastictransport.Interface) NewPutSynonym {
 // For practical examples of how to create or update a synonyms set, refer to
 // the External documentation.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-synonyms-put-synonym
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-synonyms-put-synonym
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-synonyms-put-synonym
 func New(tp elastictransport.Interface) *PutSynonym {
@@ -339,6 +343,16 @@ func (r *PutSynonym) _id(id string) *PutSynonym {
 // API name: refresh
 func (r *PutSynonym) Refresh(refresh bool) *PutSynonym {
 	r.values.Set("refresh", strconv.FormatBool(refresh))
+
+	return r
+}
+
+// Append If `true`, the provided synonym rules are appended to the existing set, with
+// matching IDs overwriting existing rules. If `false`, the entire synonyms set
+// is replaced with the new synonym rules definitions.
+// API name: append
+func (r *PutSynonym) Append(append bool) *PutSynonym {
+	r.values.Set("append", strconv.FormatBool(append))
 
 	return r
 }

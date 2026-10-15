@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -33,18 +33,21 @@ import (
 
 // WatchRecord type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/watcher/execute_watch/types.ts#L27-L39
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/watcher/execute_watch/types.ts#L31-L47
 type WatchRecord struct {
-	Condition    WatcherCondition                `json:"condition"`
-	Input        WatcherInput                    `json:"input"`
-	Messages     []string                        `json:"messages"`
+	Condition    *WatcherCondition               `json:"condition,omitempty"`
+	Exception    *ErrorCause                     `json:"exception,omitempty"`
+	Input        *WatcherInput                   `json:"input,omitempty"`
+	Messages     []string                        `json:"messages,omitempty"`
 	Metadata     Metadata                        `json:"metadata,omitempty"`
 	Node         string                          `json:"node"`
-	Result       ExecutionResult                 `json:"result"`
+	Result       *ExecutionResult                `json:"result,omitempty"`
 	State        executionstatus.ExecutionStatus `json:"state"`
 	Status       *WatchStatus                    `json:"status,omitempty"`
+	Timestamp    DateTime                        `json:"@timestamp"`
 	TriggerEvent TriggerEventResult              `json:"trigger_event"`
-	User         string                          `json:"user"`
+	User         *string                         `json:"user,omitempty"`
+	Vars         map[string]json.RawMessage      `json:"vars,omitempty"`
 	WatchId      string                          `json:"watch_id"`
 }
 
@@ -66,6 +69,11 @@ func (s *WatchRecord) UnmarshalJSON(data []byte) error {
 		case "condition":
 			if err := dec.Decode(&s.Condition); err != nil {
 				return fmt.Errorf("%s | %w", "Condition", err)
+			}
+
+		case "exception":
+			if err := dec.Decode(&s.Exception); err != nil {
+				return fmt.Errorf("%s | %w", "Exception", err)
 			}
 
 		case "input":
@@ -110,6 +118,11 @@ func (s *WatchRecord) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("%s | %w", "Status", err)
 			}
 
+		case "@timestamp":
+			if err := dec.Decode(&s.Timestamp); err != nil {
+				return fmt.Errorf("%s | %w", "Timestamp", err)
+			}
+
 		case "trigger_event":
 			if err := dec.Decode(&s.TriggerEvent); err != nil {
 				return fmt.Errorf("%s | %w", "TriggerEvent", err)
@@ -118,6 +131,14 @@ func (s *WatchRecord) UnmarshalJSON(data []byte) error {
 		case "user":
 			if err := dec.Decode(&s.User); err != nil {
 				return fmt.Errorf("%s | %w", "User", err)
+			}
+
+		case "vars":
+			if s.Vars == nil {
+				s.Vars = make(map[string]json.RawMessage, 0)
+			}
+			if err := dec.Decode(&s.Vars); err != nil {
+				return fmt.Errorf("%s | %w", "Vars", err)
 			}
 
 		case "watch_id":
@@ -132,7 +153,9 @@ func (s *WatchRecord) UnmarshalJSON(data []byte) error {
 
 // NewWatchRecord returns a WatchRecord.
 func NewWatchRecord() *WatchRecord {
-	r := &WatchRecord{}
+	r := &WatchRecord{
+		Vars: make(map[string]json.RawMessage),
+	}
 
 	return r
 }

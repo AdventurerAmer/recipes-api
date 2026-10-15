@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Create or update an autoscaling policy.
 //
@@ -91,7 +91,7 @@ func NewPutAutoscalingPolicyFunc(tp elastictransport.Interface) NewPutAutoscalin
 // Elastic Cloud Enterprise, and Elastic Cloud on Kubernetes. Direct use is not
 // supported.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-autoscaling-put-autoscaling-policy
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-autoscaling-put-autoscaling-policy
 func New(tp elastictransport.Interface) *PutAutoscalingPolicy {
 	r := &PutAutoscalingPolicy{
 		transport: tp,

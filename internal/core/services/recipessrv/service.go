@@ -83,12 +83,12 @@ func (srv *service) Search(ctx context.Context, req ports.SearchRecipesRequest) 
 		return ports.SearchRecipesResponse{}, fmt.Errorf("validation failed: %w", err)
 	}
 
-	pageSize := min(req.PageSize, srv.MaxLimit)
-	recipes, total, err := srv.RecipesRepo.Search(ctx, req.Name, req.Page, pageSize)
+	limit := min(req.Limit, srv.MaxLimit)
+	page, err := srv.RecipesRepo.Search(ctx, req.Name, req.Cursor, int64(limit))
 	if err != nil {
 		return ports.SearchRecipesResponse{}, fmt.Errorf("'RecipesRepo.Search' failed: %w", err)
 	}
-	return ports.SearchRecipesResponse{Recipes: recipes, Total: total}, nil
+	return ports.SearchRecipesResponse{Recipes: page.Items, NextCursor: page.NextCursor}, nil
 }
 
 func (srv *service) Update(ctx context.Context, req ports.UpdateRecipeRequest) (ports.UpdateRecipeResponse, error) {

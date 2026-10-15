@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/ThreeDotsLabs/humanslog v0.1.0
-	github.com/elastic/go-elasticsearch/v9 v9.4.1
+	github.com/elastic/go-elasticsearch/v9 v9.5.2
 	github.com/gin-contrib/sessions v1.1.0
 	github.com/gin-contrib/timeout v1.2.1
 	github.com/gin-gonic/gin v1.12.0

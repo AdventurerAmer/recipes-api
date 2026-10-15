@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get anomaly detection job results for categories.
 package getcategories
@@ -86,7 +86,7 @@ func NewGetCategoriesFunc(tp elastictransport.Interface) NewGetCategories {
 
 // Get anomaly detection job results for categories.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-ml-get-categories
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-ml-get-categories
 func New(tp elastictransport.Interface) *GetCategories {
 	r := &GetCategories{
 		transport: tp,

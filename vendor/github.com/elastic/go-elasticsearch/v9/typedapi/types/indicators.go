@@ -16,23 +16,24 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
 // Indicators type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_global/health_report/types.ts#L33-L43
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_global/health_report/types.ts#L33-L44
 type Indicators struct {
-	DataStreamLifecycle *DataStreamLifecycleIndicator `json:"data_stream_lifecycle,omitempty"`
-	Disk                *DiskIndicator                `json:"disk,omitempty"`
-	FileSettings        *FileSettingsIndicator        `json:"file_settings,omitempty"`
-	Ilm                 *IlmIndicator                 `json:"ilm,omitempty"`
-	MasterIsStable      *MasterIsStableIndicator      `json:"master_is_stable,omitempty"`
-	RepositoryIntegrity *RepositoryIntegrityIndicator `json:"repository_integrity,omitempty"`
-	ShardsAvailability  *ShardsAvailabilityIndicator  `json:"shards_availability,omitempty"`
-	ShardsCapacity      *ShardsCapacityIndicator      `json:"shards_capacity,omitempty"`
-	Slm                 *SlmIndicator                 `json:"slm,omitempty"`
+	DataStreamLifecycle  *DataStreamLifecycleIndicator  `json:"data_stream_lifecycle,omitempty"`
+	Disk                 *DiskIndicator                 `json:"disk,omitempty"`
+	FileSettings         *FileSettingsIndicator         `json:"file_settings,omitempty"`
+	Ilm                  *IlmIndicator                  `json:"ilm,omitempty"`
+	MasterIsStable       *MasterIsStableIndicator       `json:"master_is_stable,omitempty"`
+	ProjectEncryptionKey *ProjectEncryptionKeyIndicator `json:"project_encryption_key,omitempty"`
+	RepositoryIntegrity  *RepositoryIntegrityIndicator  `json:"repository_integrity,omitempty"`
+	ShardsAvailability   *ShardsAvailabilityIndicator   `json:"shards_availability,omitempty"`
+	ShardsCapacity       *ShardsCapacityIndicator       `json:"shards_capacity,omitempty"`
+	Slm                  *SlmIndicator                  `json:"slm,omitempty"`
 }
 
 // NewIndicators returns a Indicators.

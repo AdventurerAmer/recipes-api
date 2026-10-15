@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Cancel node shutdown preparations.
 //
@@ -102,7 +102,7 @@ func NewDeleteNodeFunc(tp elastictransport.Interface) NewDeleteNode {
 // If the operator privileges feature is enabled, you must be an operator to use
 // this API.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-shutdown-delete-node
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-shutdown-delete-node
 func New(tp elastictransport.Interface) *DeleteNode {
 	r := &DeleteNode{
 		transport: tp,

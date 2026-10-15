@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,7 +31,7 @@ import (
 
 // Status type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/snapshot/_types/SnapshotStatus.ts#L26-L60
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/snapshot/_types/SnapshotStatus.ts#L26-L60
 type Status struct {
 	// IncludeGlobalState Indicates whether the current cluster state is included in the snapshot.
 	IncludeGlobalState bool                          `json:"include_global_state"`
@@ -44,10 +44,11 @@ type Status struct {
 	Snapshot string `json:"snapshot"`
 	// State The current snapshot state:
 	//
+	//   - `STARTED`: The snapshot is currently running.
+	//   - `SUCCESS`: All shard snapshots have completed. The snapshot may or may
+	//     not have completed finalization.
 	//   - `FAILED`: The snapshot finished with an error and failed to store any
 	//     data.
-	//   - `STARTED`: The snapshot is currently running.
-	//   - `SUCCESS`: The snapshot completed.
 	State string `json:"state"`
 	// Stats Details about the number (`file_count`) and size (`size_in_bytes`) of files
 	// included in the snapshot.

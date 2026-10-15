@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package tags
 
@@ -30,7 +30,7 @@ import (
 
 // Request holds the request body struct for the package tags
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/project/tags/TagsRequest.ts#L23-L53
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/project/tags/TagsRequest.ts#L23-L53
 type Request struct {
 	// ProjectRouting A Lucene query using project metadata tags used to filter which projects are
 	// returned in the response. Examples: _alias:my-project _alias:_origin

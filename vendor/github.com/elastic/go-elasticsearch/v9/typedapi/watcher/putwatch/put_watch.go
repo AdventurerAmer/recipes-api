@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Create or update a watch.
 //
@@ -119,7 +119,7 @@ func NewPutWatchFunc(tp elastictransport.Interface) NewPutWatch {
 // privileges. If the user is able to read index `a`, but not index `b`, the
 // same will apply when the watch runs.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-watcher-put-watch
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-watcher-put-watch
 func New(tp elastictransport.Interface) *PutWatch {
 	r := &PutWatch{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,11 +31,12 @@ import (
 
 // HttpRouteResponses type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/nodes/_types/Stats.ts#L703-L708
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/nodes/_types/Stats.ts#L880-L886
 type HttpRouteResponses struct {
 	Count                 int64               `json:"count"`
 	HandlingTimeHistogram []TimeHttpHistogram `json:"handling_time_histogram"`
 	SizeHistogram         []SizeHttpHistogram `json:"size_histogram"`
+	TotalSize             ByteSize            `json:"total_size,omitempty"`
 	TotalSizeInBytes      int64               `json:"total_size_in_bytes"`
 }
 
@@ -77,6 +78,11 @@ func (s *HttpRouteResponses) UnmarshalJSON(data []byte) error {
 		case "size_histogram":
 			if err := dec.Decode(&s.SizeHistogram); err != nil {
 				return fmt.Errorf("%s | %w", "SizeHistogram", err)
+			}
+
+		case "total_size":
+			if err := dec.Decode(&s.TotalSize); err != nil {
+				return fmt.Errorf("%s | %w", "TotalSize", err)
 			}
 
 		case "total_size_in_bytes":

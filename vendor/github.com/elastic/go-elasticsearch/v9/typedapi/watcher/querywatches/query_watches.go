@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Query watches.
 //
@@ -85,7 +85,7 @@ func NewQueryWatchesFunc(tp elastictransport.Interface) NewQueryWatches {
 //
 // Note that only the `_id` and `metadata.*` fields are queryable or sortable.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-watcher-query-watches
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-watcher-query-watches
 func New(tp elastictransport.Interface) *QueryWatches {
 	r := &QueryWatches{
 		transport: tp,

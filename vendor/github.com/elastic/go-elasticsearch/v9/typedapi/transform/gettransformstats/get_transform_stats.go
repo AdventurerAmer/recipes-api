@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get transform stats.
 //
@@ -82,7 +82,7 @@ func NewGetTransformStatsFunc(tp elastictransport.Interface) NewGetTransformStat
 //
 // Get usage information for transforms.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-transform-get-transform-stats
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-transform-get-transform-stats
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-transform-get-transform-stats
 func New(tp elastictransport.Interface) *GetTransformStats {
@@ -318,6 +318,19 @@ func (r *GetTransformStats) _transformid(transformid string) *GetTransformStats 
 // API name: allow_no_match
 func (r *GetTransformStats) AllowNoMatch(allownomatch bool) *GetTransformStats {
 	r.values.Set("allow_no_match", strconv.FormatBool(allownomatch))
+
+	return r
+}
+
+// Basic If true, the response includes `id`, `state`, `node`, `stats`, `health`, and
+// basic `checkpointing` information (the last and next checkpoint numbers, and
+// the next checkpoint's `position` and `progress`). Skips statistics that
+// require heavy computations to calculate: `operations_behind`,
+// `changes_last_detected_at`, `last_search_time`, and the checkpoint
+// timestamps.
+// API name: basic
+func (r *GetTransformStats) Basic(basic bool) *GetTransformStats {
+	r.values.Set("basic", strconv.FormatBool(basic))
 
 	return r
 }

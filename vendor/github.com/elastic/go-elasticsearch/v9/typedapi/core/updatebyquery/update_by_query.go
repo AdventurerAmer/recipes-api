@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Update documents.
 //
@@ -361,7 +361,7 @@ func NewUpdateByQueryFunc(tp elastictransport.Interface) NewUpdateByQuery {
 // documentation for examples of how to update documents using the
 // `_update_by_query` API:
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-update-by-query
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-update-by-query
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-update-by-query
 func New(tp elastictransport.Interface) *UpdateByQuery {
@@ -735,7 +735,10 @@ func (r *UpdateByQuery) RequestCache(requestcache bool) *UpdateByQuery {
 	return r
 }
 
-// RequestsPerSecond The throttle for this request in sub-requests per second.
+// RequestsPerSecond The maximum number of documents to update per second, across the entire
+// update_by_query operation (including slices). It can be either `-1` to turn
+// off throttling or any decimal number like `1.7` or `12` to throttle to that
+// level.
 // API name: requests_per_second
 func (r *UpdateByQuery) RequestsPerSecond(requestspersecond string) *UpdateByQuery {
 	r.values.Set("requests_per_second", requestspersecond)
@@ -743,10 +746,22 @@ func (r *UpdateByQuery) RequestsPerSecond(requestspersecond string) *UpdateByQue
 	return r
 }
 
-// Routing A custom value used to route operations to a specific shard.
+// Routing A custom value used to route operations to a specific shard. Not allowed when
+// `index.slice.enabled` is `true` for the target index; use `_slice` instead.
 // API name: routing
 func (r *UpdateByQuery) Routing(routings ...string) *UpdateByQuery {
 	r.values.Set("routing", strings.Join(routings, ","))
+
+	return r
+}
+
+// RouteSlice The slice identifier used to route the operation to a specific slice. Use the
+// special value `_all` to target all slices without restricting to a routing
+// value. Required when `index.slice.enabled` is `true` for the target index;
+// not allowed when `index.slice.enabled` is `false`.
+// API name: _slice
+func (r *UpdateByQuery) RouteSlice(routeslice string) *UpdateByQuery {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

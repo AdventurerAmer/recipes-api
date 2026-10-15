@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete a document.
 //
@@ -180,7 +180,7 @@ func NewDeleteFunc(tp elastictransport.Interface) NewDelete {
 // redirected into the primary shard within that ID group and replicated (if
 // needed) to shard replicas within that ID group.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-delete
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-delete
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-delete
 func New(tp elastictransport.Interface) *Delete {
@@ -443,10 +443,22 @@ func (r *Delete) Refresh(refresh refresh.Refresh) *Delete {
 	return r
 }
 
-// Routing A custom value used to route operations to a specific shard.
+// Routing A custom value used to route operations to a specific shard. Not allowed when
+// `index.slice.enabled` is `true` for the target index; use `_slice` instead.
 // API name: routing
 func (r *Delete) Routing(routings ...string) *Delete {
 	r.values.Set("routing", strings.Join(routings, ","))
+
+	return r
+}
+
+// RouteSlice The slice identifier used to route the operation to a specific slice. Use the
+// special value `_all` to target all slices without restricting to a routing
+// value. Required when `index.slice.enabled` is `true` for the target index;
+// not allowed when `index.slice.enabled` is `false`.
+// API name: _slice
+func (r *Delete) RouteSlice(routeslice string) *Delete {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

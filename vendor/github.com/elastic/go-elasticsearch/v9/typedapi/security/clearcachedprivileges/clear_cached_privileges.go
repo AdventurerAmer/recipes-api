@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Clear the privileges cache.
 //
@@ -86,7 +86,7 @@ func NewClearCachedPrivilegesFunc(tp elastictransport.Interface) NewClearCachedP
 // also automatically cleared for applications that have their privileges
 // updated.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-clear-cached-privileges
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-clear-cached-privileges
 func New(tp elastictransport.Interface) *ClearCachedPrivileges {
 	r := &ClearCachedPrivileges{
 		transport: tp,

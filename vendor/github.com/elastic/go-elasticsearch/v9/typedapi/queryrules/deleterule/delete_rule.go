@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete a query rule.
 //
@@ -91,7 +91,7 @@ func NewDeleteRuleFunc(tp elastictransport.Interface) NewDeleteRule {
 // is only recoverable by re-adding the same rule with the create or update
 // query rule API.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-query-rules-delete-rule
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-query-rules-delete-rule
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-query-rules-delete-rule
 func New(tp elastictransport.Interface) *DeleteRule {

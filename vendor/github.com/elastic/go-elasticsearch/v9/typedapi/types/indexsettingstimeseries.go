@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -30,10 +30,14 @@ import (
 
 // IndexSettingsTimeSeries type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/indices/_types/IndexSettings.ts#L361-L364
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/indices/_types/IndexSettings.ts#L376-L387
 type IndexSettingsTimeSeries struct {
 	EndTime   DateTime `json:"end_time,omitempty"`
 	StartTime DateTime `json:"start_time,omitempty"`
+	// TemporalityField The name of the field that stores the temporality of a metric. The referenced
+	// field must be a `keyword` dimension field; if the setting is unset or the
+	// field is missing or invalid, the metric temporality resolves to null.
+	TemporalityField *string `json:"temporality_field,omitempty"`
 }
 
 func (s *IndexSettingsTimeSeries) UnmarshalJSON(data []byte) error {
@@ -59,6 +63,11 @@ func (s *IndexSettingsTimeSeries) UnmarshalJSON(data []byte) error {
 		case "start_time":
 			if err := dec.Decode(&s.StartTime); err != nil {
 				return fmt.Errorf("%s | %w", "StartTime", err)
+			}
+
+		case "temporality_field":
+			if err := dec.Decode(&s.TemporalityField); err != nil {
+				return fmt.Errorf("%s | %w", "TemporalityField", err)
 			}
 
 		}

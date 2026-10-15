@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,9 +31,10 @@ import (
 
 // RefreshStats type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_types/Stats.ts#L262-L269
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_types/Stats.ts#L281-L289
 type RefreshStats struct {
 	ExternalTotal             int64    `json:"external_total"`
+	ExternalTotalTime         Duration `json:"external_total_time,omitempty"`
 	ExternalTotalTimeInMillis int64    `json:"external_total_time_in_millis"`
 	Listeners                 int64    `json:"listeners"`
 	Total                     int64    `json:"total"`
@@ -69,6 +70,11 @@ func (s *RefreshStats) UnmarshalJSON(data []byte) error {
 			case float64:
 				f := int64(v)
 				s.ExternalTotal = f
+			}
+
+		case "external_total_time":
+			if err := dec.Decode(&s.ExternalTotalTime); err != nil {
+				return fmt.Errorf("%s | %w", "ExternalTotalTime", err)
 			}
 
 		case "external_total_time_in_millis":

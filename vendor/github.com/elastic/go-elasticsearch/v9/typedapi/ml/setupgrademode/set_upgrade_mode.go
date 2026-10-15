@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Set upgrade_mode for ML indices.
 //
@@ -94,7 +94,7 @@ func NewSetUpgradeModeFunc(tp elastictransport.Interface) NewSetUpgradeMode {
 // case. You can see the current value for the upgrade_mode setting by using the
 // get machine learning info API.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-ml-set-upgrade-mode
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-ml-set-upgrade-mode
 func New(tp elastictransport.Interface) *SetUpgradeMode {
 	r := &SetUpgradeMode{
 		transport: tp,

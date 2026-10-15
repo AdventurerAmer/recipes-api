@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -26,12 +26,13 @@ import (
 
 // WatcherInput type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/watcher/_types/Input.ts#L87-L95
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/watcher/_types/Input.ts#L89-L98
 type WatcherInput struct {
-	Chain  *ChainInput                `json:"chain,omitempty"`
-	Http   *HttpInput                 `json:"http,omitempty"`
-	Search *SearchInput               `json:"search,omitempty"`
-	Simple map[string]json.RawMessage `json:"simple,omitempty"`
+	Chain     *ChainInput                `json:"chain,omitempty"`
+	Http      *HttpInput                 `json:"http,omitempty"`
+	Search    *SearchInput               `json:"search,omitempty"`
+	Simple    map[string]json.RawMessage `json:"simple,omitempty"`
+	Transform *TransformContainer        `json:"transform,omitempty"`
 }
 
 // NewWatcherInput returns a WatcherInput.

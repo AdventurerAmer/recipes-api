@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,8 +31,16 @@ import (
 
 // TransformDestination type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/transform/_types/Transform.ts#L34-L45
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/transform/_types/Transform.ts#L40-L62
 type TransformDestination struct {
+	// Aliases The aliases that the destination index for the transform should have. Aliases
+	// are manipulated using the stored credentials of the transform, which means
+	// the secondary credentials supplied at creation time (if both primary and
+	// secondary credentials are specified).
+	//
+	// The destination index is added to the aliases regardless of whether the
+	// destination index was created by the transform or pre-created by the user.
+	Aliases []DestinationAlias `json:"aliases,omitempty"`
 	// Index The destination index for the transform. The mappings of the destination
 	// index are deduced based on the source fields when possible. If alternate
 	// mappings are required, use the create index API prior to starting the
@@ -56,6 +64,11 @@ func (s *TransformDestination) UnmarshalJSON(data []byte) error {
 		}
 
 		switch t {
+
+		case "aliases":
+			if err := dec.Decode(&s.Aliases); err != nil {
+				return fmt.Errorf("%s | %w", "Aliases", err)
+			}
 
 		case "index":
 			if err := dec.Decode(&s.Index); err != nil {

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Analyze a snapshot repository.
 //
@@ -446,7 +446,7 @@ func NewRepositoryAnalyzeFunc(tp elastictransport.Interface) NewRepositoryAnalyz
 // increment a counter which is represented as an 8-byte blob. Some operations
 // also verify the behavior on small blobs with sizes other than 8 bytes.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-snapshot-repository-analyze
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-snapshot-repository-analyze
 func New(tp elastictransport.Interface) *RepositoryAnalyze {
 	r := &RepositoryAnalyze{
 		transport: tp,
@@ -672,6 +672,15 @@ func (r *RepositoryAnalyze) _repository(repository string) *RepositoryAnalyze {
 // API name: blob_count
 func (r *RepositoryAnalyze) BlobCount(blobcount int) *RepositoryAnalyze {
 	r.values.Set("blob_count", strconv.Itoa(blobcount))
+
+	return r
+}
+
+// CheckOverwriteProtection Whether to run the overwrite protection check. For realistic experiments,
+// leave this parameter unset.
+// API name: check_overwrite_protection
+func (r *RepositoryAnalyze) CheckOverwriteProtection(checkoverwriteprotection bool) *RepositoryAnalyze {
+	r.values.Set("check_overwrite_protection", strconv.FormatBool(checkoverwriteprotection))
 
 	return r
 }

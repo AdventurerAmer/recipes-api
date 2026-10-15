@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Migrate to data tiers routing.
 //
@@ -109,7 +109,7 @@ func NewMigrateToDataTiersFunc(tp elastictransport.Interface) NewMigrateToDataTi
 // ILM must be stopped before performing the migration. Use the stop ILM and get
 // ILM status APIs to wait until the reported operation mode is `STOPPED`.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-ilm-migrate-to-data-tiers
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-ilm-migrate-to-data-tiers
 func New(tp elastictransport.Interface) *MigrateToDataTiers {
 	r := &MigrateToDataTiers{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Clear cluster voting config exclusions.
 //
@@ -72,7 +72,7 @@ func NewDeleteVotingConfigExclusionsFunc(tp elastictransport.Interface) NewDelet
 //
 // Remove master-eligible nodes from the voting configuration exclusion list.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-cluster-post-voting-config-exclusions
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-cluster-post-voting-config-exclusions
 func New(tp elastictransport.Interface) *DeleteVotingConfigExclusions {
 	r := &DeleteVotingConfigExclusions{
 		transport: tp,

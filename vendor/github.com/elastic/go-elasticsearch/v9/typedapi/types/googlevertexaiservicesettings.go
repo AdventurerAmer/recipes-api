@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -33,7 +33,7 @@ import (
 
 // GoogleVertexAIServiceSettings type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/inference/_types/CommonTypes.ts#L1663-L1748
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/inference/_types/CommonTypes.ts#L1695-L1782
 type GoogleVertexAIServiceSettings struct {
 	// Dimensions For a `text_embedding` task, the number of dimensions the resulting output
 	// embeddings should have. By default, the model's standard output dimension is
@@ -41,7 +41,12 @@ type GoogleVertexAIServiceSettings struct {
 	Dimensions *int `json:"dimensions,omitempty"`
 	// Location The name of the location to use for the inference task for the Google Vertex
 	// AI inference task. For Google Vertex AI, when `provider` is omitted or
-	// `google` `location` is mandatory. For Google Model Garden's `completion` and
+	// `google`, `location` is optional. When `location` is omitted, the request
+	// targets the Google Vertex AI global endpoint
+	// (`https://aiplatform.googleapis.com`); when it is provided, the corresponding
+	// regional endpoint (`https://<location>-aiplatform.googleapis.com`) is used.
+	// The field must be omitted to select the global endpoint; an empty string is
+	// not a valid `location`. For Google Model Garden's `completion` and
 	// `chat_completion` tasks, when `provider` is a supported non-`google` value -
 	// `location` is ignored. Refer to the Google documentation for the list of
 	// supported locations.

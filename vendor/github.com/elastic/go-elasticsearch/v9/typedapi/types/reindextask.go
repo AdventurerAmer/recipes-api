@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,19 +31,19 @@ import (
 
 // ReindexTask type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_global/reindex_rethrottle/types.ts#L31-L43
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_global/reindex_rethrottle/types.ts#L32-L44
 type ReindexTask struct {
-	Action             string        `json:"action"`
-	Cancellable        bool          `json:"cancellable"`
-	Cancelled          bool          `json:"cancelled"`
-	Description        string        `json:"description"`
-	Headers            HttpHeaders   `json:"headers"`
-	Id                 int64         `json:"id"`
-	Node               string        `json:"node"`
-	RunningTimeInNanos int64         `json:"running_time_in_nanos"`
-	StartTimeInMillis  int64         `json:"start_time_in_millis"`
-	Status             ReindexStatus `json:"status"`
-	Type               string        `json:"type"`
+	Action             string              `json:"action"`
+	Cancellable        bool                `json:"cancellable"`
+	Cancelled          bool                `json:"cancelled"`
+	Description        string              `json:"description"`
+	Headers            HttpHeaders         `json:"headers"`
+	Id                 int64               `json:"id"`
+	Node               string              `json:"node"`
+	RunningTimeInNanos int64               `json:"running_time_in_nanos"`
+	StartTimeInMillis  int64               `json:"start_time_in_millis"`
+	Status             ParentReindexStatus `json:"status"`
+	Type               string              `json:"type"`
 }
 
 func (s *ReindexTask) UnmarshalJSON(data []byte) error {

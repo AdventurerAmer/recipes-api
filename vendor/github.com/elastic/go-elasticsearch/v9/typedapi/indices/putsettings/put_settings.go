@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Update index settings.
 //
@@ -197,7 +197,7 @@ func NewPutSettingsFunc(tp elastictransport.Interface) NewPutSettings {
 // indices](https://www.elastic.co/docs/manage-data/data-store/text-analysis/specify-an-analyzer#update-analyzers-on-existing-indices)
 // for step-by-step examples.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-put-settings
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-put-settings
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-indices-put-settings
 func New(tp elastictransport.Interface) *PutSettings {
@@ -1243,6 +1243,18 @@ func (r *PutSettings) Translog(translog types.TranslogVariant) *PutSettings {
 	}
 
 	r.req.Translog = translog.TranslogCaster()
+
+	return r
+}
+
+// API name: unassigned
+func (r *PutSettings) Unassigned(unassigned types.IndexSettingsUnassignedVariant) *PutSettings {
+	// Initialize the request if it is not already initialized
+	if r.req == nil {
+		r.req = NewRequest()
+	}
+
+	r.req.Unassigned = unassigned.IndexSettingsUnassignedCaster()
 
 	return r
 }

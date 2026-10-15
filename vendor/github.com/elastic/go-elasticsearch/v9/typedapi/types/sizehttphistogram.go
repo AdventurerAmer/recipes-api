@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,11 +31,13 @@ import (
 
 // SizeHttpHistogram type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/nodes/_types/Stats.ts#L716-L720
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/nodes/_types/Stats.ts#L896-L902
 type SizeHttpHistogram struct {
-	Count   int64  `json:"count"`
-	GeBytes *int64 `json:"ge_bytes,omitempty"`
-	LtBytes *int64 `json:"lt_bytes,omitempty"`
+	Count   int64    `json:"count"`
+	Ge      ByteSize `json:"ge,omitempty"`
+	GeBytes *int64   `json:"ge_bytes,omitempty"`
+	Lt      ByteSize `json:"lt,omitempty"`
+	LtBytes *int64   `json:"lt_bytes,omitempty"`
 }
 
 func (s *SizeHttpHistogram) UnmarshalJSON(data []byte) error {
@@ -68,6 +70,11 @@ func (s *SizeHttpHistogram) UnmarshalJSON(data []byte) error {
 				s.Count = f
 			}
 
+		case "ge":
+			if err := dec.Decode(&s.Ge); err != nil {
+				return fmt.Errorf("%s | %w", "Ge", err)
+			}
+
 		case "ge_bytes":
 			var tmp any
 			dec.Decode(&tmp)
@@ -81,6 +88,11 @@ func (s *SizeHttpHistogram) UnmarshalJSON(data []byte) error {
 			case float64:
 				f := int64(v)
 				s.GeBytes = &f
+			}
+
+		case "lt":
+			if err := dec.Decode(&s.Lt); err != nil {
+				return fmt.Errorf("%s | %w", "Lt", err)
 			}
 
 		case "lt_bytes":

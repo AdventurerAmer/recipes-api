@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get all tasks.
 //
@@ -25,6 +25,12 @@
 //
 // WARNING: The task management API is new and should still be considered a beta
 // feature. The API may change in ways that are not backwards compatible.
+//
+// For relocatable tasks, this API transparently follows the task across
+// graceful shutdown relocations, so callers can keep using the original task
+// ID. The returned task reports its `original_task_id` and
+// `original_start_time_in_millis` if it is continuing work from an earlier
+// task.
 //
 // # Identifying running tasks
 //
@@ -137,6 +143,12 @@ func NewListFunc(tp elastictransport.Interface) NewList {
 // WARNING: The task management API is new and should still be considered a beta
 // feature. The API may change in ways that are not backwards compatible.
 //
+// For relocatable tasks, this API transparently follows the task across
+// graceful shutdown relocations, so callers can keep using the original task
+// ID. The returned task reports its `original_task_id` and
+// `original_start_time_in_millis` if it is continuing work from an earlier
+// task.
+//
 // # Identifying running tasks
 //
 // The `X-Opaque-Id header`, when provided on the HTTP request header, is going
@@ -191,7 +203,7 @@ func NewListFunc(tp elastictransport.Interface) NewList {
 // `headers` is the child task of the task that was initiated by the REST
 // request.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/group/endpoint-tasks
+// https://www.elastic.co/docs/api/doc/elasticsearch/group/endpoint-tasks
 func New(tp elastictransport.Interface) *List {
 	r := &List{
 		transport: tp,

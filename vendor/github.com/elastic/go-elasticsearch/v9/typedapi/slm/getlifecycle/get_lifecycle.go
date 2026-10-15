@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get policy information.
 //
@@ -82,7 +82,7 @@ func NewGetLifecycleFunc(tp elastictransport.Interface) NewGetLifecycle {
 // Get snapshot lifecycle policy definitions and information about the latest
 // snapshot attempts.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-slm-get-lifecycle
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-slm-get-lifecycle
 func New(tp elastictransport.Interface) *GetLifecycle {
 	r := &GetLifecycle{
 		transport: tp,

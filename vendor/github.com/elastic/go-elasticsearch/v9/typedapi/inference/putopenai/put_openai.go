@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Create an OpenAI inference endpoint.
 //
@@ -95,7 +95,7 @@ func NewPutOpenaiFunc(tp elastictransport.Interface) NewPutOpenai {
 // Create an inference endpoint to perform an inference task with the `openai`
 // service or `openai` compatible APIs.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-inference-put-openai
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-inference-put-openai
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-inference-put-openai
 func New(tp elastictransport.Interface) *PutOpenai {

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get terms in an index.
 //
@@ -99,7 +99,7 @@ func NewTermsEnumFunc(tp elastictransport.Interface) NewTermsEnum {
 // segments are merged that documents are actually deleted. Until that happens,
 // the terms enum API will return terms from these documents.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-terms-enum
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-terms-enum
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-terms-enum
 func New(tp elastictransport.Interface) *TermsEnum {
@@ -410,6 +410,22 @@ func (r *TermsEnum) IndexFilter(indexfilter types.QueryVariant) *TermsEnum {
 	}
 
 	r.req.IndexFilter = indexfilter.QueryCaster()
+
+	return r
+}
+
+// Specifies a subset of projects to target for the search using project
+// metadata tags in a subset of Lucene query syntax. Allowed Lucene queries: the
+// _alias tag and a single value (possibly wildcarded). Examples:
+// _alias:my-project _alias:_origin _alias:*pr* Supported in serverless only.
+// API name: project_routing
+func (r *TermsEnum) ProjectRouting(projectrouting string) *TermsEnum {
+	// Initialize the request if it is not already initialized
+	if r.req == nil {
+		r.req = NewRequest()
+	}
+
+	r.req.ProjectRouting = &projectrouting
 
 	return r
 }

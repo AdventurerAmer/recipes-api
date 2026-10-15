@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,16 +31,18 @@ import (
 
 // Cpu type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/nodes/_types/Stats.ts#L577-L586
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/nodes/_types/Stats.ts#L700-L713
 type Cpu struct {
-	LoadAverage   map[string]Float64 `json:"load_average,omitempty"`
-	Percent       *int               `json:"percent,omitempty"`
-	Sys           Duration           `json:"sys,omitempty"`
-	SysInMillis   *int64             `json:"sys_in_millis,omitempty"`
-	Total         Duration           `json:"total,omitempty"`
-	TotalInMillis *int64             `json:"total_in_millis,omitempty"`
-	User          Duration           `json:"user,omitempty"`
-	UserInMillis  *int64             `json:"user_in_millis,omitempty"`
+	// AvailableProcessors The number of processors available to the Java virtual machine.
+	AvailableProcessors *int               `json:"available_processors,omitempty"`
+	LoadAverage         map[string]Float64 `json:"load_average,omitempty"`
+	Percent             *int               `json:"percent,omitempty"`
+	Sys                 Duration           `json:"sys,omitempty"`
+	SysInMillis         *int64             `json:"sys_in_millis,omitempty"`
+	Total               Duration           `json:"total,omitempty"`
+	TotalInMillis       *int64             `json:"total_in_millis,omitempty"`
+	User                Duration           `json:"user,omitempty"`
+	UserInMillis        *int64             `json:"user_in_millis,omitempty"`
 }
 
 func (s *Cpu) UnmarshalJSON(data []byte) error {
@@ -57,6 +59,22 @@ func (s *Cpu) UnmarshalJSON(data []byte) error {
 		}
 
 		switch t {
+
+		case "available_processors":
+
+			var tmp any
+			dec.Decode(&tmp)
+			switch v := tmp.(type) {
+			case string:
+				value, err := strconv.Atoi(v)
+				if err != nil {
+					return fmt.Errorf("%s | %w", "AvailableProcessors", err)
+				}
+				s.AvailableProcessors = &value
+			case float64:
+				f := int(v)
+				s.AvailableProcessors = &f
+			}
 
 		case "load_average":
 			if s.LoadAverage == nil {

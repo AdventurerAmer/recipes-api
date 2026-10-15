@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package getreindex
 
@@ -26,7 +26,7 @@ import (
 
 // Response holds the response body struct for the package getreindex
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_global/get_reindex/GetReindexResponse.ts#L31-L80
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_global/get_reindex/GetReindexResponse.ts#L31-L80
 type Response struct {
 	// Cancelled Whether the reindex task has been cancelled.
 	Cancelled bool `json:"cancelled"`
@@ -37,7 +37,8 @@ type Response struct {
 	Description *string `json:"description,omitempty"`
 	// Error The error that caused the reindex task to fail, if any.
 	Error *types.ErrorCause `json:"error,omitempty"`
-	// Id The ID of the reindex task, in `nodeId:taskNum` format.
+	// Id The ID of the reindex task. The value is the ID assigned when the task was
+	// first created and remains stable across node-shutdown relocations.
 	Id string `json:"id"`
 	// Response The final result of the completed reindex operation, if the task has finished
 	// successfully.

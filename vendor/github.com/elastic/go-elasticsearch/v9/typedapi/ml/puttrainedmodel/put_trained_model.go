@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Create a trained model.
 //
@@ -90,7 +90,7 @@ func NewPutTrainedModelFunc(tp elastictransport.Interface) NewPutTrainedModel {
 // Enable you to supply a trained model that is not created by data frame
 // analytics.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-ml-put-trained-model
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-ml-put-trained-model
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-ml-put-trained-model
 func New(tp elastictransport.Interface) *PutTrainedModel {
@@ -505,10 +505,9 @@ func (r *PutTrainedModel) ModelType(modeltype trainedmodeltype.TrainedModelType)
 // only works on one platform, because it is heavily optimized for a particular
 // processor architecture and OS combination, then this field specifies which.
 // The format of the string must match the platform identifiers used by
-// Elasticsearch, so one of, `linux-x86_64`, `linux-aarch64`, `darwin-x86_64`,
-// `darwin-aarch64`, or `windows-x86_64`. For portable models (those that work
-// independent of processor architecture or OS features), leave this field
-// unset.
+// Elasticsearch, so one of, `linux-x86_64`, `linux-aarch64`, `darwin-aarch64`,
+// or `windows-x86_64`. For portable models (those that work independent of
+// processor architecture or OS features), leave this field unset.
 // API name: platform_architecture
 func (r *PutTrainedModel) PlatformArchitecture(platformarchitecture string) *PutTrainedModel {
 	// Initialize the request if it is not already initialized

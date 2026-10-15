@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete documents.
 //
@@ -317,7 +317,7 @@ func NewDeleteByQueryFunc(tp elastictransport.Interface) NewDeleteByQuery {
 // status API will continue to list the delete by query task until this task
 // checks that it has been cancelled and terminates itself.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-delete-by-query
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-delete-by-query
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-delete-by-query
 func New(tp elastictransport.Interface) *DeleteByQuery {
@@ -681,7 +681,10 @@ func (r *DeleteByQuery) RequestCache(requestcache bool) *DeleteByQuery {
 	return r
 }
 
-// RequestsPerSecond The throttle for this request in sub-requests per second.
+// RequestsPerSecond The maximum number of documents to delete per second, across the entire
+// delete-by-query operation (including slices). It can be either `-1` to turn
+// off throttling or any decimal number like `1.7` or `12` to throttle to that
+// level.
 // API name: requests_per_second
 func (r *DeleteByQuery) RequestsPerSecond(requestspersecond string) *DeleteByQuery {
 	r.values.Set("requests_per_second", requestspersecond)
@@ -689,10 +692,22 @@ func (r *DeleteByQuery) RequestsPerSecond(requestspersecond string) *DeleteByQue
 	return r
 }
 
-// Routing A custom value used to route operations to a specific shard.
+// Routing A custom value used to route operations to a specific shard. Not allowed when
+// `index.slice.enabled` is `true` for the target index; use `_slice` instead.
 // API name: routing
 func (r *DeleteByQuery) Routing(routings ...string) *DeleteByQuery {
 	r.values.Set("routing", strings.Join(routings, ","))
+
+	return r
+}
+
+// RouteSlice The slice identifier used to route the operation to a specific slice. Use the
+// special value `_all` to target all slices without restricting to a routing
+// value. Required when `index.slice.enabled` is `true` for the target index;
+// not allowed when `index.slice.enabled` is `false`.
+// API name: _slice
+func (r *DeleteByQuery) RouteSlice(routeslice string) *DeleteByQuery {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

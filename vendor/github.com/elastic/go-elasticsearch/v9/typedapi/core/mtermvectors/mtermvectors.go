@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get multiple term vectors.
 //
@@ -106,7 +106,7 @@ func NewMtermvectorsFunc(tp elastictransport.Interface) NewMtermvectors {
 // documents provided in the body of the request. The mapping used is determined
 // by the specified `_index`.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-mtermvectors
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-mtermvectors
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-mtermvectors
 func New(tp elastictransport.Interface) *Mtermvectors {
@@ -401,10 +401,22 @@ func (r *Mtermvectors) Realtime(realtime bool) *Mtermvectors {
 	return r
 }
 
-// Routing A custom value used to route operations to a specific shard.
+// Routing A custom value used to route operations to a specific shard. Not allowed when
+// `index.slice.enabled` is `true` for the target index; use `_slice` instead.
 // API name: routing
 func (r *Mtermvectors) Routing(routings ...string) *Mtermvectors {
 	r.values.Set("routing", strings.Join(routings, ","))
+
+	return r
+}
+
+// RouteSlice The slice identifier used to route the operation to a specific slice. Use the
+// special value `_all` to target all slices without restricting to a routing
+// value. Required when `index.slice.enabled` is `true` for the target index;
+// not allowed when `index.slice.enabled` is `false`.
+// API name: _slice
+func (r *Mtermvectors) RouteSlice(routeslice string) *Mtermvectors {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

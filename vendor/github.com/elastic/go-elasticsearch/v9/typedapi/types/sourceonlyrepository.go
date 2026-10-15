@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -30,7 +30,7 @@ import (
 
 // SourceOnlyRepository type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/snapshot/_types/SnapshotRepository.ts#L104-L114
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/snapshot/_types/SnapshotRepository.ts#L105-L115
 type SourceOnlyRepository struct {
 	// Settings The repository settings.
 	Settings SourceOnlyRepositorySettings `json:"settings"`
@@ -55,8 +55,51 @@ func (s *SourceOnlyRepository) UnmarshalJSON(data []byte) error {
 		switch t {
 
 		case "settings":
-			if err := dec.Decode(&s.Settings); err != nil {
-				return fmt.Errorf("%s | %w", "Settings", err)
+
+			rawMsg := json.RawMessage{}
+			dec.Decode(&rawMsg)
+			source := bytes.NewReader(rawMsg)
+			kind := make(map[string]string, 0)
+			localDec := json.NewDecoder(source)
+			localDec.Decode(&kind)
+			source.Seek(0, io.SeekStart)
+
+			switch kind["delegate_type"] {
+
+			case "fs":
+				o := NewSourceOnlyRepositorySettingsForSharedFileSystem()
+				if err := localDec.Decode(&o); err != nil {
+					return fmt.Errorf("%s | %w", "fs", err)
+				}
+				s.Settings = *o
+			case "url":
+				o := NewSourceOnlyRepositorySettingsForReadOnlyUrl()
+				if err := localDec.Decode(&o); err != nil {
+					return fmt.Errorf("%s | %w", "url", err)
+				}
+				s.Settings = *o
+			case "azure":
+				o := NewSourceOnlyRepositorySettingsForAzure()
+				if err := localDec.Decode(&o); err != nil {
+					return fmt.Errorf("%s | %w", "azure", err)
+				}
+				s.Settings = *o
+			case "gcs":
+				o := NewSourceOnlyRepositorySettingsForGcs()
+				if err := localDec.Decode(&o); err != nil {
+					return fmt.Errorf("%s | %w", "gcs", err)
+				}
+				s.Settings = *o
+			case "s3":
+				o := NewSourceOnlyRepositorySettingsForS3()
+				if err := localDec.Decode(&o); err != nil {
+					return fmt.Errorf("%s | %w", "s3", err)
+				}
+				s.Settings = *o
+			default:
+				if err := localDec.Decode(&s.Settings); err != nil {
+					return fmt.Errorf("Settings | %w", err)
+				}
 			}
 
 		case "type":

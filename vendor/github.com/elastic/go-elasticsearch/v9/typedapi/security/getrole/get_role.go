@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get roles.
 //
@@ -84,7 +84,7 @@ func NewGetRoleFunc(tp elastictransport.Interface) NewGetRole {
 // preferred way to manage roles, rather than using file-based role management.
 // The get roles API cannot retrieve roles that are defined in roles files.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-get-role
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-get-role
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-security-get-role
 func New(tp elastictransport.Interface) *GetRole {
@@ -312,6 +312,17 @@ func (r *GetRole) Header(key, value string) *GetRole {
 func (r *GetRole) Name(name string) *GetRole {
 	r.paramSet |= nameMask
 	r.name = name
+
+	return r
+}
+
+// IncludeImplicit If `true`, include privileges that are implicitly granted by registered
+// `ImplicitPrivilegesProviders` alongside the explicitly configured privileges.
+// Each implicit entry in the response is annotated with `implicitly_granted:
+// true`.
+// API name: include_implicit
+func (r *GetRole) IncludeImplicit(includeimplicit bool) *GetRole {
+	r.values.Set("include_implicit", strconv.FormatBool(includeimplicit))
 
 	return r
 }

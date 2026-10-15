@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get follower information.
 //
@@ -86,7 +86,7 @@ func NewFollowInfoFunc(tp elastictransport.Interface) NewFollowInfo {
 // example, the results include follower index names, leader index names,
 // replication options, and whether the follower indices are active or paused.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-ccr-follow-info
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-ccr-follow-info
 func New(tp elastictransport.Interface) *FollowInfo {
 	r := &FollowInfo{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get cluster repositories metering.
 //
@@ -90,7 +90,7 @@ func NewGetRepositoriesMeteringInfoFunc(tp elastictransport.Interface) NewGetRep
 // time. Additionally, the information exposed by this API is volatile, meaning
 // that it will not be present after node restarts.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-nodes-get-repositories-metering-info
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-nodes-get-repositories-metering-info
 func New(tp elastictransport.Interface) *GetRepositoriesMeteringInfo {
 	r := &GetRepositoriesMeteringInfo{
 		transport: tp,

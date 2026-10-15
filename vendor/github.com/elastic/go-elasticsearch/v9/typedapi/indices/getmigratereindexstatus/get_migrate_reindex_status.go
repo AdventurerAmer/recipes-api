@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get the migration reindexing status.
 //
@@ -82,7 +82,7 @@ func NewGetMigrateReindexStatusFunc(tp elastictransport.Interface) NewGetMigrate
 //
 // Get the status of a migration reindex attempt for a data stream or index.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/group/endpoint-migration
+// https://www.elastic.co/docs/api/doc/elasticsearch/group/endpoint-migration
 func New(tp elastictransport.Interface) *GetMigrateReindexStatus {
 	r := &GetMigrateReindexStatus{
 		transport: tp,

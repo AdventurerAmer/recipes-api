@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Find the structure of a text field.
 //
@@ -124,7 +124,7 @@ func NewFindFieldStructureFunc(tp elastictransport.Interface) NewFindFieldStruct
 // query parameter and an explanation will appear in the response. It helps
 // determine why the returned structure was chosen.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/group/endpoint-text_structure
+// https://www.elastic.co/docs/api/doc/elasticsearch/group/endpoint-text_structure
 func New(tp elastictransport.Interface) *FindFieldStructure {
 	r := &FindFieldStructure{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package count
 
@@ -30,7 +30,7 @@ import (
 
 // Request holds the request body struct for the package count
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/cat/count/CatCountRequest.ts#L23-L85
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/cat/count/CatCountRequest.ts#L23-L85
 type Request struct {
 	// ProjectRouting Specifies a subset of projects to target using project metadata tags in a
 	// subset of Lucene query syntax. Allowed Lucene queries: the _alias tag and a

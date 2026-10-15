@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get security stats.
 //
@@ -74,7 +74,7 @@ func NewGetStatsFunc(tp elastictransport.Interface) NewGetStats {
 //
 // Gather security usage statistics from all node(s) within the cluster.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-security-get-stats
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-security-get-stats
 func New(tp elastictransport.Interface) *GetStats {
 	r := &GetStats{
 		transport: tp,

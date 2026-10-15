@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Close an index.
 //
@@ -129,7 +129,7 @@ func NewCloseFunc(tp elastictransport.Interface) NewClose {
 // problems in managed environments. Closing indices can be turned off with the
 // cluster settings API by setting `cluster.indices.close.enable` to `false`.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-close
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-close
 func New(tp elastictransport.Interface) *Close {
 	r := &Close{
 		transport: tp,

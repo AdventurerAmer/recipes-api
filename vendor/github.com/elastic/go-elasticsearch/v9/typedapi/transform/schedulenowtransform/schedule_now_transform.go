@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Schedule a transform to start now.
 //
@@ -88,7 +88,7 @@ func NewScheduleNowTransformFunc(tp elastictransport.Interface) NewScheduleNowTr
 // frequency interval. After the API is called, the transform will be processed
 // again at `now + frequency` unless the API is called again in the meantime.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-transform-schedule-now-transform
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-transform-schedule-now-transform
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-transform-schedule-now-transform
 func New(tp elastictransport.Interface) *ScheduleNowTransform {
@@ -321,6 +321,16 @@ func (r *ScheduleNowTransform) _transformid(transformid string) *ScheduleNowTran
 // API name: timeout
 func (r *ScheduleNowTransform) Timeout(duration string) *ScheduleNowTransform {
 	r.values.Set("timeout", duration)
+
+	return r
+}
+
+// Defer When true, defers the scheduling by the transform's configured sync delay
+// instead of triggering immediately. The transform will process new data after
+// the delay elapses rather than right away.
+// API name: defer
+func (r *ScheduleNowTransform) Defer(defer_ bool) *ScheduleNowTransform {
+	r.values.Set("defer", strconv.FormatBool(defer_))
 
 	return r
 }

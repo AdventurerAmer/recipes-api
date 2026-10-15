@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -31,7 +31,7 @@ import (
 
 // ScriptTransform type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/_types/Transform.ts#L37-L45
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/_types/Transform.ts#L37-L48
 type ScriptTransform struct {
 	Id     *string                    `json:"id,omitempty"`
 	Lang   *string                    `json:"lang,omitempty"`
@@ -40,6 +40,11 @@ type ScriptTransform struct {
 }
 
 func (s *ScriptTransform) UnmarshalJSON(data []byte) error {
+
+	if !bytes.HasPrefix(data, []byte(`{`)) {
+		err := json.NewDecoder(bytes.NewReader(data)).Decode(&s.Source)
+		return err
+	}
 
 	dec := json.NewDecoder(bytes.NewReader(data))
 

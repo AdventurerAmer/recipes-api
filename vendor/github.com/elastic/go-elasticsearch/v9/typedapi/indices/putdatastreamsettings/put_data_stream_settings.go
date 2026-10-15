@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Update data stream settings.
 //
@@ -102,7 +102,7 @@ func NewPutDataStreamSettingsFunc(tp elastictransport.Interface) NewPutDataStrea
 // change is applied to all backing indices. Otherwise, it will be applied when
 // the data stream is next rolled over.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-put-data-stream-settings
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-put-data-stream-settings
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-indices-put-data-stream-settings
 func New(tp elastictransport.Interface) *PutDataStreamSettings {
@@ -1084,6 +1084,18 @@ func (r *PutDataStreamSettings) Translog(translog types.TranslogVariant) *PutDat
 	}
 
 	r.req.Translog = translog.TranslogCaster()
+
+	return r
+}
+
+// API name: unassigned
+func (r *PutDataStreamSettings) Unassigned(unassigned types.IndexSettingsUnassignedVariant) *PutDataStreamSettings {
+	// Initialize the request if it is not already initialized
+	if r.req == nil {
+		r.req = NewRequest()
+	}
+
+	r.req.Unassigned = unassigned.IndexSettingsUnassignedCaster()
 
 	return r
 }

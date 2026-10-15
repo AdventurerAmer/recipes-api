@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -30,13 +30,14 @@ import (
 
 // ExecutionResult type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/watcher/_types/Execution.ts#L60-L66
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/watcher/_types/Execution.ts#L73-L80
 type ExecutionResult struct {
-	Actions           []ExecutionResultAction  `json:"actions"`
-	Condition         ExecutionResultCondition `json:"condition"`
-	ExecutionDuration int64                    `json:"execution_duration"`
-	ExecutionTime     DateTime                 `json:"execution_time"`
-	Input             ExecutionResultInput     `json:"input"`
+	Actions           []ExecutionResultAction   `json:"actions"`
+	Condition         *ExecutionResultCondition `json:"condition,omitempty"`
+	ExecutionDuration int64                     `json:"execution_duration"`
+	ExecutionTime     DateTime                  `json:"execution_time"`
+	Input             *ExecutionResultInput     `json:"input,omitempty"`
+	Transform         *ExecutionResultTransform `json:"transform,omitempty"`
 }
 
 func (s *ExecutionResult) UnmarshalJSON(data []byte) error {
@@ -77,6 +78,11 @@ func (s *ExecutionResult) UnmarshalJSON(data []byte) error {
 		case "input":
 			if err := dec.Decode(&s.Input); err != nil {
 				return fmt.Errorf("%s | %w", "Input", err)
+			}
+
+		case "transform":
+			if err := dec.Decode(&s.Transform); err != nil {
+				return fmt.Errorf("%s | %w", "Transform", err)
 			}
 
 		}

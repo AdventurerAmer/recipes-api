@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Delete a legacy index template.
 //
@@ -88,7 +88,7 @@ func NewDeleteTemplateFunc(tp elastictransport.Interface) NewDeleteTemplate {
 // deprecated and will be replaced by the composable templates introduced in
 // Elasticsearch 7.8.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-delete-template
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-delete-template
 //
 // Deprecated: Since 7.8.0.
 func New(tp elastictransport.Interface) *DeleteTemplate {

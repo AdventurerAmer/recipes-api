@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Run a search.
 //
@@ -137,7 +137,7 @@ func NewSearchFunc(tp elastictransport.Interface) NewSearch {
 // situation can occur because, by default, the splitting criterion is based on
 // Lucene document IDs, which are not stable across changes to the index.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-search
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-search
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-search
 func New(tp elastictransport.Interface) *Search {
@@ -583,10 +583,23 @@ func (r *Search) RequestCache(requestcache bool) *Search {
 	return r
 }
 
-// Routing A custom value that is used to route operations to a specific shard.
+// Routing A custom value that is used to route operations to a specific shard. Not
+// allowed when `index.slice.enabled` is `true` for the target index; use
+// `_slice` instead.
 // API name: routing
 func (r *Search) Routing(routings ...string) *Search {
 	r.values.Set("routing", strings.Join(routings, ","))
+
+	return r
+}
+
+// RouteSlice The slice identifier used to route the operation to a specific slice. Use the
+// special value `_all` to target all slices without restricting to a routing
+// value. Required when `index.slice.enabled` is `true` for the target index;
+// not allowed when `index.slice.enabled` is `false`.
+// API name: _slice
+func (r *Search) RouteSlice(routeslice string) *Search {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

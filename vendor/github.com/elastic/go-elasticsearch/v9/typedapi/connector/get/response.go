@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package get
 
@@ -35,7 +35,7 @@ import (
 
 // Response holds the response body struct for the package get
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/connector/get/ConnectorGetResponse.ts#L22-L25
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/connector/get/ConnectorGetResponse.ts#L22-L25
 type Response struct {
 	ApiKeyId                         *string                         `json:"api_key_id,omitempty"`
 	ApiKeySecretId                   *string                         `json:"api_key_secret_id,omitempty"`

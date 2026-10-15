@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get task information.
 //
@@ -27,6 +27,12 @@
 //
 // If the task identifier is not found, a 404 response code indicates that there
 // are no resources that match the request.
+//
+// For relocatable tasks, this API transparently follows the task across
+// graceful shutdown relocations, so callers can keep using the original task
+// ID. The returned task reports its `original_task_id` and
+// `original_start_time_in_millis` if it is continuing work from an earlier
+// task.
 package get
 
 import (
@@ -94,7 +100,13 @@ func NewGetFunc(tp elastictransport.Interface) NewGet {
 // If the task identifier is not found, a 404 response code indicates that there
 // are no resources that match the request.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/group/endpoint-tasks
+// For relocatable tasks, this API transparently follows the task across
+// graceful shutdown relocations, so callers can keep using the original task
+// ID. The returned task reports its `original_task_id` and
+// `original_start_time_in_millis` if it is continuing work from an earlier
+// task.
+//
+// https://www.elastic.co/docs/api/doc/elasticsearch/group/endpoint-tasks
 func New(tp elastictransport.Interface) *Get {
 	r := &Get{
 		transport: tp,
@@ -326,6 +338,14 @@ func (r *Get) Timeout(duration string) *Get {
 // API name: wait_for_completion
 func (r *Get) WaitForCompletion(waitforcompletion bool) *Get {
 	r.values.Set("wait_for_completion", strconv.FormatBool(waitforcompletion))
+
+	return r
+}
+
+// FollowRelocations Internal use only
+// API name: follow_relocations
+func (r *Get) FollowRelocations(followrelocations bool) *Get {
+	r.values.Set("follow_relocations", strconv.FormatBool(followrelocations))
 
 	return r
 }

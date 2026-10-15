@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get term vector information.
 //
@@ -179,7 +179,7 @@ func NewTermvectorsFunc(tp elastictransport.Interface) NewTermvectors {
 // `routing` only to hit a particular shard. Refer to the linked documentation
 // for detailed examples of how to use this API.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation/operation-termvectors
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-termvectors
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-termvectors
 func New(tp elastictransport.Interface) *Termvectors {
@@ -448,6 +448,17 @@ func (r *Termvectors) Preference(preference string) *Termvectors {
 // API name: realtime
 func (r *Termvectors) Realtime(realtime bool) *Termvectors {
 	r.values.Set("realtime", strconv.FormatBool(realtime))
+
+	return r
+}
+
+// RouteSlice The slice identifier used to route the operation to a specific slice. Use the
+// special value `_all` to target all slices without restricting to a routing
+// value. Required when `index.slice.enabled` is `true` for the target index;
+// not allowed when `index.slice.enabled` is `false`.
+// API name: _slice
+func (r *Termvectors) RouteSlice(routeslice string) *Termvectors {
+	r.values.Set("_slice", routeslice)
 
 	return r
 }

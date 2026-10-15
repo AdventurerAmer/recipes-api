@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get index statistics.
 //
@@ -107,7 +107,7 @@ func NewStatsFunc(tp elastictransport.Interface) NewStats {
 // cleared. Although the shard is no longer part of the node, that node retains
 // any node-level statistics to which the shard contributed.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-stats
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-stats
 func New(tp elastictransport.Interface) *Stats {
 	r := &Stats{
 		transport: tp,

@@ -1,5 +1,64 @@
 # Changelog
 
+## [9.5.2](https://github.com/elastic/go-elasticsearch/compare/v9.5.1...v9.5.2) (2026-09-01)
+
+
+### Features
+
+* **Typed API:** Update 9.5 client from spec 9665eef ([ed209ac](https://github.com/elastic/go-elasticsearch/commit/ed209ac127eef73f8e96fa929b74219f390ed7ce))
+
+## [9.5.1](https://github.com/elastic/go-elasticsearch/compare/v9.5.0...v9.5.1) (2026-08-25)
+
+
+### Features
+
+* **Typed API:** Update 9.5 client from spec abf9c2c ([#1575](https://github.com/elastic/go-elasticsearch/issues/1575)) ([32a7135](https://github.com/elastic/go-elasticsearch/commit/32a7135a1eafdac53a66055b9bf67f9d3678faef))
+
+## [9.5.0](https://github.com/elastic/go-elasticsearch/compare/v9.4.2...v9.5.0) (2026-08-04)
+
+
+### Features
+
+* Add RouteSlice capabilities ([5b7dd8a](https://github.com/elastic/go-elasticsearch/commit/5b7dd8a71a8bcf62566982709e39d46b0e27be44))
+* **esapi:** Update 9.5 client from spec 4a53326 ([#1541](https://github.com/elastic/go-elasticsearch/issues/1541)) ([bcdfdb7](https://github.com/elastic/go-elasticsearch/commit/bcdfdb7049d1197a15347114dde92e7d9a5827ef))
+* **Typed API:** Update 9.5 client to spec 37285cb ([#1532](https://github.com/elastic/go-elasticsearch/issues/1532)) ([1266ad2](https://github.com/elastic/go-elasticsearch/commit/1266ad245ebc1f0a00dbb248806f64b8ceb0bb3b))
+
+## [9.4.3](https://github.com/elastic/go-elasticsearch/compare/v9.4.2...v9.4.3) (2026-08-04)
+
+
+### Features
+
+* **Typed API:** Update 9.4 client to spec aad9207 [#1533](https://github.com/elastic/go-elasticsearch/issues/1533) ([7732b79](https://github.com/elastic/go-elasticsearch/commit/7732b7986b1a20e70cbda1867b8afc14feadcdae))
+
+## [9.3.6](https://github.com/elastic/go-elasticsearch/compare/v9.3.5...v9.3.6) (2026-08-04)
+
+
+### Features
+
+* **esapi:** Update 9.3 client from spec 17b451d ([#1553](https://github.com/elastic/go-elasticsearch/issues/1553)) ([9b25ff4](https://github.com/elastic/go-elasticsearch/commit/9b25ff4d0dcd505f2ba334d1fa0b12ddc023c067))
+* **Typed API:** Update 9.3 client to spec 17fab0b ([#1531](https://github.com/elastic/go-elasticsearch/issues/1531)) ([02eb5fd](https://github.com/elastic/go-elasticsearch/commit/02eb5fd2c6375c60610ba06850a35fbed04bd625))
+
+## [8.19.7](https://github.com/elastic/go-elasticsearch/compare/v8.19.6...v8.19.7) (2026-07-20)
+
+
+### Features
+
+* **Typed API:** Update 8.19 client to spec c799312 ([#1530](https://github.com/elastic/go-elasticsearch/issues/1530)) ([8f2cb5e](https://github.com/elastic/go-elasticsearch/commit/8f2cb5eb3fcaee71d237872c5dbd1859e61c7e3a))
+
+## [9.4.2](https://github.com/elastic/go-elasticsearch/compare/v9.4.1...v9.4.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* **esutil:** Omit empty routing query param in BulkIndexer ([#1515](https://github.com/elastic/go-elasticsearch/issues/1515)) ([3845bb1](https://github.com/elastic/go-elasticsearch/commit/3845bb1fe082d2276c8de94e911569b4bec1576f))
+
+## [9.3.5](https://github.com/elastic/go-elasticsearch/compare/v9.3.4...v9.3.5) (2026-06-22)
+
+
+### Bug Fixes
+
+* **esutil:** Omit empty routing query param in BulkIndexer ([#1514](https://github.com/elastic/go-elasticsearch/issues/1514)) ([f9640f0](https://github.com/elastic/go-elasticsearch/commit/f9640f0ea7e5f7a48dffd9df737c30de0941b2c9))
+
 ## [9.4.1](https://github.com/elastic/go-elasticsearch/compare/v9.4.0...v9.4.1) (2026-05-11)
 
 
@@ -405,7 +464,7 @@
 
 * This patch release fixes the broken build found in 8.18.0. If you are using the `TypedClient`, you should update to this version.
 
-## [9.0.0](https://github.com/elastic/go-elasticsearch/compare/v8.19.6...v9.0.0) (2025-04-17)
+## [9.0.0](https://github.com/elastic/go-elasticsearch/compare/v8.19.7...v9.0.0) (2025-04-17)
 
 
 * The client now requires **Go 1.23** or later.

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Reload search analyzers.
 //
@@ -121,7 +121,7 @@ func NewReloadSearchAnalyzersFunc(tp elastictransport.Interface) NewReloadSearch
 // this API. This ensures the synonym file is updated everywhere in the cluster
 // in case shards are relocated in the future.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-indices-reload-search-analyzers
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-reload-search-analyzers
 func New(tp elastictransport.Interface) *ReloadSearchAnalyzers {
 	r := &ReloadSearchAnalyzers{
 		transport: tp,

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Update a transform.
 //
@@ -103,7 +103,7 @@ func NewUpdateTransformFunc(tp elastictransport.Interface) NewUpdateTransform {
 // security features are enabled, the transform remembers which roles the user
 // who updated it had at the time of update and runs with those privileges.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-transform-update-transform
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-transform-update-transform
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-transform-update-transform
 func New(tp elastictransport.Interface) *UpdateTransform {

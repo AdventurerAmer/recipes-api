@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Send data to an anomaly detection job for analysis.
 //
@@ -94,7 +94,7 @@ func NewPostDataFunc(tp elastictransport.Interface) NewPostData {
 // at a time. It is not currently possible to post data to multiple jobs using
 // wildcards or a comma-separated list.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-ml-post-data
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-ml-post-data
 //
 // Deprecated: Since 7.11.0. Posting data directly to anomaly detection jobs is
 // deprecated, in a future major version a datafeed will be required.

@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Get rollup job information.
 //
@@ -92,7 +92,7 @@ func NewGetJobsFunc(tp elastictransport.Interface) NewGetJobs {
 // any details about it. For details about a historical rollup job, the rollup
 // capabilities API may be more useful.
 //
-// https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-rollup-get-jobs
+// https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-rollup-get-jobs
 //
 // Deprecated: Since 8.11.0.
 func New(tp elastictransport.Interface) *GetJobs {

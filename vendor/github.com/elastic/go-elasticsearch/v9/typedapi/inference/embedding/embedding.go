@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 // Perform dense embedding inference on the service.
 package embedding
@@ -83,7 +83,7 @@ func NewEmbeddingFunc(tp elastictransport.Interface) NewEmbedding {
 
 // Perform dense embedding inference on the service.
 //
-// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/v9/operation-inference-inference
+// [Elasticsearch] https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-inference-inference
 //
 // [Serverless] https://www.elastic.co/docs/api/doc/elasticsearch-serverless/operation/operation-inference-inference
 func New(tp elastictransport.Interface) *Embedding {
@@ -366,7 +366,11 @@ func (r *Embedding) Pretty(pretty bool) *Embedding {
 }
 
 // Inference input. Either a string, an array of strings, a `content` object, or
-// an array of `content` objects.
+// an array of `content` objects. `content` objects may contain a single item or
+// an array of items. Models that support multiple items per `content` object
+// will return a single embedding for each `content` object, regardless of how
+// many items it contains. Support for multiple items in a single `content`
+// object is available in Elasticsearch 9.5.0 and later.
 //
 // string example:
 //
@@ -402,6 +406,25 @@ func (r *Embedding) Pretty(pretty bool) *Embedding {
 //	      "format": "base64",
 //	      "value": "data:image/jpeg;base64,..."
 //	    }
+//	  }
+//	]
+//
+// Multiple items in one `content` object example (available in Elasticsearch
+// 9.5.0 and later):
+//
+//	"input": [
+//	  {
+//	    "content": [
+//	      {
+//	        "type": "image",
+//	        "format": "base64",
+//	        "value": "data:image/jpeg;base64,..."
+//	      },
+//	      {
+//	        "type": "text",
+//	        "value": "Some text to create an embedding"
+//	      }
+//	    ]
 //	  }
 //	]
 //

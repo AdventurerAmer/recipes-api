@@ -16,7 +16,7 @@
 // under the License.
 
 // Code generated from the elasticsearch-specification DO NOT EDIT.
-// https://github.com/elastic/elasticsearch-specification/tree/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1
+// https://github.com/elastic/elasticsearch-specification/tree/9665eef0d78c41f20c4c83e69b7c8155efd58f24
 
 package types
 
@@ -33,13 +33,13 @@ import (
 
 // Role type.
 //
-// https://github.com/elastic/elasticsearch-specification/blob/fcf537e4be958d56e9c7cafe9076afdc8a91ffc1/specification/security/get_role/types.ts#L32-L54
+// https://github.com/elastic/elasticsearch-specification/blob/9665eef0d78c41f20c4c83e69b7c8155efd58f24/specification/security/get_role/types.ts#L50-L72
 type Role struct {
 	Applications      []ApplicationPrivileges                   `json:"applications"`
 	Cluster           []clusterprivilege.ClusterPrivilege       `json:"cluster"`
 	Description       *string                                   `json:"description,omitempty"`
 	Global            map[string]map[string]map[string][]string `json:"global,omitempty"`
-	Indices           []IndicesPrivileges                       `json:"indices"`
+	Indices           []IndicesPrivilegesRead                   `json:"indices"`
 	Metadata          Metadata                                  `json:"metadata"`
 	RemoteCluster     []RemoteClusterPrivileges                 `json:"remote_cluster,omitempty"`
 	RemoteIndices     []RemoteIndicesPrivileges                 `json:"remote_indices,omitempty"`
