@@ -43,12 +43,12 @@ func (repo *mongoRepo) Create(ctx context.Context, recipe *domain.Recipe) error 
 		if err != nil {
 			return fmt.Errorf("'collection.InsertOne' failed: %w", mongoutils.ToDomainErr(err, "recipe"))
 		}
+		recipe.Id = result.InsertedID.(primitive.ObjectID).Hex()
 
 		if err := repo.TextSearch.Index(tctx, "recipes", recipe.Id, recipe); err != nil {
 			return fmt.Errorf("'textSearch.Index' failed: %w", err)
 		}
 
-		recipe.Id = result.InsertedID.(primitive.ObjectID).Hex()
 		return nil
 	}
 
@@ -149,7 +149,7 @@ func (repo *mongoRepo) List(ctx context.Context, cursor, userId string, limit in
 }
 
 func (repo *mongoRepo) Search(ctx context.Context, name, cursor string, limit int64) (*domain.Page[domain.Recipe], error) {
-	results, next, err := repo.TextSearch.Search(ctx, "recipes", cursor, limit)
+	results, next, err := repo.TextSearch.Search(ctx, "recipes", "name", name, cursor, limit)
 	if err != nil {
 		return nil, fmt.Errorf("'TextSearch.Search': %w", err)
 	}
@@ -166,7 +166,6 @@ func (repo *mongoRepo) Search(ctx context.Context, name, cursor string, limit in
 	page := &domain.Page[domain.Recipe]{
 		Items:      items,
 		NextCursor: next,
-		HasNext:    next != "",
 	}
 
 	return page, nil
@@ -209,11 +208,12 @@ func (repo *mongoRepo) Update(ctx context.Context, recipe *domain.Recipe) error 
 			return fmt.Errorf("'Cache.IncDelPrev' failed: %w", err)
 		}
 
+		recipe.Version += 1
+
 		if err := repo.TextSearch.Index(tctx, "recipes", recipe.Id, recipe); err != nil {
 			return fmt.Errorf("'textSearch.Index' failed: %w", err)
 		}
 
-		recipe.Version += 1
 		return nil
 	}
 

@@ -75,22 +75,21 @@ func (ts *textSearch) Index(ctx context.Context, index, id string, document any)
 	return nil
 }
 
-func (ts *textSearch) Search(ctx context.Context, index, cursor string, limit int64) ([]json.RawMessage, string, error) {
+func (ts *textSearch) Search(ctx context.Context, index, field, value string, cursor string, limit int64) ([]json.RawMessage, string, error) {
 	type elasticCursor struct {
-		PitId string             `json:"pitId"`
-		Next  []types.FieldValue `json:"next"`
+		After []types.FieldValue `json:"after"`
 	}
-	keepAlive := "2m"
+
+	keepAlive := "1m"
 	var ec elasticCursor
-	if cursor == "" {
-		pitRes, err := ts.client.OpenPointInTime(index).
-			KeepAlive(keepAlive).
-			Do(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("open PIT: %w", err)
-		}
-		ec.PitId = pitRes.Id
-	} else {
+	pitRes, err := ts.client.OpenPointInTime(index).
+		KeepAlive(keepAlive).
+		Do(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("'ts.client.OpenPointInTime' failed: %w", err)
+	}
+
+	if cursor != "" {
 		data, err := hex.DecodeString(cursor)
 		if err != nil {
 			return nil, "", fmt.Errorf("'hex.DecodeString' failed: %w", err)
@@ -102,22 +101,22 @@ func (ts *textSearch) Search(ctx context.Context, index, cursor string, limit in
 
 	req := ts.client.Search().
 		Size(int(limit+1)).
-		Sort(esdsl.NewSortOptions().AddSortOption("createdAt", esdsl.NewFieldSort(sortorder.Desc)),
-			esdsl.NewSortOptions().AddSortOption("_shard_doc", esdsl.NewFieldSort(sortorder.Asc))).
+		Query(esdsl.NewMatchPhrasePrefixQuery(field, value)).
+		Sort(esdsl.NewSortOptions().
+			AddSortOption("createdAt", esdsl.NewFieldSort(sortorder.Desc)),
+			esdsl.NewSortOptions().
+				AddSortOption("_shard_doc", esdsl.NewFieldSort(sortorder.Asc))).
 		Pit(&types.PointInTimeReference{
-			Id:        ec.PitId,
+			Id:        pitRes.Id,
 			KeepAlive: keepAlive,
 		})
-	if len(ec.Next) > 0 {
-		req = req.SearchAfterValues(ec.Next)
+	if len(ec.After) > 0 {
+		req = req.SearchAfterValues(ec.After)
 	}
+
 	res, err := req.Do(ctx)
 	if err != nil {
 		return nil, "", fmt.Errorf("'req.Do' failed: %w", err)
-	}
-	// Elasticsearch may return an updated PIT ID – always use the latest one
-	if res.PitId != nil {
-		ec.PitId = *res.PitId
 	}
 
 	hits := res.Hits.Hits
@@ -125,22 +124,23 @@ func (ts *textSearch) Search(ctx context.Context, index, cursor string, limit in
 		return nil, "", nil
 	}
 
-	results := make([]json.RawMessage, len(hits))
+	results := make([]json.RawMessage, 0, len(hits))
 
 	for _, hit := range hits {
 		results = append(results, hit.Source_)
 	}
 
-	if len(hits) == int(limit)+1 {
-		lastHit := hits[len(hits)-1]
-		ec.Next = lastHit.Sort
+	if len(hits) == int(limit+1) {
+		lastHit := hits[len(hits)-2]
+		ec.After = lastHit.Sort
 
 		data, err := json.Marshal(ec)
 		if err != nil {
 			return nil, "", fmt.Errorf("'json.Marshal' failed: %w", err)
 		}
 
-		return results[:limit], hex.EncodeToString(data), nil
+		ret := results[:limit]
+		return ret, hex.EncodeToString(data), nil
 	}
 	return results, "", nil
 }

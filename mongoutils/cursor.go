@@ -55,8 +55,7 @@ func FindCursorPaginated[T domain.Pager](ctx context.Context,
 	}
 
 	page := &domain.Page[T]{
-		Items:   items,
-		HasNext: hasNext,
+		Items: items,
 	}
 
 	if len(page.Items) > 0 {
