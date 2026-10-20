@@ -1,0 +1,35 @@
+info:
+  name: Update
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: http://localhost:3000/api/v1/recipes/6ac51365acaf66a21713b08a
+  body:
+    type: multipart-form
+    data:
+      - name: recipe
+        type: text
+        value: |-
+          {
+          "name": "abc",
+          "tags": [
+          "abc"
+          ],
+          "ingredients": [
+          "abc"
+          ],
+          "instructions": [
+          "abc"
+          ]
+          }
+        contentType: application/json
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

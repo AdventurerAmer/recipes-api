@@ -1,0 +1,26 @@
+info:
+  name: Search
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/recipes/search?limit=1&name=a&cursor=7b226166746572223a5b313739313239363930363233372c315d7d
+  params:
+    - name: limit
+      value: "1"
+      type: query
+    - name: name
+      value: a
+      type: query
+    - name: cursor
+      value: 7b226166746572223a5b313739313239363930363233372c315d7d
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

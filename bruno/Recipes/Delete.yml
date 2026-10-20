@@ -1,0 +1,35 @@
+info:
+  name: Delete
+  type: http
+  seq: 4
+
+http:
+  method: DELETE
+  url: http://localhost:3000/api/v1/recipes/6ac513d543381a2b1a9d75d0
+  body:
+    type: multipart-form
+    data:
+      - name: recipe
+        type: text
+        value: |-
+          {
+          "name": "abc",
+          "tags": [
+          "abc"
+          ],
+          "ingredients": [
+          "abc"
+          ],
+          "instructions": [
+          "abc"
+          ]
+          }
+        contentType: application/json
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,40 @@
+info:
+  name: Create
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/recipes
+  body:
+    type: multipart-form
+    data:
+      - name: image
+        type: file
+        value:
+          - D:\Programming\3bc2e0aba6fa30bd5432554f2f8b740a.jpg
+        contentType: image/jpeg
+      - name: recipe
+        type: text
+        value: |-
+          {
+          "name": "abc",
+          "tags": [
+          "abc"
+          ],
+          "ingredients": [
+          "abc"
+          ],
+          "instructions": [
+          "abc"
+          ]
+          }
+        contentType: application/json
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
